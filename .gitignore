@@ -2,7 +2,6 @@
 __pycache__/
 *.pyc
 *.egg-info/
-dist/
 build/
 .eggs/
 *.egg
@@ -11,3 +10,15 @@ build/
 venv/
 imported/
 processed/
+
+# Rust
+/target/
+Cargo.lock
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.cursor/
+
+# Tauri generated
+crates/charmera-app/gen/

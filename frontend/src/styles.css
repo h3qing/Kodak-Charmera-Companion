@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* === Vintage Kodak Design System === */
+
+@theme {
+  /* Kodak color palette */
+  --color-kodak-amber: #D4A843;
+  --color-kodak-amber-light: #E8C968;
+  --color-kodak-amber-dark: #B8912F;
+  --color-kodak-red: #C94040;
+  --color-kodak-red-light: #E05555;
+  --color-kodak-charcoal: #2A2A2A;
+  --color-kodak-charcoal-light: #3D3D3D;
+  --color-kodak-cream: #F5F0E8;
+  --color-kodak-cream-dark: #E8DFD0;
+  --color-kodak-brown-dark: #1A1614;
+  --color-kodak-brown: #2D2420;
+  --color-kodak-warm-gray: #8A7E72;
+  --color-kodak-film-border: #1C1C1C;
+
+  /* Spacing uses 4px base */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+
+  /* Typography */
+  --font-display: "Nunito", system-ui, -apple-system, sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Menlo", monospace;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 9999px;
+}
+
+/* Base styles */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--color-kodak-cream);
+  color: var(--color-kodak-charcoal);
+  font-family: var(--font-body);
+}
+
+/* Vintage film grain overlay (subtle) */
+#root::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  opacity: 0.015;
+  pointer-events: none;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Scrollbar styling (retro) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-kodak-cream-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-kodak-warm-gray);
+  border-radius: var(--radius-pill);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-kodak-amber-dark);
+}
+
+/* Prevent text selection on UI elements */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}

@@ -1,0 +1,25 @@
+[package]
+name = "charmera-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kodak Charmera Companion desktop app"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+charmera-core = { workspace = true }
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+dirs-next = "2"
+blake3 = "1"
+base64 = "0.22"
+image = "0.25"

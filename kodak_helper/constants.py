@@ -27,7 +27,7 @@ VOLUME_PATHS = (
 )
 
 # Renaming
-DATE_FORMAT_EXIF = "%Y:%m:%d:%H:%M:%S"
+DATE_FORMAT_EXIF = "%Y:%m:%d %H:%M:%S"
 DATE_FORMAT_FILENAME = "%m-%d-%Y"
 
 # Effects
