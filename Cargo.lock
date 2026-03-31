@@ -518,6 +518,7 @@ dependencies = [
  "base64 0.22.1",
  "blake3",
  "charmera-core",
+ "chrono",
  "dirs-next",
  "image 0.25.10",
  "rusqlite",
