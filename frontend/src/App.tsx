@@ -9,6 +9,7 @@ import SettingsView from "./components/shared/SettingsView";
 import DuplicatesView from "./components/shared/DuplicatesView";
 import SmartAlbumsView from "./components/shared/SmartAlbumsView";
 import SplashEditor from "./components/shared/SplashEditor";
+import Toast from "./components/shared/Toast";
 import { useLibrary } from "./stores/library";
 import { searchPhotos, type PhotoSummary } from "./lib/tauri";
 
@@ -205,7 +206,7 @@ export default function App() {
                     <p class="text-xs mt-1 opacity-60">Import photos from your camera to see them here.</p>
                   </div>
                 }>
-                  <PhotoGrid photos={library.recentPhotos()} />
+                  <PhotoGrid photos={library.recentPhotos()} onRefresh={library.refreshRecentPhotos} />
                 </Show>
               </div>
             );
@@ -214,10 +215,10 @@ export default function App() {
                 <p class="text-sm text-kodak-warm-gray mb-2">
                   {searchResults()!.length} results for "{searchQuery()}"
                 </p>
-                <PhotoGrid photos={searchResults()!} />
+                <PhotoGrid photos={searchResults()!} onRefresh={library.refreshPhotos} />
               </div>
             );
-            return <PhotoGrid photos={library.photos()} />;
+            return <PhotoGrid photos={library.photos()} onRefresh={library.refreshPhotos} />;
           })()}
         </div>
 
@@ -281,6 +282,8 @@ export default function App() {
           </div>
         </div>
       </Show>
+
+      <Toast />
     </div>
   );
 }
