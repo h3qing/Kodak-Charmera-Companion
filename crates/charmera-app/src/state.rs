@@ -1,9 +1,9 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 use anyhow::{Context, Result};
-use charmera_core::catalog::{Catalog, PhotoInsert, PhotoSummary};
 use charmera_core::catalog::WriteOp;
+use charmera_core::catalog::{Catalog, PhotoInsert, PhotoSummary};
 use serde::Serialize;
 
 #[derive(Serialize, Clone)]
@@ -86,13 +86,19 @@ impl AppState {
 
     /// Get a setting value.
     pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         catalog.get_setting(key)
     }
 
     /// Set a setting value.
     pub fn set_setting(&self, key: &str, value: &str) -> Result<()> {
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         catalog.write(WriteOp::SetSetting(key.to_string(), value.to_string()))
     }
 
@@ -103,13 +109,13 @@ impl AppState {
         let mut imported = 0u32;
         let mut skipped = 0u32;
 
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
 
         for file_path in &files {
-            let ext = file_path
-                .extension()
-                .and_then(|e| e.to_str())
-                .unwrap_or("");
+            let ext = file_path.extension().and_then(|e| e.to_str()).unwrap_or("");
             if !matches!(ext.to_lowercase().as_str(), "jpg" | "jpeg") {
                 skipped += 1;
                 continue;
@@ -120,8 +126,8 @@ impl AppState {
             let hash = blake3::hash(&file_bytes);
             let hash_bytes = hash.as_bytes().to_vec();
 
-            let (width, height) = charmera_core::thumbnails::get_image_dimensions(file_path)
-                .unwrap_or((0, 0));
+            let (width, height) =
+                charmera_core::thumbnails::get_image_dimensions(file_path).unwrap_or((0, 0));
 
             let thumb_result = charmera_core::thumbnails::generate_thumbnail(
                 file_path,
@@ -167,15 +173,24 @@ impl AppState {
         // Give writer task time to process
         std::thread::sleep(std::time::Duration::from_millis(100));
         tracing::info!("import complete: {imported} imported, {skipped} skipped");
-        Ok(ImportResult { imported, skipped, total_files })
+        Ok(ImportResult {
+            imported,
+            skipped,
+            total_files,
+        })
     }
 
     pub fn catalog_lock(&self) -> Result<std::sync::MutexGuard<'_, Catalog>> {
-        self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))
+        self.catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))
     }
 
     pub fn get_photos(&self, offset: u32, limit: u32) -> Result<PhotoPage> {
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         let (photos, total) = catalog.get_photos(offset, limit, false)?;
         Ok(PhotoPage { photos, total })
     }
@@ -183,7 +198,10 @@ impl AppState {
     /// Get the best available image path for a photo.
     /// Tries original file first, falls back to thumbnail if original is unavailable.
     pub fn get_photo_file_path(&self, id: i64) -> Result<String> {
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         let (file_path, thumb_path): (String, Option<String>) = catalog.read_conn().query_row(
             "SELECT file_path, thumbnail_path FROM photos WHERE id = ?1",
             [id],
@@ -211,8 +229,7 @@ impl AppState {
         frame: Option<&str>,
     ) -> Result<String> {
         let file_path = self.get_photo_file_path(id)?;
-        let img = image::open(&file_path)
-            .with_context(|| format!("opening {file_path}"))?;
+        let img = image::open(&file_path).with_context(|| format!("opening {file_path}"))?;
 
         // Resize for preview speed (max 800px on long edge)
         let preview = img.resize(800, 800, image::imageops::FilterType::Triangle);
@@ -246,7 +263,10 @@ impl AppState {
 
     /// Get unlabeled photos for auto-labeling.
     pub fn get_unlabeled_photos(&self) -> Result<Vec<(i64, String, Option<String>)>> {
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         let mut stmt = catalog.read_conn().prepare(
             "SELECT id, file_path, thumbnail_path FROM photos
              WHERE (description IS NULL OR description = '') AND is_hidden = 0",
@@ -260,7 +280,10 @@ impl AppState {
 
     /// Store a single photo's AI label results.
     pub fn store_label(&self, id: i64, label: &charmera_core::ai::PhotoLabel) -> Result<()> {
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
 
         catalog.write(charmera_core::catalog::WriteOp::UpdatePhotoDescription(
             id,
@@ -288,10 +311,14 @@ impl AppState {
     /// Get rename proposals based on AI descriptions and naming pattern.
     pub fn get_rename_proposals(&self) -> Result<Vec<RenameProposal>> {
         // Read naming pattern before locking catalog to avoid deadlock
-        let pattern = self.get_setting("naming_pattern")?
+        let pattern = self
+            .get_setting("naming_pattern")?
             .unwrap_or_else(|| "b {MM}-{DD}-{YYYY} {content}".to_string());
 
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         let mut stmt = catalog.read_conn().prepare(
             "SELECT id, file_path, original_name, description, thumbnail_path, taken_at
              FROM photos
@@ -328,41 +355,64 @@ impl AppState {
                     (name, e, stem)
                 };
 
-                Ok((id, file_path, current_name, description, thumbnail_path, taken_at, ext, orig_stem))
+                Ok((
+                    id,
+                    file_path,
+                    current_name,
+                    description,
+                    thumbnail_path,
+                    taken_at,
+                    ext,
+                    orig_stem,
+                ))
             })?
             .filter_map(|r| r.ok())
-            .map(|(id, file_path, current_name, description, thumbnail_path, taken_at, ext, orig_stem)| {
-                let proposed = charmera_core::import::apply_naming_pattern(
-                    &pattern,
-                    taken_at.as_deref(),
-                    &description,
-                    counter,
-                    &orig_stem,
-                );
-                counter += 1;
-
-                let proposed_name = if proposed.is_empty() {
-                    current_name.clone()
-                } else {
-                    format!("{proposed}.{ext}")
-                };
-
-                RenameProposal {
+            .map(
+                |(
                     id,
-                    current_name,
-                    proposed_name,
-                    description,
                     file_path,
+                    current_name,
+                    description,
                     thumbnail_path,
-                }
-            })
+                    taken_at,
+                    ext,
+                    orig_stem,
+                )| {
+                    let proposed = charmera_core::import::apply_naming_pattern(
+                        &pattern,
+                        taken_at.as_deref(),
+                        &description,
+                        counter,
+                        &orig_stem,
+                    );
+                    counter += 1;
+
+                    let proposed_name = if proposed.is_empty() {
+                        current_name.clone()
+                    } else {
+                        format!("{proposed}.{ext}")
+                    };
+
+                    RenameProposal {
+                        id,
+                        current_name,
+                        proposed_name,
+                        description,
+                        file_path,
+                        thumbnail_path,
+                    }
+                },
+            )
             .collect();
         Ok(proposals)
     }
 
     /// Apply approved renames.
     pub fn apply_renames(&self, renames: &[(i64, String)]) -> Result<u32> {
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         let mut count = 0u32;
 
         for (id, new_name) in renames {
@@ -380,12 +430,16 @@ impl AppState {
 
             let new_path = path.with_file_name(new_name);
             if new_path.exists() {
-                tracing::warn!("skipping rename for {id}: target exists: {}", new_path.display());
+                tracing::warn!(
+                    "skipping rename for {id}: target exists: {}",
+                    new_path.display()
+                );
                 continue;
             }
 
-            std::fs::rename(path, &new_path)
-                .with_context(|| format!("renaming {} -> {}", path.display(), new_path.display()))?;
+            std::fs::rename(path, &new_path).with_context(|| {
+                format!("renaming {} -> {}", path.display(), new_path.display())
+            })?;
 
             // Update catalog
             catalog.write(charmera_core::catalog::WriteOp::Custom(Box::new({
@@ -409,12 +463,18 @@ impl AppState {
     }
 
     pub fn get_all_tags(&self) -> Result<Vec<charmera_core::catalog::TagInfo>> {
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         catalog.get_all_tags()
     }
 
     pub fn search_by_tag(&self, tag: &str) -> Result<PhotoPage> {
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         let mut stmt = catalog.read_conn().prepare(
             "SELECT DISTINCT p.id, p.relative_path, p.thumbnail_path,
                     p.width, p.height, p.taken_at, p.rating
@@ -444,14 +504,20 @@ impl AppState {
     }
 
     pub fn search_photos(&self, query: &str) -> Result<PhotoPage> {
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         let photos = catalog.search_text(query, 100)?;
         let total = photos.len() as u32;
         Ok(PhotoPage { photos, total })
     }
 
     pub fn get_photo_labels(&self, id: i64) -> Result<PhotoLabels> {
-        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
 
         let description: Option<String> = catalog.read_conn().query_row(
             "SELECT description FROM photos WHERE id = ?1",

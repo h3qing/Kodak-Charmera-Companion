@@ -67,9 +67,7 @@ pub fn label_photo_bytes(image_bytes: &[u8]) -> Result<PhotoLabel> {
         anyhow::bail!("ollama error: {err}");
     }
 
-    let response_text = ollama_resp
-        .response
-        .unwrap_or_default();
+    let response_text = ollama_resp.response.unwrap_or_default();
 
     parse_label_response(&response_text)
 }
@@ -107,16 +105,74 @@ fn parse_label_response(text: &str) -> Result<PhotoLabel> {
 
 fn extract_basic_tags(description: &str) -> Vec<String> {
     let keywords = [
-        "outdoor", "indoor", "dog", "cat", "person", "people", "car", "food",
-        "nature", "sky", "water", "beach", "mountain", "tree", "flower",
-        "building", "street", "road", "night", "sunset", "sunrise",
-        "grass", "snow", "rain", "animal", "bird", "house", "garden",
-        "window", "door", "table", "chair", "couch", "bed", "kitchen",
-        "bathroom", "selfie", "portrait", "landscape", "city", "park",
-        "ocean", "lake", "river", "bridge", "forest", "field",
-        "child", "baby", "family", "group", "pet", "plant", "book",
-        "phone", "computer", "desk", "shelf", "wall", "floor", "ceiling",
-        "light", "dark", "colorful", "close-up", "wide", "sunny", "cloudy",
+        "outdoor",
+        "indoor",
+        "dog",
+        "cat",
+        "person",
+        "people",
+        "car",
+        "food",
+        "nature",
+        "sky",
+        "water",
+        "beach",
+        "mountain",
+        "tree",
+        "flower",
+        "building",
+        "street",
+        "road",
+        "night",
+        "sunset",
+        "sunrise",
+        "grass",
+        "snow",
+        "rain",
+        "animal",
+        "bird",
+        "house",
+        "garden",
+        "window",
+        "door",
+        "table",
+        "chair",
+        "couch",
+        "bed",
+        "kitchen",
+        "bathroom",
+        "selfie",
+        "portrait",
+        "landscape",
+        "city",
+        "park",
+        "ocean",
+        "lake",
+        "river",
+        "bridge",
+        "forest",
+        "field",
+        "child",
+        "baby",
+        "family",
+        "group",
+        "pet",
+        "plant",
+        "book",
+        "phone",
+        "computer",
+        "desk",
+        "shelf",
+        "wall",
+        "floor",
+        "ceiling",
+        "light",
+        "dark",
+        "colorful",
+        "close-up",
+        "wide",
+        "sunny",
+        "cloudy",
     ];
 
     let desc_lower = description.to_lowercase();
@@ -125,7 +181,8 @@ fn extract_basic_tags(description: &str) -> Vec<String> {
         .filter(|k| {
             // Match whole words to avoid partial matches
             let k_str = **k;
-            desc_lower.split(|c: char| !c.is_alphanumeric() && c != '-')
+            desc_lower
+                .split(|c: char| !c.is_alphanumeric() && c != '-')
                 .any(|word| word == k_str)
         })
         .map(|k| k.to_string())
@@ -152,7 +209,10 @@ mod tests {
     fn parse_unstructured_response() {
         let text = "A brown dog sits on the couch in a cozy indoor room.";
         let label = parse_label_response(text).unwrap();
-        assert_eq!(label.description, "A brown dog sits on the couch in a cozy indoor room.");
+        assert_eq!(
+            label.description,
+            "A brown dog sits on the couch in a cozy indoor room."
+        );
         assert!(label.tags.contains(&"dog".to_string()));
         assert!(label.tags.contains(&"indoor".to_string()));
         assert!(label.tags.contains(&"couch".to_string()));

@@ -3,17 +3,13 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use image::imageops::FilterType;
 
-use crate::constants::{THUMBNAIL_QUALITY, THUMBNAIL_SIZE};
+use crate::constants::THUMBNAIL_SIZE;
 
 /// Generate a thumbnail and save to the cache directory.
 /// Returns the path to the saved thumbnail.
-pub fn generate_thumbnail(
-    source: &Path,
-    cache_dir: &Path,
-    file_hash: &[u8],
-) -> Result<PathBuf> {
-    let img = image::open(source)
-        .with_context(|| format!("opening image: {}", source.display()))?;
+pub fn generate_thumbnail(source: &Path, cache_dir: &Path, file_hash: &[u8]) -> Result<PathBuf> {
+    let img =
+        image::open(source).with_context(|| format!("opening image: {}", source.display()))?;
 
     let thumb = img.resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, FilterType::Lanczos3);
 
@@ -33,8 +29,8 @@ pub fn generate_thumbnail(
 
 /// Get image dimensions without decoding the full image.
 pub fn get_image_dimensions(path: &Path) -> Result<(u32, u32)> {
-    let reader = image::ImageReader::open(path)
-        .with_context(|| format!("opening: {}", path.display()))?;
+    let reader =
+        image::ImageReader::open(path).with_context(|| format!("opening: {}", path.display()))?;
     let (w, h) = reader
         .into_dimensions()
         .with_context(|| format!("reading dimensions: {}", path.display()))?;
@@ -42,10 +38,7 @@ pub fn get_image_dimensions(path: &Path) -> Result<(u32, u32)> {
 }
 
 fn hex_prefix(hash: &[u8]) -> String {
-    hash.iter()
-        .take(16)
-        .map(|b| format!("{b:02x}"))
-        .collect()
+    hash.iter().take(16).map(|b| format!("{b:02x}")).collect()
 }
 
 #[cfg(test)]

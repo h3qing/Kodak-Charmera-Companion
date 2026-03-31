@@ -27,10 +27,8 @@ pub fn export_photo(
         std::fs::File::create(dest)
             .with_context(|| format!("creating export: {}", dest.display()))?,
     );
-    let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(
-        &mut buf,
-        DEFAULT_JPEG_QUALITY,
-    );
+    let encoder =
+        image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, DEFAULT_JPEG_QUALITY);
     rgb.write_with_encoder(encoder)
         .with_context(|| "encoding export JPEG")?;
 

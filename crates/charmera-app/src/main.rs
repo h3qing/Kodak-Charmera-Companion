@@ -42,22 +42,19 @@ fn list_camera_files(source: String) -> Result<Vec<state::FileInfo>, String> {
 }
 
 #[tauri::command]
-fn import_folder(
-    app: tauri::AppHandle,
-    source: String,
-) -> Result<state::ImportResult, String> {
+fn import_folder(app: tauri::AppHandle, source: String) -> Result<state::ImportResult, String> {
     let app_state = app.state::<AppState>();
-    app_state.import_from_path(&source).map_err(|e| e.to_string())
+    app_state
+        .import_from_path(&source)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_photos(
-    app: tauri::AppHandle,
-    offset: u32,
-    limit: u32,
-) -> Result<state::PhotoPage, String> {
+fn get_photos(app: tauri::AppHandle, offset: u32, limit: u32) -> Result<state::PhotoPage, String> {
     let app_state = app.state::<AppState>();
-    app_state.get_photos(offset, limit).map_err(|e| e.to_string())
+    app_state
+        .get_photos(offset, limit)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -68,7 +65,9 @@ fn get_thumbnail_base64(path: String) -> Result<String, String> {
 #[tauri::command]
 fn get_photo_base64(app: tauri::AppHandle, id: i64) -> Result<String, String> {
     let app_state = app.state::<AppState>();
-    let file_path = app_state.get_photo_file_path(id).map_err(|e| e.to_string())?;
+    let file_path = app_state
+        .get_photo_file_path(id)
+        .map_err(|e| e.to_string())?;
     read_image_as_base64(&file_path)
 }
 
@@ -111,13 +110,18 @@ fn check_ai_status() -> Result<state::AiStatus, String> {
 #[tauri::command]
 fn auto_label_all(app: tauri::AppHandle) -> Result<u32, String> {
     let app_state = app.state::<AppState>();
-    let photos = app_state.get_unlabeled_photos().map_err(|e| e.to_string())?;
+    let photos = app_state
+        .get_unlabeled_photos()
+        .map_err(|e| e.to_string())?;
     let total = photos.len() as u32;
 
     if total == 0 {
-        let _ = app.emit("label:done", serde_json::json!({
-            "labeled": 0, "failed": 0, "total": 0
-        }));
+        let _ = app.emit(
+            "label:done",
+            serde_json::json!({
+                "labeled": 0, "failed": 0, "total": 0
+            }),
+        );
         return Ok(0);
     }
 
@@ -141,9 +145,12 @@ fn auto_label_all(app: tauri::AppHandle) -> Result<u32, String> {
                 .unwrap_or("photo")
                 .to_string();
 
-            let _ = app_handle.emit("label:progress", serde_json::json!({
-                "done": i, "total": total, "current": file_name
-            }));
+            let _ = app_handle.emit(
+                "label:progress",
+                serde_json::json!({
+                    "done": i, "total": total, "current": file_name
+                }),
+            );
 
             match charmera_core::ai::label_photo(std::path::Path::new(image_path)) {
                 Ok(label) => {
@@ -153,13 +160,16 @@ fn auto_label_all(app: tauri::AppHandle) -> Result<u32, String> {
                     } else {
                         labeled += 1;
                         // Emit per-photo completion so UI updates live
-                        let _ = app_handle.emit("label:photo_done", serde_json::json!({
-                            "id": id,
-                            "description": label.description,
-                            "tags": label.tags,
-                            "done": i + 1,
-                            "total": total,
-                        }));
+                        let _ = app_handle.emit(
+                            "label:photo_done",
+                            serde_json::json!({
+                                "id": id,
+                                "description": label.description,
+                                "tags": label.tags,
+                                "done": i + 1,
+                                "total": total,
+                            }),
+                        );
                     }
                 }
                 Err(e) => {
@@ -170,9 +180,12 @@ fn auto_label_all(app: tauri::AppHandle) -> Result<u32, String> {
         }
 
         std::thread::sleep(std::time::Duration::from_millis(200));
-        let _ = app_handle.emit("label:done", serde_json::json!({
-            "labeled": labeled, "failed": failed, "total": total
-        }));
+        let _ = app_handle.emit(
+            "label:done",
+            serde_json::json!({
+                "labeled": labeled, "failed": failed, "total": total
+            }),
+        );
     });
 
     // Return immediately with count of photos to process
@@ -204,19 +217,13 @@ fn get_all_tags(app: tauri::AppHandle) -> Result<Vec<charmera_core::catalog::Tag
 }
 
 #[tauri::command]
-fn search_by_tag(
-    app: tauri::AppHandle,
-    tag: String,
-) -> Result<state::PhotoPage, String> {
+fn search_by_tag(app: tauri::AppHandle, tag: String) -> Result<state::PhotoPage, String> {
     let app_state = app.state::<AppState>();
     app_state.search_by_tag(&tag).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn search_photos(
-    app: tauri::AppHandle,
-    query: String,
-) -> Result<state::PhotoPage, String> {
+fn search_photos(app: tauri::AppHandle, query: String) -> Result<state::PhotoPage, String> {
     let app_state = app.state::<AppState>();
     app_state.search_photos(&query).map_err(|e| e.to_string())
 }
@@ -257,7 +264,9 @@ fn set_setting(app: tauri::AppHandle, key: String, value: String) -> Result<(), 
 fn hide_photo(app: tauri::AppHandle, id: i64) -> Result<(), String> {
     let app_state = app.state::<AppState>();
     let catalog = app_state.catalog_lock().map_err(|e| e.to_string())?;
-    catalog.write(charmera_core::catalog::WriteOp::HidePhoto(id)).map_err(|e| e.to_string())
+    catalog
+        .write(charmera_core::catalog::WriteOp::HidePhoto(id))
+        .map_err(|e| e.to_string())
 }
 
 fn read_image_as_base64(path: &str) -> Result<String, String> {

@@ -137,9 +137,7 @@ INSERT OR IGNORE INTO schema_version (version) VALUES (1);
 
 pub fn run_migrations(conn: &mut Connection) -> Result<()> {
     // Create the schema_version table if it does not exist
-    conn.execute_batch(
-        "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY);",
-    )?;
+    conn.execute_batch("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY);")?;
 
     let current_version: i64 = conn
         .query_row(

@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use image::imageops::FilterType;
 use image::DynamicImage;
+use image::imageops::FilterType;
 
 use crate::constants::*;
 
@@ -39,10 +39,7 @@ pub fn save_splash(img: &DynamicImage, path: &Path) -> Result<()> {
             .with_context(|| format!("creating splash file: {}", path.display()))?,
     );
 
-    let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(
-        &mut buf,
-        SPLASH_JPEG_QUALITY,
-    );
+    let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, SPLASH_JPEG_QUALITY);
     rgb.write_with_encoder(encoder)
         .with_context(|| "encoding splash JPEG")?;
 
@@ -55,9 +52,11 @@ mod tests {
 
     #[test]
     fn splash_produces_correct_dimensions() {
-        let img = DynamicImage::ImageRgb8(
-            image::RgbImage::from_pixel(2000, 1500, image::Rgb([128, 128, 128])),
-        );
+        let img = DynamicImage::ImageRgb8(image::RgbImage::from_pixel(
+            2000,
+            1500,
+            image::Rgb([128, 128, 128]),
+        ));
         let splash = create_splash(&img);
         assert_eq!(splash.width(), SPLASH_WIDTH);
         assert_eq!(splash.height(), SPLASH_HEIGHT);
@@ -65,9 +64,11 @@ mod tests {
 
     #[test]
     fn splash_handles_portrait_source() {
-        let img = DynamicImage::ImageRgb8(
-            image::RgbImage::from_pixel(600, 1200, image::Rgb([128, 128, 128])),
-        );
+        let img = DynamicImage::ImageRgb8(image::RgbImage::from_pixel(
+            600,
+            1200,
+            image::Rgb([128, 128, 128]),
+        ));
         let splash = create_splash(&img);
         assert_eq!(splash.width(), SPLASH_WIDTH);
         assert_eq!(splash.height(), SPLASH_HEIGHT);
