@@ -218,7 +218,7 @@ export default function App() {
                 <PhotoGrid photos={searchResults()!} onRefresh={library.refreshPhotos} />
               </div>
             );
-            return <PhotoGrid photos={library.photos()} onRefresh={library.refreshPhotos} />;
+            return <PhotoGrid photos={library.photos()} onRefresh={library.refreshPhotos} onLoadMore={library.loadMorePhotos} hasMore={library.hasMore()} loadingMore={library.loadingMore()} />;
           })()}
         </div>
 

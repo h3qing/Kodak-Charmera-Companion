@@ -16,6 +16,9 @@ const GRID_SIZES: Record<GridSize, string> = {
 interface PhotoGridProps {
   photos: PhotoSummary[];
   onRefresh?: () => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
 }
 
 export default function PhotoGrid(props: PhotoGridProps) {
@@ -217,6 +220,24 @@ export default function PhotoGrid(props: PhotoGridProps) {
               )}
             </For>
           </div>
+          {/* Load more trigger */}
+          <Show when={props.onLoadMore && props.hasMore}>
+            <div class="flex justify-center py-4">
+              <Show when={props.loadingMore} fallback={
+                <button
+                  onClick={() => props.onLoadMore?.()}
+                  class="px-4 py-2 text-xs bg-kodak-yellow/10 hover:bg-kodak-yellow/20 text-kodak-yellow-dark rounded-lg transition-colors font-medium"
+                >
+                  Load more photos
+                </button>
+              }>
+                <div class="flex items-center gap-2 text-xs text-kodak-warm-gray">
+                  <span class="kodak-spinner" style="width: 14px; height: 14px; border-width: 1.5px;" />
+                  Loading...
+                </div>
+              </Show>
+            </div>
+          </Show>
           </div>
         </div>
       </Show>
