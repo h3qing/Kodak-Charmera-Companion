@@ -9,6 +9,8 @@ interface SidebarProps {
   isLabeling: boolean;
   labelStatus: string;
   onAutoLabel: () => void;
+  photoCount: number;
+  recentCount: number;
 }
 
 interface NavItem {
@@ -105,13 +107,20 @@ export default function Sidebar(props: SidebarProps) {
       {/* Navigation */}
       <nav class="flex-1 overflow-auto px-2 py-1">
         <SectionLabel label="Library" />
-        {libraryItems.map((item) => (
-          <NavButton
-            item={item}
-            active={props.currentView === item.id}
-            onClick={() => props.onNavigate(item.id)}
-          />
-        ))}
+        {libraryItems.map((item) => {
+          const badge = item.id === "all-photos" && props.photoCount > 0
+            ? String(props.photoCount)
+            : item.id === "recent" && props.recentCount > 0
+            ? String(props.recentCount)
+            : item.badge;
+          return (
+            <NavButton
+              item={{ ...item, badge }}
+              active={props.currentView === item.id}
+              onClick={() => props.onNavigate(item.id)}
+            />
+          );
+        })}
 
         <SectionLabel label="Organize" />
         {organizeItems.map((item) => (

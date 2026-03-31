@@ -59,6 +59,27 @@ export default function App() {
     }
   });
 
+  // Global keyboard shortcuts
+  onMount(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Don't trigger when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.metaKey || e.ctrlKey) {
+        switch (e.key) {
+          case "1": e.preventDefault(); setCurrentView("all-photos"); break;
+          case "2": e.preventDefault(); setCurrentView("recent"); break;
+          case "3": e.preventDefault(); setCurrentView("tags"); break;
+          case "4": e.preventDefault(); setCurrentView("duplicates"); break;
+          case ",": e.preventDefault(); setCurrentView("settings"); break;
+          case "f": e.preventDefault(); document.querySelector<HTMLInputElement>('input[type="text"]')?.focus(); break;
+        }
+      }
+    };
+    document.addEventListener("keydown", handler);
+    onCleanup(() => document.removeEventListener("keydown", handler));
+  });
+
   let searchTimeout: number | undefined;
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -86,6 +107,8 @@ export default function App() {
         isLabeling={library.isLabeling()}
         labelStatus={library.labelStatus()}
         onAutoLabel={library.runAutoLabel}
+        photoCount={library.photoCount()}
+        recentCount={library.recentPhotos().length}
       />
 
       <main class="flex-1 flex flex-col overflow-hidden">
