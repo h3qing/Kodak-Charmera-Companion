@@ -2,6 +2,7 @@ import { createSignal } from "solid-js";
 import { listen } from "@tauri-apps/api/event";
 import {
   getPhotos,
+  getRecentPhotos,
   importFolder,
   detectCamera,
   checkAiStatus,
@@ -29,6 +30,7 @@ const [showRenameDialog, setShowRenameDialog] = createSignal(false);
 const [cameraJustConnected, setCameraJustConnected] = createSignal(false);
 const [cameraFileCount, setCameraFileCount] = createSignal(0);
 const [namingPattern, setNamingPatternSignal] = createSignal("b {MM}-{DD}-{YYYY} {content}");
+const [recentPhotos, setRecentPhotos] = createSignal<PhotoSummary[]>([]);
 
 // Listen for labeling events from backend
 listen("label:progress", (event: any) => {
@@ -90,7 +92,18 @@ export function useLibrary() {
     cameraFileCount,
     dismissCameraPopup,
     namingPattern,
+    recentPhotos,
+    refreshRecentPhotos,
   };
+}
+
+async function refreshRecentPhotos() {
+  try {
+    const page = await getRecentPhotos(24);
+    setRecentPhotos(page.photos);
+  } catch (e) {
+    console.error("Failed to load recent photos:", e);
+  }
 }
 
 async function refreshPhotos() {
@@ -185,6 +198,7 @@ async function importFromPath(source: string) {
     const result = await importFolder(source);
     setImportStatus(`Imported ${result.imported} photos (${result.skipped} skipped)`);
     await refreshPhotos();
+    await refreshRecentPhotos();
 
     // Auto-trigger AI labeling after import if AI is available
     const status = aiStatus();
@@ -237,5 +251,6 @@ async function confirmRenames(approved: [number, string][]) {
 // Initialize
 checkCamera();
 refreshPhotos();
+refreshRecentPhotos();
 checkAiStatus().then(setAiStatus).catch(() => setAiStatus(null));
 getNamingPattern().then(setNamingPatternSignal).catch(() => {});

@@ -186,6 +186,39 @@ impl AppState {
             .map_err(|e| anyhow::anyhow!("lock: {e}"))
     }
 
+    /// Get photos imported within the last N hours.
+    pub fn get_recent_photos(&self, hours: u32) -> Result<PhotoPage> {
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let mut stmt = catalog.read_conn().prepare(
+            "SELECT id, relative_path, thumbnail_path, width, height, taken_at, rating
+             FROM photos
+             WHERE is_hidden = 0
+               AND imported_at >= datetime('now', ?1)
+             ORDER BY imported_at DESC
+             LIMIT 200",
+        )?;
+        let interval = format!("-{hours} hours");
+        let photos: Vec<charmera_core::catalog::PhotoSummary> = stmt
+            .query_map([&interval], |row| {
+                Ok(charmera_core::catalog::PhotoSummary {
+                    id: row.get(0)?,
+                    relative_path: row.get(1)?,
+                    thumbnail_path: row.get(2)?,
+                    width: row.get(3)?,
+                    height: row.get(4)?,
+                    taken_at: row.get(5)?,
+                    rating: row.get::<_, Option<u8>>(6)?.unwrap_or(0),
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        let total = photos.len() as u32;
+        Ok(PhotoPage { photos, total })
+    }
+
     pub fn get_photos(&self, offset: u32, limit: u32) -> Result<PhotoPage> {
         let catalog = self
             .catalog
