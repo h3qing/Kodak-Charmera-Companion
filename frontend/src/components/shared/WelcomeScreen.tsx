@@ -8,6 +8,7 @@ interface WelcomeProps {
     importStatus: () => string;
     importFromCamera: () => Promise<void>;
     importFromPath: (source: string) => Promise<void>;
+    aiStatus: () => { available: boolean; model: string } | null;
   };
 }
 
@@ -102,6 +103,22 @@ export default function WelcomeScreen(props: WelcomeProps) {
           <p class="text-xs text-kodak-warm-gray/60 mt-2">
             or drag and drop a folder anywhere
           </p>
+        </div>
+
+        {/* Status checklist */}
+        <div class="mt-8 flex justify-center gap-4 text-xs">
+          <div class="flex items-center gap-1.5">
+            <span class={`w-2 h-2 rounded-full ${props.library.cameraPath() ? "bg-green-500" : "bg-kodak-warm-gray/30"}`} />
+            <span class={props.library.cameraPath() ? "text-green-700" : "text-kodak-warm-gray/50"}>
+              {props.library.cameraPath() ? "Camera detected" : "No camera"}
+            </span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class={`w-2 h-2 rounded-full ${props.library.aiStatus()?.available ? "bg-green-500" : "bg-kodak-warm-gray/30"}`} />
+            <span class={props.library.aiStatus()?.available ? "text-green-700" : "text-kodak-warm-gray/50"}>
+              {props.library.aiStatus()?.available ? `AI ready (${props.library.aiStatus()?.model})` : "AI not available"}
+            </span>
+          </div>
         </div>
 
         {/* Decorative film strip with sprocket pattern */}
