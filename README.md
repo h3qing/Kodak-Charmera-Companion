@@ -25,7 +25,7 @@
 
 ---
 
-> **v0.3.2** — Local photo storage, batch-label CLI, 40 tests, Homebrew formula, cross-platform. [Changelog](CHANGELOG.md)
+> **v0.5.0** — PNG/BMP/WebP support, 11 CLI commands, shell completions, robustness hardening. [Changelog](CHANGELOG.md)
 
 <p align="center">
   <img src="docs/screenshot.png" width="800" alt="Charmera Companion — photo grid view" />
