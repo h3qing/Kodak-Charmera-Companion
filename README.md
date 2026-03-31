@@ -174,6 +174,13 @@ charmera rename PICT0042.jpg --json
 # Dry run (show proposed name without renaming)
 charmera rename PICT0042.jpg --dry-run
 
+# Label + rename an entire folder
+charmera batch-label ./vacation/ --rename --json
+# → labels every photo, renames with AI descriptions
+
+# Dry run — see proposed names without renaming
+charmera batch-label ./photos/ --rename --dry-run
+
 # Apply effects
 charmera effects photo.jpg --effects vintage,grain --frame polaroid --output edited.jpg
 ```

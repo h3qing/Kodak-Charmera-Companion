@@ -62,6 +62,23 @@ enum Commands {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Label all photos in a folder using local AI
+    BatchLabel {
+        /// Folder containing photos
+        folder: String,
+        /// Ollama model to use (auto-detects if omitted)
+        #[arg(short, long)]
+        model: Option<String>,
+        /// Also rename files using naming pattern
+        #[arg(long)]
+        rename: bool,
+        /// Naming pattern for --rename (default: b {MM}-{DD}-{YYYY} {content})
+        #[arg(short, long)]
+        pattern: Option<String>,
+        /// Dry run — show labels without renaming
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Detect connected camera
     Detect,
     /// Create or install boot splash screen
@@ -265,6 +282,150 @@ fn main() -> Result<()> {
                 }
             } else if !cli.json {
                 println!("(dry run — no changes made)");
+            }
+
+            Ok(())
+        }
+        Commands::BatchLabel {
+            folder,
+            model,
+            rename,
+            pattern,
+            dry_run,
+        } => {
+            let folder_path = std::path::Path::new(&folder);
+            if !folder_path.is_dir() {
+                anyhow::bail!("not a directory: {folder}");
+            }
+
+            let files = charmera_core::import::list_media_files(folder_path)?;
+            let photos: Vec<_> = files
+                .iter()
+                .filter(|f| {
+                    f.extension()
+                        .and_then(|e| e.to_str())
+                        .map(|e| matches!(e.to_lowercase().as_str(), "jpg" | "jpeg"))
+                        .unwrap_or(false)
+                })
+                .collect();
+
+            if photos.is_empty() {
+                if cli.json {
+                    println!("{}", serde_json::json!({"photos": [], "total": 0}));
+                } else {
+                    println!("No JPEG photos found in {folder}");
+                }
+                return Ok(());
+            }
+
+            let total = photos.len();
+            let pat = pattern.unwrap_or_else(|| "b {MM}-{DD}-{YYYY} {content}".to_string());
+            let mut results = Vec::new();
+            let mut renamed_count = 0u32;
+
+            for (i, photo_path) in photos.iter().enumerate() {
+                let file_name = photo_path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown");
+
+                if !cli.json {
+                    eprint!("\r[{}/{}] {file_name}...", i + 1, total);
+                }
+
+                let label_result = if let Some(ref m) = model {
+                    charmera_core::ai::label_photo_with_model(photo_path, m)
+                } else {
+                    charmera_core::ai::label_photo(photo_path)
+                };
+
+                match label_result {
+                    Ok(label) => {
+                        let mut entry = serde_json::json!({
+                            "file": photo_path.display().to_string(),
+                            "description": label.description,
+                            "tags": label.tags,
+                        });
+
+                        if rename {
+                            let exif = charmera_core::import::extract_exif(photo_path);
+                            let stem = photo_path
+                                .file_stem()
+                                .and_then(|s| s.to_str())
+                                .unwrap_or("photo");
+                            let ext = photo_path
+                                .extension()
+                                .and_then(|s| s.to_str())
+                                .unwrap_or("jpg");
+                            let new_stem = charmera_core::import::apply_naming_pattern(
+                                &pat,
+                                exif.taken_at.as_deref(),
+                                &label.description,
+                                (i + 1) as u32,
+                                stem,
+                            );
+                            let new_name = format!("{new_stem}.{ext}");
+                            let new_path = photo_path.with_file_name(&new_name);
+
+                            entry["new_name"] = serde_json::Value::String(new_name.clone());
+
+                            if !dry_run && !new_path.exists() {
+                                if let Err(e) = std::fs::rename(photo_path, &new_path) {
+                                    entry["rename_error"] =
+                                        serde_json::Value::String(e.to_string());
+                                } else {
+                                    renamed_count += 1;
+                                    entry["renamed"] = serde_json::Value::Bool(true);
+                                }
+                            }
+                        }
+
+                        results.push(entry);
+                    }
+                    Err(e) => {
+                        results.push(serde_json::json!({
+                            "file": photo_path.display().to_string(),
+                            "error": e.to_string(),
+                        }));
+                    }
+                }
+            }
+
+            if cli.json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "photos": results,
+                        "total": total,
+                        "labeled": results.iter().filter(|r| r.get("description").is_some()).count(),
+                        "renamed": renamed_count,
+                    })
+                );
+            } else {
+                eprintln!(); // Clear progress line
+                for r in &results {
+                    if let Some(desc) = r.get("description").and_then(|d| d.as_str()) {
+                        let file = r["file"].as_str().unwrap_or("");
+                        let short = file.split('/').last().unwrap_or(file);
+                        print!("{short}: {desc}");
+                        if let Some(new) = r.get("new_name").and_then(|n| n.as_str()) {
+                            print!(" → {new}");
+                        }
+                        println!();
+                    }
+                }
+                println!(
+                    "\nLabeled {}/{total} photos{}",
+                    results
+                        .iter()
+                        .filter(|r| r.get("description").is_some())
+                        .count(),
+                    if rename {
+                        format!(", renamed {renamed_count}")
+                    } else {
+                        String::new()
+                    }
+                );
             }
 
             Ok(())
