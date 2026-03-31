@@ -1,10 +1,18 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use image::DynamicImage;
 
 /// Available effects.
 pub const EFFECT_NAMES: &[&str] = &[
-    "vintage", "noir", "faded", "warm", "cool",
-    "sharp", "soft", "vignette", "grain", "light_leak",
+    "vintage",
+    "noir",
+    "faded",
+    "warm",
+    "cool",
+    "sharp",
+    "soft",
+    "vignette",
+    "grain",
+    "light_leak",
 ];
 
 /// Available frame styles.
@@ -263,15 +271,18 @@ fn frame_rounded(img: &DynamicImage) -> DynamicImage {
     let mut result = rgba;
 
     for (x, y, pixel) in result.enumerate_pixels_mut() {
-        let corners = [
-            (0u32, 0u32),
-            (w - 1, 0),
-            (0, h - 1),
-            (w - 1, h - 1),
-        ];
+        let corners = [(0u32, 0u32), (w - 1, 0), (0, h - 1), (w - 1, h - 1)];
         for &(cx, cy) in &corners {
-            let in_corner_x = if cx == 0 { x < radius } else { x > w - 1 - radius };
-            let in_corner_y = if cy == 0 { y < radius } else { y > h - 1 - radius };
+            let in_corner_x = if cx == 0 {
+                x < radius
+            } else {
+                x > w - 1 - radius
+            };
+            let in_corner_y = if cy == 0 {
+                y < radius
+            } else {
+                y > h - 1 - radius
+            };
             if in_corner_x && in_corner_y {
                 let corner_x = if cx == 0 { radius } else { w - 1 - radius };
                 let corner_y = if cy == 0 { radius } else { h - 1 - radius };
@@ -293,7 +304,9 @@ mod tests {
 
     fn test_image() -> DynamicImage {
         DynamicImage::ImageRgb8(image::RgbImage::from_pixel(
-            100, 80, image::Rgb([128, 100, 80]),
+            100,
+            80,
+            image::Rgb([128, 100, 80]),
         ))
     }
 
@@ -302,7 +315,10 @@ mod tests {
         let img = test_image();
         for name in EFFECT_NAMES {
             let result = apply_effect(&img, name).unwrap();
-            assert!(result.width() > 0 && result.height() > 0, "effect {name} produced empty image");
+            assert!(
+                result.width() > 0 && result.height() > 0,
+                "effect {name} produced empty image"
+            );
         }
     }
 
@@ -311,7 +327,10 @@ mod tests {
         let img = test_image();
         for name in FRAME_NAMES {
             let result = apply_frame(&img, name).unwrap();
-            assert!(result.width() >= img.width(), "frame {name} should be at least as wide");
+            assert!(
+                result.width() >= img.width(),
+                "frame {name} should be at least as wide"
+            );
         }
     }
 
@@ -324,11 +343,8 @@ mod tests {
     #[test]
     fn pipeline_applies_effects_then_frame() {
         let img = test_image();
-        let result = apply_pipeline(
-            &img,
-            &["vintage".into(), "warm".into()],
-            Some("polaroid"),
-        ).unwrap();
+        let result =
+            apply_pipeline(&img, &["vintage".into(), "warm".into()], Some("polaroid")).unwrap();
         // Polaroid frame adds borders, so result is larger
         assert!(result.width() > img.width());
         assert!(result.height() > img.height());

@@ -1,7 +1,6 @@
 mod schema;
 
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use rusqlite::Connection;
@@ -191,10 +190,7 @@ impl Catalog {
                 Ok(())
             }
             WriteOp::UpdatePhotoEmbedding(id, embedding) => {
-                let bytes: Vec<u8> = embedding
-                    .iter()
-                    .flat_map(|f| f.to_le_bytes())
-                    .collect();
+                let bytes: Vec<u8> = embedding.iter().flat_map(|f| f.to_le_bytes()).collect();
                 conn.execute(
                     "UPDATE photos SET embedding = ?1 WHERE id = ?2",
                     rusqlite::params![bytes, id],
@@ -404,11 +400,11 @@ impl Catalog {
 
     /// Get a setting value by key.
     pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
-        let result = self.read_conn.query_row(
-            "SELECT value FROM settings WHERE key = ?1",
-            [key],
-            |row| row.get(0),
-        );
+        let result =
+            self.read_conn
+                .query_row("SELECT value FROM settings WHERE key = ?1", [key], |row| {
+                    row.get(0)
+                });
         match result {
             Ok(val) => Ok(Some(val)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),

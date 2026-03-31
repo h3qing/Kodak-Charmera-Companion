@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 
 use crate::constants::*;
 
@@ -74,12 +74,7 @@ pub fn list_media_files(source: &Path) -> Result<Vec<PathBuf>> {
 }
 
 /// Build a new filename with smart renaming.
-pub fn build_new_name(
-    date_str: &str,
-    label: &str,
-    counter: u32,
-    extension: &str,
-) -> String {
+pub fn build_new_name(date_str: &str, label: &str, counter: u32, extension: &str) -> String {
     let safe_label = sanitize_label(label);
     if safe_label.is_empty() {
         format!("{date_str} {counter:03}{extension}")

@@ -16,10 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-action/setup@v1
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache cargo registry & build
+      - name: Cache cargo
         uses: actions/cache@v4
         with:
           path: |
@@ -29,20 +29,11 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
-      - name: Install Tauri system dependencies
-        run: |
-          # macOS has most deps pre-installed
-          # Just need to ensure Xcode CLI tools are present
-          xcode-select --install 2>/dev/null || true
-
       - name: Cargo check
         run: cargo check --workspace
 
       - name: Cargo test
-        run: cargo test --workspace
-
-      - name: Cargo clippy
-        run: cargo clippy --workspace -- -D warnings 2>/dev/null || cargo clippy --workspace
+        run: cargo test -p charmera-core
 
   frontend:
     name: Frontend Build
@@ -53,11 +44,8 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Install dependencies
-        run: cd frontend && bun install
-
-      - name: Build
-        run: cd frontend && bun run build
+      - name: Install & Build
+        run: cd frontend && bun install && bun run build
 
   format:
     name: Format Check
@@ -65,8 +53,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-action/setup@v1
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
 

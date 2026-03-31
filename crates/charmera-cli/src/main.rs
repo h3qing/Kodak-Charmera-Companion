@@ -67,7 +67,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Import { source, label } => {
+        Commands::Import { source, label: _ } => {
             let camera_path = match source {
                 Some(p) => std::path::PathBuf::from(p),
                 None => charmera_core::import::find_camera_or_raise()?,
@@ -82,7 +82,11 @@ fn main() -> Result<()> {
                 });
                 println!("{}", serde_json::to_string_pretty(&json)?);
             } else {
-                println!("Found {} media files in {}", files.len(), camera_path.display());
+                println!(
+                    "Found {} media files in {}",
+                    files.len(),
+                    camera_path.display()
+                );
                 for f in &files {
                     println!("  {}", f.display());
                 }
@@ -119,7 +123,12 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
-        Commands::Effects { input, effects, frame, output } => {
+        Commands::Effects {
+            input,
+            effects,
+            frame,
+            output,
+        } => {
             let img = image::open(&input)?;
             let effect_list: Vec<String> = effects
                 .unwrap_or_default()
@@ -147,7 +156,11 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
-        Commands::Splash { input, text, install } => {
+        Commands::Splash {
+            input,
+            text: _,
+            install,
+        } => {
             let img = image::open(&input)?;
             let splash = charmera_core::splash::create_splash(&img);
             let out_path = if install {
@@ -160,7 +173,10 @@ fn main() -> Result<()> {
             };
             charmera_core::splash::save_splash(&splash, &out_path)?;
             if cli.json {
-                println!("{}", serde_json::json!({"output": out_path.display().to_string()}));
+                println!(
+                    "{}",
+                    serde_json::json!({"output": out_path.display().to_string()})
+                );
             } else {
                 println!("Splash saved to {}", out_path.display());
             }
