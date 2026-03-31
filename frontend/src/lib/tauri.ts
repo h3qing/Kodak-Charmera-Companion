@@ -71,6 +71,7 @@ export async function previewEffect(
 export interface AiStatus {
   available: boolean;
   model: string;
+  models: string[];
 }
 
 export interface LabelResult {

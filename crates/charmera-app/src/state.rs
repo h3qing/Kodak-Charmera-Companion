@@ -31,6 +31,7 @@ pub struct PhotoPage {
 pub struct AiStatus {
     pub available: bool,
     pub model: String,
+    pub models: Vec<String>,
 }
 
 #[derive(Serialize)]

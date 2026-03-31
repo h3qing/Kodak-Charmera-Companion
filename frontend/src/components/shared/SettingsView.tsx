@@ -5,6 +5,7 @@ export default function SettingsView() {
   const [appVersion, setAppVersion] = createSignal("");
   const [aiAvailable, setAiAvailable] = createSignal(false);
   const [aiModel, setAiModel] = createSignal("");
+  const [aiModels, setAiModels] = createSignal<string[]>([]);
   const [saved, setSaved] = createSignal(false);
 
   onMount(async () => {
@@ -15,6 +16,7 @@ export default function SettingsView() {
         const status = await checkAiStatus();
         setAiAvailable(status.available);
         setAiModel(status.model);
+        setAiModels(status.models || []);
       } catch {}
       try {
         const pattern = await getNamingPattern();
@@ -151,14 +153,38 @@ export default function SettingsView() {
                   {aiAvailable() ? "Ollama Connected" : "Ollama Not Available"}
                 </p>
                 <Show when={aiModel()}>
-                  <p class="text-xs text-kodak-warm-gray">Model: {aiModel()}</p>
+                  <p class="text-xs text-kodak-warm-gray">Active model: <span class="font-mono">{aiModel()}</span></p>
                 </Show>
               </div>
             </div>
+            <Show when={aiModels().length > 0}>
+              <div class="mt-3 pt-3 border-t border-kodak-cream-dark">
+                <p class="text-[10px] uppercase tracking-wider font-bold text-kodak-warm-gray mb-2">
+                  Available Vision Models
+                </p>
+                <div class="flex flex-wrap gap-1.5">
+                  {aiModels().map(m => (
+                    <span class={`px-2 py-0.5 text-xs rounded-full font-mono ${
+                      m === aiModel()
+                        ? "bg-kodak-yellow/20 text-kodak-yellow-dark font-medium"
+                        : "bg-kodak-cream text-kodak-warm-gray"
+                    }`}>
+                      {m}
+                    </span>
+                  ))}
+                </div>
+                <p class="text-[10px] text-kodak-warm-gray mt-2">
+                  The best available model is used automatically. Pull more with <code class="font-mono bg-kodak-cream px-1 rounded">ollama pull llava</code>
+                </p>
+              </div>
+            </Show>
             <Show when={!aiAvailable()}>
               <p class="text-xs text-kodak-warm-gray mt-2">
-                Install Ollama and pull the moondream model to enable AI photo labeling.
+                Install Ollama and pull a vision model to enable AI photo labeling:
               </p>
+              <pre class="text-xs font-mono bg-kodak-cream p-2 rounded-lg mt-1 text-kodak-charcoal">
+                ollama pull moondream
+              </pre>
             </Show>
           </div>
         </section>

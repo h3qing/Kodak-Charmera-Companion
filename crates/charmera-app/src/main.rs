@@ -111,10 +111,12 @@ fn export_photo(
 
 #[tauri::command]
 fn check_ai_status() -> Result<state::AiStatus, String> {
-    let available = charmera_core::ai::check_ollama().unwrap_or(false);
+    let models = charmera_core::ai::list_vision_models().unwrap_or_default();
+    let best = charmera_core::ai::best_available_model().unwrap_or_default();
     Ok(state::AiStatus {
-        available,
-        model: "moondream".to_string(),
+        available: !models.is_empty(),
+        model: best,
+        models,
     })
 }
 
