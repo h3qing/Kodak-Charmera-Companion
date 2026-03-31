@@ -340,4 +340,26 @@ mod tests {
         assert_eq!(dd, "15");
         assert_eq!(yyyy, "2026");
     }
+
+    #[test]
+    fn exif_nonexistent_file_returns_defaults() {
+        let info = extract_exif(std::path::Path::new("/nonexistent/photo.jpg"));
+        assert!(info.taken_at.is_none());
+        assert!(info.camera_make.is_none());
+        assert!(info.camera_model.is_none());
+    }
+
+    #[test]
+    fn sanitize_handles_unicode() {
+        // Accented letters are alphanumeric in Rust
+        assert_eq!(sanitize_label("café photo"), "café photo");
+        // But emoji/symbols are stripped
+        assert_eq!(sanitize_label("hello 🌍 world"), "hello  world");
+    }
+
+    #[test]
+    fn naming_pattern_empty_pattern() {
+        let result = apply_naming_pattern("", None, "test", 1, "orig");
+        assert_eq!(result, "");
+    }
 }

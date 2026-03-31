@@ -283,4 +283,45 @@ mod tests {
         assert!(label.tags.contains(&"indoor".to_string()));
         assert!(label.tags.contains(&"couch".to_string()));
     }
+
+    #[test]
+    fn parse_empty_response() {
+        let label = parse_label_response("").unwrap();
+        assert_eq!(label.description, "");
+        assert!(label.tags.is_empty());
+    }
+
+    #[test]
+    fn parse_multiline_unstructured() {
+        let text = "A beautiful sunset over the ocean.\nThe sky is orange and pink.";
+        let label = parse_label_response(text).unwrap();
+        assert_eq!(label.description, "A beautiful sunset over the ocean.");
+        assert!(label.tags.contains(&"sunset".to_string()));
+        assert!(label.tags.contains(&"ocean".to_string()));
+    }
+
+    #[test]
+    fn extract_tags_whole_word_matching() {
+        // "car" should not match "cardinal"
+        let tags = extract_basic_tags("A cardinal bird in the garden");
+        assert!(tags.contains(&"bird".to_string()));
+        assert!(tags.contains(&"garden".to_string()));
+        assert!(!tags.contains(&"car".to_string()));
+    }
+
+    #[test]
+    fn extract_tags_limits_to_five() {
+        let tags = extract_basic_tags(
+            "A person with a dog and cat near a tree by the water in a garden with flowers under the sky",
+        );
+        assert!(tags.len() <= 5);
+    }
+
+    #[test]
+    fn prompt_for_known_models() {
+        assert!(prompt_for_model("moondream").contains("briefly"));
+        assert!(prompt_for_model("llava").contains("DESCRIPTION"));
+        assert!(prompt_for_model("bakllava").contains("DESCRIPTION"));
+        assert!(prompt_for_model("unknown-model").contains("briefly"));
+    }
 }
