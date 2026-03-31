@@ -311,6 +311,10 @@ function PhotoCard(props: {
 }
 
 const EFFECTS = ["vintage", "noir", "faded", "warm", "cool", "sharp", "soft", "vignette", "grain", "light_leak"];
+
+// Remember last used effects across photo navigation
+let lastUsedEffects: string[] = [];
+let lastUsedFrame: string | null = null;
 const FRAMES = ["simple", "polaroid", "film_strip", "rounded"];
 
 function PhotoDetailView(props: {
@@ -329,6 +333,7 @@ function PhotoDetailView(props: {
   const [showInfo, setShowInfo] = createSignal(true);
   const [labels, setLabels] = createSignal<PhotoLabels | null>(null);
   const [effectError, setEffectError] = createSignal<string | null>(null);
+  const [hasLastPreset, setHasLastPreset] = createSignal(lastUsedEffects.length > 0 || lastUsedFrame !== null);
 
   // Load full-res photo and labels
   createEffect(async () => {
@@ -337,6 +342,7 @@ function PhotoDetailView(props: {
     setActiveFrame(null);
     setPreviewSrc(null);
     setLabels(null);
+    setHasLastPreset(lastUsedEffects.length > 0 || lastUsedFrame !== null);
     try {
       const src = await getPhotoBase64(props.photo.id);
       setDetailSrc(src);
@@ -362,11 +368,13 @@ function PhotoDetailView(props: {
       ? current.filter((e) => e !== effect)
       : [...current, effect].slice(-3); // max 3
     setActiveEffects(updated);
+    lastUsedEffects = updated;
     await applyPreview(updated, activeFrame());
   };
 
   const toggleFrame = async (frame: string) => {
     const updated = activeFrame() === frame ? null : frame;
+    lastUsedFrame = updated;
     setActiveFrame(updated);
     await applyPreview(activeEffects(), updated);
   };
@@ -562,10 +570,18 @@ function PhotoDetailView(props: {
             <span class="text-white/50 text-[10px] uppercase tracking-wider font-bold">Effects</span>
             <Show when={activeEffects().length > 0}>
               <button
-                onClick={() => { setActiveEffects([]); setPreviewSrc(null); }}
+                onClick={() => { setActiveEffects([]); setActiveFrame(null); setPreviewSrc(null); lastUsedEffects = []; lastUsedFrame = null; }}
                 class="text-[10px] text-kodak-red-light hover:text-kodak-red transition-colors"
               >
                 Clear all
+              </button>
+            </Show>
+            <Show when={hasLastPreset() && activeEffects().length === 0}>
+              <button
+                onClick={() => { setActiveEffects(lastUsedEffects); setActiveFrame(lastUsedFrame); applyPreview(lastUsedEffects, lastUsedFrame); }}
+                class="text-[10px] text-kodak-yellow-dark hover:text-kodak-yellow transition-colors"
+              >
+                Reapply last
               </button>
             </Show>
           </div>
