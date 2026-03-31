@@ -7,6 +7,7 @@ import RenameDialog from "./components/shared/RenameDialog";
 import CameraPopup from "./components/shared/CameraPopup";
 import SettingsView from "./components/shared/SettingsView";
 import DuplicatesView from "./components/shared/DuplicatesView";
+import SmartAlbumsView from "./components/shared/SmartAlbumsView";
 import { useLibrary } from "./stores/library";
 import { searchPhotos, type PhotoSummary } from "./lib/tauri";
 
@@ -177,6 +178,7 @@ export default function App() {
             const view = currentView();
             if (view === "settings") return <SettingsView />;
             if (view === "duplicates") return <DuplicatesView />;
+            if (view === "smart-albums") return <SmartAlbumsView />;
             if (library.photoCount() === 0) return <WelcomeScreen library={library} />;
             if (view === "tags") return <TagBrowser />;
             if (view === "recent") return (
