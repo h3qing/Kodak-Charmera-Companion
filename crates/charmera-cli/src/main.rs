@@ -195,8 +195,8 @@ fn main() -> Result<()> {
                 .collect();
             let out_path = output.unwrap_or_else(|| {
                 let p = std::path::Path::new(&input);
-                let stem = p.file_stem().unwrap().to_str().unwrap();
-                let ext = p.extension().unwrap().to_str().unwrap();
+                let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("photo");
+                let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("jpg");
                 format!("{stem}_edited.{ext}")
             });
             charmera_core::export::export_photo(

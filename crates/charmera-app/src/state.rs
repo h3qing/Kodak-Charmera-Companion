@@ -140,84 +140,113 @@ impl AppState {
                 continue;
             }
 
-            let file_bytes = std::fs::read(file_path)
-                .with_context(|| format!("reading {}", file_path.display()))?;
-            let hash = blake3::hash(&file_bytes);
-            let hash_bytes = hash.as_bytes().to_vec();
-
-            let (width, height) =
-                charmera_core::thumbnails::get_image_dimensions(file_path).unwrap_or((0, 0));
-
-            let thumb_result = charmera_core::thumbnails::generate_thumbnail(
+            // Wrap per-file processing so one failure doesn't abort the entire import
+            match self.import_single_file(
                 file_path,
-                &self.thumbnail_dir,
-                &hash_bytes,
-            );
-            let thumb_path = thumb_result.ok().map(|p| p.display().to_string());
-
-            let file_size = file_bytes.len() as i64;
-            let file_name = file_path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("unknown")
-                .to_string();
-
-            // Copy photo to local storage so it's available after camera disconnect
-            let hash_hex = hash_bytes
-                .iter()
-                .map(|b| format!("{b:02x}"))
-                .collect::<String>();
-            let local_dir = self.photos_dir().join(&hash_hex[..2]);
-            let _ = std::fs::create_dir_all(&local_dir);
-            let local_path = local_dir.join(&file_name);
-            if !local_path.exists() {
-                std::fs::write(&local_path, &file_bytes)
-                    .with_context(|| format!("copying to {}", local_path.display()))?;
+                &source_path,
+                &catalog,
+                on_progress,
+                imported,
+                skipped,
+                total_files,
+            ) {
+                Ok(()) => {
+                    imported += 1;
+                    tracing::info!("imported: {}", file_path.display());
+                }
+                Err(e) => {
+                    skipped += 1;
+                    tracing::warn!("skipped {}: {e}", file_path.display());
+                }
             }
-            let stored_path = local_path.display().to_string();
-
-            let relative = file_path
-                .strip_prefix(&source_path)
-                .unwrap_or(file_path)
-                .display()
-                .to_string();
-
-            // Extract EXIF metadata (date taken, camera info)
-            let exif = charmera_core::import::extract_exif(file_path);
-
-            on_progress(imported + skipped + 1, total_files, &file_name);
-
-            let photo = PhotoInsert {
-                file_path: stored_path,
-                relative_path: relative,
-                watched_folder_id: None,
-                file_hash: hash_bytes,
-                file_size,
-                width,
-                height,
-                taken_at: exif.taken_at,
-                camera_make: exif.camera_make,
-                camera_model: exif
-                    .camera_model
-                    .or_else(|| Some("KODAK CHARMERA".to_string())),
-                source_device: Some("KODAK CHARMERA".to_string()),
-                original_name: Some(file_name),
-                thumbnail_path: thumb_path,
-            };
-
-            catalog.write(WriteOp::InsertPhoto(photo))?;
-            imported += 1;
-            tracing::info!("imported: {}", file_path.display());
         }
 
         // Give writer task time to process
         std::thread::sleep(std::time::Duration::from_millis(100));
         tracing::info!("import complete: {imported} imported, {skipped} skipped");
+
         Ok(ImportResult {
             imported,
             skipped,
             total_files,
         })
+    }
+
+    fn import_single_file(
+        &self,
+        file_path: &Path,
+        source_path: &Path,
+        catalog: &Catalog,
+        on_progress: &dyn Fn(u32, u32, &str),
+        imported: u32,
+        skipped: u32,
+        total_files: u32,
+    ) -> Result<()> {
+        let file_bytes =
+            std::fs::read(file_path).with_context(|| format!("reading {}", file_path.display()))?;
+        let hash = blake3::hash(&file_bytes);
+        let hash_bytes = hash.as_bytes().to_vec();
+
+        let (width, height) =
+            charmera_core::thumbnails::get_image_dimensions(file_path).unwrap_or((0, 0));
+
+        let thumb_result = charmera_core::thumbnails::generate_thumbnail(
+            file_path,
+            &self.thumbnail_dir,
+            &hash_bytes,
+        );
+        let thumb_path = thumb_result.ok().map(|p| p.display().to_string());
+
+        let file_size = file_bytes.len() as i64;
+        let file_name = file_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        // Copy photo to local storage
+        let hash_hex = hash_bytes
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
+        let local_dir = self.photos_dir().join(&hash_hex[..2]);
+        let _ = std::fs::create_dir_all(&local_dir);
+        let local_path = local_dir.join(&file_name);
+        if !local_path.exists() {
+            std::fs::write(&local_path, &file_bytes)
+                .with_context(|| format!("copying to {}", local_path.display()))?;
+        }
+        let stored_path = local_path.display().to_string();
+
+        let relative = file_path
+            .strip_prefix(source_path)
+            .unwrap_or(file_path)
+            .display()
+            .to_string();
+
+        let exif = charmera_core::import::extract_exif(file_path);
+
+        on_progress(imported + skipped + 1, total_files, &file_name);
+
+        let photo = PhotoInsert {
+            file_path: stored_path,
+            relative_path: relative,
+            watched_folder_id: None,
+            file_hash: hash_bytes,
+            file_size,
+            width,
+            height,
+            taken_at: exif.taken_at,
+            camera_make: exif.camera_make,
+            camera_model: exif
+                .camera_model
+                .or_else(|| Some("KODAK CHARMERA".to_string())),
+            source_device: Some("KODAK CHARMERA".to_string()),
+            original_name: Some(file_name),
+            thumbnail_path: thumb_path,
+        };
+
+        catalog.write(WriteOp::InsertPhoto(photo))
     }
 
     pub fn catalog_lock(&self) -> Result<std::sync::MutexGuard<'_, Catalog>> {
