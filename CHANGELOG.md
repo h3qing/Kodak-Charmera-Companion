@@ -2,6 +2,28 @@
 
 All notable changes to Charmera Companion will be documented in this file.
 
+## [0.5.0] - 2026-03-31
+
+### Added
+- **PNG, BMP, WebP support** — import any photo format, not just JPEG
+- **CLI `status` command** — system health check (camera, AI, storage)
+- **CLI `info` command** — show EXIF, dimensions, blake3 hash
+- **Shell completions** — bash, zsh, fish, powershell
+- **JSON label export** — export all metadata from Settings
+- **Comparison table** — vs Google Photos, Apple Photos, digiKam in README
+- **CLI demo** in README with expandable terminal session
+
+### Fixed
+- **Robustness**: 120s timeout on AI requests, 5s on model check
+- **Error recovery**: one bad file doesn't abort entire import
+- **Panic prevention**: CLI handles files without extensions
+- **Broader positioning**: "Works with any photo folder" in description
+
+### Changed
+- 11 CLI commands total
+- 15 GitHub topics for discoverability
+- Updated website SEO and meta tags
+
 ## [0.4.1] - 2026-03-31
 
 ### Added
