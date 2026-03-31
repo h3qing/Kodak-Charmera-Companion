@@ -109,57 +109,74 @@ fn check_ai_status() -> Result<state::AiStatus, String> {
 }
 
 #[tauri::command]
-fn auto_label_all(app: tauri::AppHandle) -> Result<state::LabelResult, String> {
+fn auto_label_all(app: tauri::AppHandle) -> Result<u32, String> {
     let app_state = app.state::<AppState>();
     let photos = app_state.get_unlabeled_photos().map_err(|e| e.to_string())?;
     let total = photos.len() as u32;
-    let mut labeled = 0u32;
-    let mut failed = 0u32;
 
-    // Emit initial progress
-    let _ = app.emit("label:progress", serde_json::json!({
-        "done": 0, "total": total, "current": ""
-    }));
-
-    for (i, (id, file_path, thumb_path)) in photos.iter().enumerate() {
-        let image_path = thumb_path.as_deref().unwrap_or("");
-        if image_path.is_empty() {
-            failed += 1;
-            continue;
-        }
-
-        let file_name = std::path::Path::new(file_path)
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("photo");
-
-        let _ = app.emit("label:progress", serde_json::json!({
-            "done": i, "total": total, "current": file_name
+    if total == 0 {
+        let _ = app.emit("label:done", serde_json::json!({
+            "labeled": 0, "failed": 0, "total": 0
         }));
-
-        match charmera_core::ai::label_photo(std::path::Path::new(image_path)) {
-            Ok(label) => {
-                if let Err(e) = app_state.store_label(*id, &label) {
-                    tracing::warn!("failed to store label for {id}: {e}");
-                    failed += 1;
-                } else {
-                    labeled += 1;
-                    tracing::info!("labeled {}: {}", file_name, label.description);
-                }
-            }
-            Err(e) => {
-                tracing::warn!("AI failed for {id}: {e}");
-                failed += 1;
-            }
-        }
+        return Ok(0);
     }
 
-    let _ = app.emit("label:progress", serde_json::json!({
-        "done": total, "total": total, "current": "done"
-    }));
+    // Return immediately, do work in background thread
+    let app_handle = app.clone();
+    std::thread::spawn(move || {
+        let app_state = app_handle.state::<AppState>();
+        let mut labeled = 0u32;
+        let mut failed = 0u32;
 
-    std::thread::sleep(std::time::Duration::from_millis(200));
-    Ok(state::LabelResult { labeled, failed, total })
+        for (i, (id, file_path, thumb_path)) in photos.iter().enumerate() {
+            let image_path = thumb_path.as_deref().unwrap_or("");
+            if image_path.is_empty() {
+                failed += 1;
+                continue;
+            }
+
+            let file_name = std::path::Path::new(file_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("photo")
+                .to_string();
+
+            let _ = app_handle.emit("label:progress", serde_json::json!({
+                "done": i, "total": total, "current": file_name
+            }));
+
+            match charmera_core::ai::label_photo(std::path::Path::new(image_path)) {
+                Ok(label) => {
+                    if let Err(e) = app_state.store_label(*id, &label) {
+                        tracing::warn!("failed to store label for {id}: {e}");
+                        failed += 1;
+                    } else {
+                        labeled += 1;
+                        // Emit per-photo completion so UI updates live
+                        let _ = app_handle.emit("label:photo_done", serde_json::json!({
+                            "id": id,
+                            "description": label.description,
+                            "tags": label.tags,
+                            "done": i + 1,
+                            "total": total,
+                        }));
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!("AI failed for {id}: {e}");
+                    failed += 1;
+                }
+            }
+        }
+
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        let _ = app_handle.emit("label:done", serde_json::json!({
+            "labeled": labeled, "failed": failed, "total": total
+        }));
+    });
+
+    // Return immediately with count of photos to process
+    Ok(total)
 }
 
 #[tauri::command]
@@ -204,6 +221,13 @@ fn search_photos(
     app_state.search_photos(&query).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn hide_photo(app: tauri::AppHandle, id: i64) -> Result<(), String> {
+    let app_state = app.state::<AppState>();
+    let catalog = app_state.catalog_lock().map_err(|e| e.to_string())?;
+    catalog.write(charmera_core::catalog::WriteOp::HidePhoto(id)).map_err(|e| e.to_string())
+}
+
 fn read_image_as_base64(path: &str) -> Result<String, String> {
     let bytes = std::fs::read(path).map_err(|e| format!("read {path}: {e}"))?;
     use base64::Engine;
@@ -243,6 +267,7 @@ fn main() {
             search_photos,
             get_rename_proposals,
             apply_renames,
+            hide_photo,
         ])
         .run(tauri::generate_context!())
         .expect("error while running charmera companion");

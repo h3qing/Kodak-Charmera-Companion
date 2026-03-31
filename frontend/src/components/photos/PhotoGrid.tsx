@@ -8,23 +8,127 @@ interface PhotoGridProps {
 }
 
 export default function PhotoGrid(props: PhotoGridProps) {
-  const [selectedId, setSelectedId] = createSignal<number | null>(null);
+  const [selectedIds, setSelectedIds] = createSignal<Set<number>>(new Set());
   const [viewingId, setViewingId] = createSignal<number | null>(null);
+  const [batchExporting, setBatchExporting] = createSignal(false);
 
   const viewingPhoto = () => props.photos.find((p) => p.id === viewingId());
+  const selectedCount = () => selectedIds().size;
+
+  const handleClick = (id: number, e: MouseEvent) => {
+    if (e.metaKey || e.ctrlKey) {
+      // Toggle individual selection
+      const next = new Set(selectedIds());
+      if (next.has(id)) next.delete(id); else next.add(id);
+      setSelectedIds(next);
+    } else if (e.shiftKey && selectedIds().size > 0) {
+      // Range select
+      const ids = props.photos.map((p) => p.id);
+      const lastSelected = [...selectedIds()].pop()!;
+      const from = ids.indexOf(lastSelected);
+      const to = ids.indexOf(id);
+      const [start, end] = from < to ? [from, to] : [to, from];
+      const next = new Set(selectedIds());
+      for (let i = start; i <= end; i++) next.add(ids[i]!);
+      setSelectedIds(next);
+    } else {
+      // Single select
+      setSelectedIds(new Set([id]));
+    }
+  };
+
+  const selectAll = () => setSelectedIds(new Set(props.photos.map((p) => p.id)));
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBatchExport = async () => {
+    const { open: openDir } = await import("@tauri-apps/plugin-dialog");
+    const dest = await openDir({ directory: true });
+    if (!dest) return;
+
+    setBatchExporting(true);
+    let count = 0;
+    for (const id of selectedIds()) {
+      const photo = props.photos.find((p) => p.id === id);
+      if (!photo) continue;
+      const fileName = photo.relative_path.split("/").pop() || `photo-${id}.jpg`;
+      try {
+        await exportPhoto(id, `${dest}/${fileName}`, [], null);
+        count++;
+      } catch (e) {
+        console.error(`Export failed for ${id}:`, e);
+      }
+    }
+    setBatchExporting(false);
+    alert(`Exported ${count} photos to ${dest}`);
+  };
+
+  const handleBatchDelete = async () => {
+    const count = selectedCount();
+    if (!confirm(`Hide ${count} photo(s) from library? Files on disk are not deleted.`)) return;
+    for (const id of selectedIds()) {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("hide_photo", { id });
+      } catch (e) {
+        console.error(`Hide failed for ${id}:`, e);
+      }
+    }
+    clearSelection();
+    // Trigger refresh via a custom event or just reload
+    window.location.reload();
+  };
 
   return (
     <div class="h-full flex flex-col">
+      {/* Batch action bar */}
+      <Show when={selectedCount() > 1 && !viewingId()}>
+        <div class="flex items-center gap-3 px-4 py-2 bg-kodak-amber/10 border-b border-kodak-amber/20 shrink-0">
+          <span class="text-sm font-semibold text-kodak-amber-dark">
+            {selectedCount()} selected
+          </span>
+          <div class="flex items-center gap-1.5 ml-auto">
+            <button
+              onClick={selectAll}
+              class="px-2.5 py-1 text-xs text-kodak-warm-gray hover:text-kodak-charcoal transition-colors"
+            >
+              Select all
+            </button>
+            <button
+              onClick={handleBatchExport}
+              disabled={batchExporting()}
+              class="px-3 py-1.5 text-xs bg-kodak-amber hover:bg-kodak-amber-dark text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+            >
+              {batchExporting() ? "Exporting..." : "Export"}
+            </button>
+            <button
+              onClick={handleBatchDelete}
+              class="px-3 py-1.5 text-xs bg-kodak-red/10 hover:bg-kodak-red/20 text-kodak-red rounded-lg font-medium transition-colors"
+            >
+              Hide
+            </button>
+            <button
+              onClick={clearSelection}
+              class="px-2.5 py-1 text-xs text-kodak-warm-gray hover:text-kodak-charcoal transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Show>
+
       {/* Grid view */}
       <Show when={!viewingId()}>
         <div class="flex-1 overflow-auto p-3">
+          <p class="text-[10px] text-kodak-warm-gray mb-2">
+            Cmd+click to multi-select, Shift+click for range
+          </p>
           <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2">
             <For each={props.photos}>
               {(photo) => (
                 <PhotoCard
                   photo={photo}
-                  selected={selectedId() === photo.id}
-                  onClick={() => setSelectedId(photo.id)}
+                  selected={selectedIds().has(photo.id)}
+                  onClick={(e) => handleClick(photo.id, e)}
                   onDoubleClick={() => setViewingId(photo.id)}
                 />
               )}
@@ -49,7 +153,7 @@ export default function PhotoGrid(props: PhotoGridProps) {
 function PhotoCard(props: {
   photo: PhotoSummary;
   selected: boolean;
-  onClick: () => void;
+  onClick: (e: MouseEvent) => void;
   onDoubleClick: () => void;
 }) {
   const [thumbSrc, setThumbSrc] = createSignal<string | null>(null);

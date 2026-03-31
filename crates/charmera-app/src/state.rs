@@ -158,6 +158,10 @@ impl AppState {
         Ok(ImportResult { imported, skipped, total_files })
     }
 
+    pub fn catalog_lock(&self) -> Result<std::sync::MutexGuard<'_, Catalog>> {
+        self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))
+    }
+
     pub fn get_photos(&self, offset: u32, limit: u32) -> Result<PhotoPage> {
         let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         let (photos, total) = catalog.get_photos(offset, limit, false)?;

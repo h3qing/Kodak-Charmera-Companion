@@ -25,12 +25,39 @@ const [labelProgress, setLabelProgress] = createSignal({ done: 0, total: 0, curr
 const [renameProposals, setRenameProposals] = createSignal<RenameProposal[]>([]);
 const [showRenameDialog, setShowRenameDialog] = createSignal(false);
 
-// Listen for progress events from backend
+// Listen for labeling events from backend
 listen("label:progress", (event: any) => {
   const data = event.payload as { done: number; total: number; current: string };
   setLabelProgress(data);
-  if (data.total > 0) {
-    setLabelStatus(`Analyzing ${data.done + 1} of ${data.total}: ${data.current}`);
+  setLabelStatus(`${data.done + 1} of ${data.total}: ${data.current}`);
+});
+
+listen("label:photo_done", (event: any) => {
+  const data = event.payload as { id: number; description: string; tags: string[]; done: number; total: number };
+  setLabelProgress({ done: data.done, total: data.total, current: "" });
+  setLabelStatus(`${data.done} of ${data.total} done`);
+  // Refresh photos to show new labels on the grid
+  refreshPhotos();
+});
+
+listen("label:done", (event: any) => {
+  const data = event.payload as { labeled: number; failed: number; total: number };
+  setIsLabeling(false);
+  if (data.labeled === 0 && data.total === 0) {
+    setLabelStatus("All photos already labeled!");
+  } else {
+    setLabelStatus(`Done! Labeled ${data.labeled} photos`);
+  }
+  refreshPhotos();
+
+  // Show rename proposals
+  if (data.labeled > 0) {
+    getRenameProposals().then((proposals) => {
+      if (proposals.length > 0) {
+        setRenameProposals(proposals);
+        setShowRenameDialog(true);
+      }
+    });
   }
 });
 
@@ -110,25 +137,16 @@ async function runAutoLabel() {
   setLabelProgress({ done: 0, total: 0, current: "" });
   setLabelStatus("Starting AI analysis...");
   try {
-    const result = await autoLabelAll();
-    if (result.labeled === 0 && result.total === 0) {
+    const total = await autoLabelAll();
+    if (total === 0) {
+      setIsLabeling(false);
       setLabelStatus("All photos already labeled!");
     } else {
-      setLabelStatus(`Labeled ${result.labeled} photos`);
-    }
-    await refreshPhotos();
-
-    // After labeling, show rename proposals
-    if (result.labeled > 0) {
-      const proposals = await getRenameProposals();
-      if (proposals.length > 0) {
-        setRenameProposals(proposals);
-        setShowRenameDialog(true);
-      }
+      setLabelStatus(`Analyzing ${total} photos...`);
+      // The rest happens via events (label:progress, label:photo_done, label:done)
     }
   } catch (e) {
     setLabelStatus(`Labeling failed: ${e}`);
-  } finally {
     setIsLabeling(false);
   }
 }
