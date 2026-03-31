@@ -23,6 +23,8 @@
 
 ---
 
+> **New in v0.2.0** — Vintage Kodak 1987 UI, drag-and-drop import, auto AI labeling after import, customizable naming patterns, settings view. [Full changelog](CHANGELOG.md)
+
 ## The Problem
 
 You bought a cute KODAK CHARMERA (or similar keychain camera). It takes fun photos. But the files are named `PICT0042.jpg`, there's no metadata, and organizing them is painful.
@@ -38,7 +40,7 @@ Camera connected → Import 36 photos → AI: "A brown dog on the couch" → b 0
 ## Features
 
 ### Auto-Import & Label
-Plug in your camera and a popup appears. Click "Import" and photos are automatically analyzed by a local vision model (moondream via Ollama). Each photo gets a one-sentence description and auto-extracted tags.
+Plug in your camera and a popup appears. Click "Import" and photos are automatically analyzed by a local vision model (moondream via Ollama). Each photo gets a one-sentence description and auto-extracted tags. You can also **drag and drop** any folder onto the app to import.
 
 ### Smart File Renaming
 Configure your naming pattern: `b {MM}-{DD}-{YYYY} {content}` transforms `PICT0042.jpg` into `b 03-30-2026 sunset at the beach.jpg`. Files are renamed directly on the SD card.
