@@ -223,7 +223,7 @@ impl AppState {
 
         // Get all photos that don't have descriptions yet
         let mut stmt = catalog.read_conn().prepare(
-            "SELECT id, thumbnail_path FROM photos WHERE description IS NULL AND is_hidden = 0",
+            "SELECT id, thumbnail_path FROM photos WHERE (description IS NULL OR description = '') AND is_hidden = 0",
         )?;
         let photos: Vec<(i64, Option<String>)> = stmt
             .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
