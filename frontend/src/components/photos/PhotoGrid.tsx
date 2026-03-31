@@ -2,6 +2,7 @@ import { For, Show, createSignal, createEffect, createMemo, onMount } from "soli
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { PhotoSummary } from "../../lib/tauri";
 import { getThumbnailBase64, getPhotoBase64, previewEffect, exportPhoto, getPhotoLabels, type PhotoLabels } from "../../lib/tauri";
+import { showToast } from "../shared/Toast";
 
 type SortBy = "newest" | "oldest" | "name-asc" | "name-desc";
 type GridSize = "small" | "medium" | "large";
@@ -14,6 +15,7 @@ const GRID_SIZES: Record<GridSize, string> = {
 
 interface PhotoGridProps {
   photos: PhotoSummary[];
+  onRefresh?: () => void;
 }
 
 export default function PhotoGrid(props: PhotoGridProps) {
@@ -86,12 +88,21 @@ export default function PhotoGrid(props: PhotoGridProps) {
       }
     }
     setBatchExporting(false);
-    alert(`Exported ${count} photos to ${dest}`);
+    showToast(`Exported ${count} photos`, "success");
+    clearSelection();
   };
 
+  const [confirmingHide, setConfirmingHide] = createSignal(false);
+
   const handleBatchDelete = async () => {
+    if (!confirmingHide()) {
+      setConfirmingHide(true);
+      // Auto-reset after 3 seconds if not confirmed
+      setTimeout(() => setConfirmingHide(false), 3000);
+      return;
+    }
+    setConfirmingHide(false);
     const count = selectedCount();
-    if (!confirm(`Hide ${count} photo(s) from library? Files on disk are not deleted.`)) return;
     for (const id of selectedIds()) {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
@@ -101,8 +112,8 @@ export default function PhotoGrid(props: PhotoGridProps) {
       }
     }
     clearSelection();
-    // Trigger refresh via a custom event or just reload
-    window.location.reload();
+    showToast(`Hidden ${count} photos from library`, "info");
+    props.onRefresh?.();
   };
 
   return (
@@ -129,9 +140,13 @@ export default function PhotoGrid(props: PhotoGridProps) {
             </button>
             <button
               onClick={handleBatchDelete}
-              class="px-3 py-1.5 text-xs bg-kodak-red/10 hover:bg-kodak-red/20 text-kodak-red rounded-lg font-medium transition-colors"
+              class={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
+                confirmingHide()
+                  ? "bg-kodak-red text-white"
+                  : "bg-kodak-red/10 hover:bg-kodak-red/20 text-kodak-red"
+              }`}
             >
-              Hide
+              {confirmingHide() ? "Click again to confirm" : "Hide"}
             </button>
             <button
               onClick={clearSelection}
