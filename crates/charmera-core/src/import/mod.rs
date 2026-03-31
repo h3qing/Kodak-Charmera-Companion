@@ -234,4 +234,66 @@ mod tests {
         let name = build_new_name("03-29-2026", "", 5, ".jpg");
         assert_eq!(name, "03-29-2026 005.jpg");
     }
+
+    #[test]
+    fn naming_pattern_default() {
+        let result = apply_naming_pattern(
+            "b {MM}-{DD}-{YYYY} {content}",
+            Some("2026:03:30 14:30:00"),
+            "A brown dog on the couch.",
+            1,
+            "PICT0042",
+        );
+        assert_eq!(result, "b 03-30-2026 A brown dog on the couch");
+    }
+
+    #[test]
+    fn naming_pattern_with_counter_and_original() {
+        let result = apply_naming_pattern(
+            "{original}_{counter}_{content}",
+            Some("2026-01-15"),
+            "sunset at beach",
+            7,
+            "IMG_001",
+        );
+        assert_eq!(result, "IMG_001_007_sunset at beach");
+    }
+
+    #[test]
+    fn naming_pattern_no_date_uses_today() {
+        let result = apply_naming_pattern("{MM}-{DD}-{YYYY}", None, "", 1, "test");
+        // Should produce today's date
+        assert_eq!(result.len(), 10); // MM-DD-YYYY
+        assert!(result.contains("-"));
+    }
+
+    #[test]
+    fn naming_pattern_sanitizes_description() {
+        let result = apply_naming_pattern(
+            "{content}",
+            None,
+            "../../etc/passwd.txt is dangerous",
+            1,
+            "x",
+        );
+        // Path separators should be stripped
+        assert!(!result.contains('/'));
+        assert!(!result.contains(".."));
+    }
+
+    #[test]
+    fn parse_date_exif_format() {
+        let (mm, dd, yyyy) = parse_date_tokens("2026:03:30 14:30:00");
+        assert_eq!(mm, "03");
+        assert_eq!(dd, "30");
+        assert_eq!(yyyy, "2026");
+    }
+
+    #[test]
+    fn parse_date_iso_format() {
+        let (mm, dd, yyyy) = parse_date_tokens("2026-01-15");
+        assert_eq!(mm, "01");
+        assert_eq!(dd, "15");
+        assert_eq!(yyyy, "2026");
+    }
 }
