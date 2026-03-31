@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "charmera")]
@@ -16,6 +16,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Generate shell completions
+    Completions {
+        /// Shell to generate for (bash, zsh, fish, powershell)
+        shell: clap_complete::Shell,
+    },
     /// Import photos from camera or folder
     Import {
         /// Source path (camera mount or folder). Auto-detects if omitted.
@@ -110,6 +115,15 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Completions { shell } => {
+            clap_complete::generate(
+                shell,
+                &mut Cli::command(),
+                "charmera",
+                &mut std::io::stdout(),
+            );
+            Ok(())
+        }
         Commands::Import { source, label: _ } => {
             let camera_path = match source {
                 Some(p) => std::path::PathBuf::from(p),
