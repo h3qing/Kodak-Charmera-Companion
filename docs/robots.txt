@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://h3qing.github.io/Kodak-Charmera-Companion/sitemap.xml
