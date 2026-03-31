@@ -2,6 +2,23 @@
 
 All notable changes to Charmera Companion will be documented in this file.
 
+## [0.4.0] - 2026-03-31
+
+### Added
+- **CLI `batch-label`** — label + rename entire folders in one command
+- **CLI `rename`** — single-file AI rename pipeline
+- **Export Labels as JSON** — settings button to export all metadata
+- **Homebrew formula** — `brew install charmera`
+- **Man page** — `man charmera` with all 8 commands
+- **CLI demo in README** — expandable terminal session
+- **Comparison table** — vs Google Photos, Apple Photos, digiKam
+- **40 tests** (up from 35)
+
+### Fixed
+- **Photos persist after camera disconnect** — copied to ~/.charmera/photos/
+- Import progress bar with per-file events
+- Zero compiler warnings
+
 ## [0.3.2] - 2026-03-31
 
 ### Added
