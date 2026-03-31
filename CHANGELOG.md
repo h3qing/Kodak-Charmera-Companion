@@ -2,6 +2,21 @@
 
 All notable changes to Charmera Companion will be documented in this file.
 
+## [0.4.1] - 2026-03-31
+
+### Added
+- **CLI `info` command** — show EXIF, dimensions, blake3 hash for any photo
+- **CLI `completions` command** — shell completions for bash, zsh, fish, powershell
+- **Export Labels as JSON** — save all metadata from Settings
+- **CLI demo in README** — expandable terminal session showing all commands
+- **Comparison table** — vs Google Photos, Apple Photos, digiKam
+
+### Changed
+- Broader positioning: "Works with any JPEG folder" alongside keychain camera focus
+- Added GitHub topics: photo-manager, image-labeling, local-ai, cli-tool
+- Updated website SEO meta tags
+- CLI now has 10 commands (import, list, label, rename, batch-label, info, detect, effects, splash, completions)
+
 ## [0.4.0] - 2026-03-31
 
 ### Added
