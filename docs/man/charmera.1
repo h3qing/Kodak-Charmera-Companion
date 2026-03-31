@@ -1,0 +1,97 @@
+.TH CHARMERA 1 "March 2026" "v0.3.2" "Charmera Companion"
+.SH NAME
+charmera \- AI photo organizer for keychain cameras
+.SH SYNOPSIS
+.B charmera
+[\fB\-\-json\fR]
+.IR command
+[\fIoptions\fR]
+.SH DESCRIPTION
+Charmera Companion is a photo organizer with local AI for KODAK CHARMERA and other keychain cameras.
+It labels, renames, and applies effects to photos using a local vision model (Ollama).
+.PP
+All processing happens locally. No cloud, no API keys, no subscriptions.
+.SH COMMANDS
+.TP
+\fBimport\fR [\fIsource\fR]
+Import photos from camera or folder. Auto-detects camera if source omitted.
+.TP
+\fBlist\fR [\fIsource\fR]
+List photos on connected camera.
+.TP
+\fBlabel\fR \fIphoto\fR [\fB\-m\fR \fImodel\fR]
+Label a single photo using local AI. Returns description and tags.
+.TP
+\fBrename\fR \fIphoto\fR [\fB\-p\fR \fIpattern\fR] [\fB\-\-dry\-run\fR]
+AI-label and rename a photo in one step. Default pattern: b {MM}-{DD}-{YYYY} {content}.
+.TP
+\fBbatch-label\fR \fIfolder\fR [\fB\-\-rename\fR] [\fB\-\-dry\-run\fR]
+Label all photos in a folder. With \fB\-\-rename\fR, renames files using AI descriptions.
+.TP
+\fBdetect\fR
+Check if a camera is connected.
+.TP
+\fBeffects\fR \fIphoto\fR [\fB\-e\fR \fIeffects\fR] [\fB\-f\fR \fIframe\fR] [\fB\-o\fR \fIoutput\fR]
+Apply visual effects (vintage, noir, grain, etc.) and frames (polaroid, film_strip, etc.).
+.TP
+\fBsplash\fR \fIphoto\fR [\fB\-\-install\fR]
+Create a 960x720 boot splash screen for the camera.
+.SH OPTIONS
+.TP
+\fB\-\-json\fR
+Output results as JSON (for AI agents and automation).
+.SH NAMING PATTERN TOKENS
+.TP
+{MM}
+Month (zero-padded)
+.TP
+{DD}
+Day (zero-padded)
+.TP
+{YYYY}
+Year
+.TP
+{content}
+AI-generated description (first sentence, sanitized)
+.TP
+{counter}
+Zero-padded sequence number
+.TP
+{original}
+Original filename without extension
+.SH EFFECTS
+vintage, noir, faded, warm, cool, sharp, soft, vignette, grain, light_leak
+.SH FRAMES
+simple, polaroid, film_strip, rounded
+.SH EXAMPLES
+.PP
+Label a photo:
+.RS
+charmera label photo.jpg \-\-json
+.RE
+.PP
+Rename all photos in a folder:
+.RS
+charmera batch-label ./vacation/ \-\-rename
+.RE
+.PP
+Apply vintage effect with polaroid frame:
+.RS
+charmera effects photo.jpg \-e vintage,grain \-f polaroid \-o edited.jpg
+.RE
+.SH FILES
+.TP
+~/.charmera/catalog.db
+SQLite database with photo metadata
+.TP
+~/.charmera/photos/
+Local copies of imported photos
+.TP
+~/.charmera/thumbnails/
+256px thumbnail cache
+.SH SEE ALSO
+.BR ollama (1)
+.SH BUGS
+https://github.com/h3qing/Kodak-Charmera-Companion/issues
+.SH AUTHOR
+https://github.com/h3qing
