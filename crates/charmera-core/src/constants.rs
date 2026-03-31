@@ -13,7 +13,7 @@ pub const PHOTO_HEIGHT: u32 = 1080;
 pub const DCIM_DIR: &str = "DCIM";
 
 // File extensions
-pub const PHOTO_EXTENSIONS: &[&str] = &[".jpg", ".jpeg"];
+pub const PHOTO_EXTENSIONS: &[&str] = &[".jpg", ".jpeg", ".png", ".bmp", ".webp"];
 pub const VIDEO_EXTENSIONS: &[&str] = &[".avi"];
 
 /// Default mount points to search for camera SD cards.

@@ -66,7 +66,12 @@ fn list_camera_files(source: String) -> Result<Vec<state::FileInfo>, String> {
             let is_photo = f
                 .extension()
                 .and_then(|e| e.to_str())
-                .map(|e| matches!(e.to_lowercase().as_str(), "jpg" | "jpeg"))
+                .map(|e| {
+                    matches!(
+                        e.to_lowercase().as_str(),
+                        "jpg" | "jpeg" | "png" | "bmp" | "webp"
+                    )
+                })
                 .unwrap_or(false);
             Some(state::FileInfo {
                 path: f.display().to_string(),
