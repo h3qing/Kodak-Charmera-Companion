@@ -117,6 +117,15 @@ export async function searchPhotos(query: string): Promise<PhotoPage> {
   return invoke("search_photos", { query });
 }
 
+export interface DuplicateGroup {
+  hash_hex: string;
+  photos: PhotoSummary[];
+}
+
+export async function getDuplicates(): Promise<DuplicateGroup[]> {
+  return invoke("get_duplicates");
+}
+
 export async function exportPhoto(
   id: number,
   dest: string,
