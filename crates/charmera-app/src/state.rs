@@ -282,6 +282,48 @@ impl AppState {
         Ok(LabelResult { labeled, failed, total })
     }
 
+    pub fn get_all_tags(&self) -> Result<Vec<charmera_core::catalog::TagInfo>> {
+        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        catalog.get_all_tags()
+    }
+
+    pub fn search_by_tag(&self, tag: &str) -> Result<PhotoPage> {
+        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let mut stmt = catalog.read_conn().prepare(
+            "SELECT DISTINCT p.id, p.relative_path, p.thumbnail_path,
+                    p.width, p.height, p.taken_at, p.rating
+             FROM photos p
+             JOIN photo_tags pt ON p.id = pt.photo_id
+             JOIN tags t ON pt.tag_id = t.id
+             WHERE t.name = ?1 AND p.is_hidden = 0
+             ORDER BY p.taken_at DESC NULLS LAST
+             LIMIT 200",
+        )?;
+        let photos: Vec<charmera_core::catalog::PhotoSummary> = stmt
+            .query_map([tag], |row| {
+                Ok(charmera_core::catalog::PhotoSummary {
+                    id: row.get(0)?,
+                    relative_path: row.get(1)?,
+                    thumbnail_path: row.get(2)?,
+                    width: row.get(3)?,
+                    height: row.get(4)?,
+                    taken_at: row.get(5)?,
+                    rating: row.get::<_, Option<u8>>(6)?.unwrap_or(0),
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        let total = photos.len() as u32;
+        Ok(PhotoPage { photos, total })
+    }
+
+    pub fn search_photos(&self, query: &str) -> Result<PhotoPage> {
+        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let photos = catalog.search_text(query, 100)?;
+        let total = photos.len() as u32;
+        Ok(PhotoPage { photos, total })
+    }
+
     pub fn get_photo_labels(&self, id: i64) -> Result<PhotoLabels> {
         let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
 

@@ -2,7 +2,9 @@ import { createSignal, Show } from "solid-js";
 import Sidebar from "./components/layout/Sidebar";
 import WelcomeScreen from "./components/shared/WelcomeScreen";
 import PhotoGrid from "./components/photos/PhotoGrid";
+import TagBrowser from "./components/tags/TagBrowser";
 import { useLibrary } from "./stores/library";
+import { searchPhotos, type PhotoSummary } from "./lib/tauri";
 
 export type View =
   | "all-photos"
@@ -15,7 +17,27 @@ export type View =
 
 export default function App() {
   const [currentView, setCurrentView] = createSignal<View>("all-photos");
+  const [searchQuery, setSearchQuery] = createSignal("");
+  const [searchResults, setSearchResults] = createSignal<PhotoSummary[] | null>(null);
   const library = useLibrary();
+
+  let searchTimeout: number | undefined;
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    clearTimeout(searchTimeout);
+    if (!query.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    searchTimeout = setTimeout(async () => {
+      try {
+        const result = await searchPhotos(query);
+        setSearchResults(result.photos);
+      } catch { setSearchResults(null); }
+    }, 300) as unknown as number;
+  };
+
+  const displayPhotos = () => searchResults() ?? library.photos();
 
   return (
     <div class="flex h-screen overflow-hidden no-select">
@@ -38,7 +60,9 @@ export default function App() {
               </svg>
               <input
                 type="text"
-                placeholder="Search photos..."
+                placeholder="Search photos... (try 'dog', 'outdoor', etc.)"
+                value={searchQuery()}
+                onInput={(e) => handleSearch(e.currentTarget.value)}
                 class="w-full pl-10 pr-4 py-1.5 text-sm bg-white/60 border border-kodak-cream-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-kodak-amber/40 focus:border-kodak-amber placeholder:text-kodak-warm-gray"
               />
             </div>
@@ -62,11 +86,19 @@ export default function App() {
 
         {/* Content area */}
         <div class="flex-1 overflow-auto">
-          <Show
-            when={library.photoCount() > 0}
-            fallback={<WelcomeScreen library={library} />}
-          >
-            <PhotoGrid photos={library.photos()} />
+          <Show when={library.photoCount() > 0} fallback={<WelcomeScreen library={library} />}>
+            <Show when={currentView() === "tags"} fallback={
+              <Show when={searchResults()} fallback={<PhotoGrid photos={library.photos()} />}>
+                <div class="p-3">
+                  <p class="text-sm text-kodak-warm-gray mb-2">
+                    {searchResults()!.length} results for "{searchQuery()}"
+                  </p>
+                  <PhotoGrid photos={searchResults()!} />
+                </div>
+              </Show>
+            }>
+              <TagBrowser />
+            </Show>
           </Show>
         </div>
 

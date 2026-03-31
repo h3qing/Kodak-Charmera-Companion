@@ -92,6 +92,10 @@ export async function getPhotoLabels(id: number): Promise<PhotoLabels> {
   return invoke("get_photo_labels", { id });
 }
 
+export async function searchPhotos(query: string): Promise<PhotoPage> {
+  return invoke("search_photos", { query });
+}
+
 export async function exportPhoto(
   id: number,
   dest: string,

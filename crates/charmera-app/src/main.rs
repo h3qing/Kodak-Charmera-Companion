@@ -120,6 +120,30 @@ fn get_photo_labels(app: tauri::AppHandle, id: i64) -> Result<state::PhotoLabels
     app_state.get_photo_labels(id).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn get_all_tags(app: tauri::AppHandle) -> Result<Vec<charmera_core::catalog::TagInfo>, String> {
+    let app_state = app.state::<AppState>();
+    app_state.get_all_tags().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn search_by_tag(
+    app: tauri::AppHandle,
+    tag: String,
+) -> Result<state::PhotoPage, String> {
+    let app_state = app.state::<AppState>();
+    app_state.search_by_tag(&tag).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn search_photos(
+    app: tauri::AppHandle,
+    query: String,
+) -> Result<state::PhotoPage, String> {
+    let app_state = app.state::<AppState>();
+    app_state.search_photos(&query).map_err(|e| e.to_string())
+}
+
 fn read_image_as_base64(path: &str) -> Result<String, String> {
     let bytes = std::fs::read(path).map_err(|e| format!("read {path}: {e}"))?;
     use base64::Engine;
@@ -154,6 +178,9 @@ fn main() {
             check_ai_status,
             auto_label_all,
             get_photo_labels,
+            get_all_tags,
+            search_by_tag,
+            search_photos,
         ])
         .run(tauri::generate_context!())
         .expect("error while running charmera companion");
