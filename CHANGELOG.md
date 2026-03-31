@@ -7,7 +7,7 @@ All notable changes to Charmera Companion will be documented in this file.
 ### Added
 - **Vintage Kodak 1987 UI** — complete visual redesign matching the KODAK CHARMERA camera
   - Bright yellow primary palette with rainbow stripe accents
-  - Camera-inspired sidebar with "Kodak Charmera" branding
+  - Camera-inspired sidebar with "Kodak Charmera" branding and photo count badges
   - Film frame borders on photo cards
   - New 1024x1024 app icon with camera lens design
 - **Camera auto-detect popup** — polls every 5s, shows notification with photo count
@@ -17,7 +17,13 @@ All notable changes to Charmera Companion will be documented in this file.
   - Live preview in both Settings and Rename dialog
 - **Settings view** — naming pattern config, AI status, about section
 - **Settings KV store** — SQLite-backed persistent settings
+- **Recent Imports view** — shows photos imported in the last 24 hours
+- **Drag-and-drop import** — drop any folder onto the app to import photos
+- **Duplicate detection** — find identical photos by blake3 hash, hide duplicates
+- **Keyboard shortcuts** — Cmd+1-4 for views, Cmd+F to search, Cmd+, for settings
+- **Sidebar photo count badges** — see library size at a glance
 - **GitHub Actions CI** — Rust check/test, frontend build, format check
+- **GitHub Pages site** — vintage landing page at h3qing.github.io/Kodak-Charmera-Companion
 
 ### Fixed
 - AI labeling returning empty descriptions (simplified moondream prompt)
