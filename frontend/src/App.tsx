@@ -6,6 +6,7 @@ import TagBrowser from "./components/tags/TagBrowser";
 import RenameDialog from "./components/shared/RenameDialog";
 import CameraPopup from "./components/shared/CameraPopup";
 import SettingsView from "./components/shared/SettingsView";
+import DuplicatesView from "./components/shared/DuplicatesView";
 import { useLibrary } from "./stores/library";
 import { searchPhotos, type PhotoSummary } from "./lib/tauri";
 
@@ -149,51 +150,48 @@ export default function App() {
 
         {/* Content area */}
         <div class="flex-1 overflow-auto">
-          <Show when={currentView() === "settings"} fallback={
-            <Show when={library.photoCount() > 0} fallback={<WelcomeScreen library={library} />}>
-              <Show when={currentView() === "tags"} fallback={
-                <Show when={currentView() === "recent"} fallback={
-                  <Show when={searchResults()} fallback={<PhotoGrid photos={library.photos()} />}>
-                    <div class="p-3">
-                      <p class="text-sm text-kodak-warm-gray mb-2">
-                        {searchResults()!.length} results for "{searchQuery()}"
-                      </p>
-                      <PhotoGrid photos={searchResults()!} />
-                    </div>
-                  </Show>
-                }>
-                  <div class="p-3">
-                    <div class="flex items-center gap-2 mb-3">
-                      <svg class="w-4 h-4 text-kodak-yellow-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <h2 class="text-sm font-semibold text-kodak-charcoal">
-                        Imported in the last 24 hours
-                      </h2>
-                      <span class="text-xs text-kodak-warm-gray">
-                        ({library.recentPhotos().length} photos)
-                      </span>
-                    </div>
-                    <Show when={library.recentPhotos().length > 0} fallback={
-                      <div class="flex flex-col items-center justify-center py-16 text-kodak-warm-gray">
-                        <svg class="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p class="text-sm">No recent imports.</p>
-                        <p class="text-xs mt-1 opacity-60">Import photos from your camera to see them here.</p>
-                      </div>
-                    }>
-                      <PhotoGrid photos={library.recentPhotos()} />
-                    </Show>
+          {(() => {
+            const view = currentView();
+            if (view === "settings") return <SettingsView />;
+            if (view === "duplicates") return <DuplicatesView />;
+            if (library.photoCount() === 0) return <WelcomeScreen library={library} />;
+            if (view === "tags") return <TagBrowser />;
+            if (view === "recent") return (
+              <div class="p-3">
+                <div class="flex items-center gap-2 mb-3">
+                  <svg class="w-4 h-4 text-kodak-yellow-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <h2 class="text-sm font-semibold text-kodak-charcoal">
+                    Imported in the last 24 hours
+                  </h2>
+                  <span class="text-xs text-kodak-warm-gray">
+                    ({library.recentPhotos().length} photos)
+                  </span>
+                </div>
+                <Show when={library.recentPhotos().length > 0} fallback={
+                  <div class="flex flex-col items-center justify-center py-16 text-kodak-warm-gray">
+                    <svg class="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-sm">No recent imports.</p>
+                    <p class="text-xs mt-1 opacity-60">Import photos from your camera to see them here.</p>
                   </div>
+                }>
+                  <PhotoGrid photos={library.recentPhotos()} />
                 </Show>
-              }>
-                <TagBrowser />
-              </Show>
-            </Show>
-          }>
-            <SettingsView />
-          </Show>
+              </div>
+            );
+            if (searchResults()) return (
+              <div class="p-3">
+                <p class="text-sm text-kodak-warm-gray mb-2">
+                  {searchResults()!.length} results for "{searchQuery()}"
+                </p>
+                <PhotoGrid photos={searchResults()!} />
+              </div>
+            );
+            return <PhotoGrid photos={library.photos()} />;
+          })()}
         </div>
 
         {/* Status bar */}

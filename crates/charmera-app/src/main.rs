@@ -272,6 +272,12 @@ fn set_setting(app: tauri::AppHandle, key: String, value: String) -> Result<(), 
 }
 
 #[tauri::command]
+fn get_duplicates(app: tauri::AppHandle) -> Result<Vec<state::DuplicateGroup>, String> {
+    let app_state = app.state::<AppState>();
+    app_state.get_duplicates().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn hide_photo(app: tauri::AppHandle, id: i64) -> Result<(), String> {
     let app_state = app.state::<AppState>();
     let catalog = app_state.catalog_lock().map_err(|e| e.to_string())?;
@@ -320,6 +326,7 @@ fn main() {
             search_photos,
             get_rename_proposals,
             apply_renames,
+            get_duplicates,
             hide_photo,
             get_naming_pattern,
             set_naming_pattern,

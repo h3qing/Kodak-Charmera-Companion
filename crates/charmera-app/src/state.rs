@@ -47,6 +47,12 @@ pub struct PhotoLabels {
 }
 
 #[derive(Serialize, Clone)]
+pub struct DuplicateGroup {
+    pub hash_hex: String,
+    pub photos: Vec<PhotoSummary>,
+}
+
+#[derive(Serialize, Clone)]
 pub struct RenameProposal {
     pub id: i64,
     pub current_name: String,
@@ -544,6 +550,56 @@ impl AppState {
         let photos = catalog.search_text(query, 100)?;
         let total = photos.len() as u32;
         Ok(PhotoPage { photos, total })
+    }
+
+    /// Find groups of duplicate photos by file hash.
+    pub fn get_duplicates(&self) -> Result<Vec<DuplicateGroup>> {
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+
+        // Find hashes that appear more than once
+        let mut hash_stmt = catalog.read_conn().prepare(
+            "SELECT file_hash, COUNT(*) as cnt FROM photos
+             WHERE is_hidden = 0
+             GROUP BY file_hash
+             HAVING cnt > 1
+             ORDER BY cnt DESC
+             LIMIT 100",
+        )?;
+
+        let hashes: Vec<Vec<u8>> = hash_stmt
+            .query_map([], |row| row.get::<_, Vec<u8>>(0))?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        let mut groups = Vec::new();
+        for hash in &hashes {
+            let mut photo_stmt = catalog.read_conn().prepare(
+                "SELECT id, relative_path, thumbnail_path, width, height, taken_at, rating
+                 FROM photos WHERE file_hash = ?1 AND is_hidden = 0",
+            )?;
+            let photos: Vec<PhotoSummary> = photo_stmt
+                .query_map([hash], |row| {
+                    Ok(PhotoSummary {
+                        id: row.get(0)?,
+                        relative_path: row.get(1)?,
+                        thumbnail_path: row.get(2)?,
+                        width: row.get(3)?,
+                        height: row.get(4)?,
+                        taken_at: row.get(5)?,
+                        rating: row.get::<_, Option<u8>>(6)?.unwrap_or(0),
+                    })
+                })?
+                .filter_map(|r| r.ok())
+                .collect();
+
+            let hash_hex = hash.iter().map(|b| format!("{b:02x}")).collect::<String>();
+            groups.push(DuplicateGroup { hash_hex, photos });
+        }
+
+        Ok(groups)
     }
 
     pub fn get_photo_labels(&self, id: i64) -> Result<PhotoLabels> {
