@@ -13,7 +13,7 @@ processed/
 
 # Rust
 /target/
-Cargo.lock
+# Note: Cargo.lock IS committed (binary app needs reproducible builds)
 
 # Frontend
 frontend/node_modules/
