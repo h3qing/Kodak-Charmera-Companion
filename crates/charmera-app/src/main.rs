@@ -82,8 +82,19 @@ fn list_camera_files(source: String) -> Result<Vec<state::FileInfo>, String> {
 #[tauri::command]
 fn import_folder(app: tauri::AppHandle, source: String) -> Result<state::ImportResult, String> {
     let app_state = app.state::<AppState>();
+    let app_handle = app.clone();
+    let emitter = move |done: u32, total: u32, current: &str| {
+        let _ = app_handle.emit(
+            "import:progress",
+            serde_json::json!({
+                "done": done,
+                "total": total,
+                "current": current,
+            }),
+        );
+    };
     app_state
-        .import_from_path(&source)
+        .import_from_path_with_progress(&source, &emitter)
         .map_err(|e| e.to_string())
 }
 

@@ -113,6 +113,14 @@ impl AppState {
     }
 
     pub fn import_from_path(&self, source: &str) -> Result<ImportResult> {
+        self.import_from_path_with_progress(source, &|_, _, _| {})
+    }
+
+    pub fn import_from_path_with_progress(
+        &self,
+        source: &str,
+        on_progress: &dyn Fn(u32, u32, &str),
+    ) -> Result<ImportResult> {
         let source_path = PathBuf::from(source);
         let files = charmera_core::import::list_media_files(&source_path)?;
         let total_files = files.len() as u32;
@@ -175,6 +183,8 @@ impl AppState {
 
             // Extract EXIF metadata (date taken, camera info)
             let exif = charmera_core::import::extract_exif(file_path);
+
+            on_progress(imported + skipped + 1, total_files, &file_name);
 
             let photo = PhotoInsert {
                 file_path: stored_path,

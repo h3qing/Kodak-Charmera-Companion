@@ -152,6 +152,20 @@ export default function App() {
           <div class="kodak-stripe-thin" />
         </header>
 
+        {/* Import progress bar */}
+        <Show when={library.isImporting() && library.importProgress().total > 0}>
+          <div class="px-4 py-2 bg-green-50 border-b border-green-100 shrink-0" role="progressbar">
+            <div class="flex items-center gap-3 text-xs">
+              <span class="w-3 h-3 border-2 border-green-500 border-t-transparent rounded-full animate-spin shrink-0" />
+              <span class="text-green-700 font-medium truncate flex-1">{library.importStatus()}</span>
+              <span class="text-green-600 shrink-0">{library.importProgress().done}/{library.importProgress().total}</span>
+            </div>
+            <div class="mt-1.5 h-1.5 bg-green-100 rounded-full overflow-hidden">
+              <div class="h-full bg-green-500 rounded-full transition-all duration-300" style={{ width: `${(library.importProgress().done / Math.max(library.importProgress().total, 1)) * 100}%` }} />
+            </div>
+          </div>
+        </Show>
+
         {/* AI Progress bar */}
         <Show when={library.isLabeling() && library.labelProgress().total > 0}>
           <div class="px-4 py-2 bg-kodak-yellow/10 border-b border-kodak-yellow/20 shrink-0" role="progressbar" aria-label="AI labeling progress" aria-valuenow={library.labelProgress().done} aria-valuemax={library.labelProgress().total}>
