@@ -106,11 +106,11 @@ export default function RenameDialog(props: RenameDialogProps) {
   };
 
   return (
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="rename-title" onKeyDown={(e) => { if (e.key === "Escape") props.onCancel(); }}>
       <div class="bg-kodak-cream rounded-xl shadow-2xl w-[700px] max-h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div class="px-6 py-4 border-b border-kodak-cream-dark">
-          <h2 class="text-lg font-bold font-[Nunito] text-kodak-charcoal">
+          <h2 id="rename-title" class="text-lg font-bold font-[Nunito] text-kodak-charcoal">
             Rename Photos?
           </h2>
           <p class="text-sm text-kodak-warm-gray mt-1">
