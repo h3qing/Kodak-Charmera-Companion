@@ -126,6 +126,7 @@ export default function App() {
                 <input
                   type="text"
                   placeholder="Search photos... (try 'dog', 'outdoor', etc.)"
+                  aria-label="Search photos by description or tags"
                   value={searchQuery()}
                   onInput={(e) => handleSearch(e.currentTarget.value)}
                   class="w-full pl-10 pr-4 py-1.5 text-sm bg-white/60 border border-kodak-cream-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-kodak-yellow/40 focus:border-kodak-yellow placeholder:text-kodak-warm-gray"
@@ -153,7 +154,7 @@ export default function App() {
 
         {/* AI Progress bar */}
         <Show when={library.isLabeling() && library.labelProgress().total > 0}>
-          <div class="px-4 py-2 bg-kodak-yellow/10 border-b border-kodak-yellow/20 shrink-0">
+          <div class="px-4 py-2 bg-kodak-yellow/10 border-b border-kodak-yellow/20 shrink-0" role="progressbar" aria-label="AI labeling progress" aria-valuenow={library.labelProgress().done} aria-valuemax={library.labelProgress().total}>
             <div class="flex items-center gap-3 text-xs">
               <span class="w-3 h-3 border-2 border-kodak-yellow border-t-transparent rounded-full animate-spin shrink-0" />
               <span class="text-kodak-yellow-dark font-medium truncate flex-1">
@@ -223,7 +224,7 @@ export default function App() {
         </div>
 
         {/* Status bar */}
-        <footer class="h-7 flex items-center px-4 text-xs text-kodak-cream/70 bg-kodak-charcoal shrink-0">
+        <footer class="h-7 flex items-center px-4 text-xs text-kodak-cream/70 bg-kodak-charcoal shrink-0" role="status" aria-label="Application status">
           <span>{library.photoCount()} photos indexed</span>
           <span class="mx-2">|</span>
           <Show when={library.cameraPath()} fallback={<span>No camera</span>}>

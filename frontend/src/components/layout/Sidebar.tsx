@@ -88,7 +88,7 @@ function SectionLabel(props: { label: string }) {
 
 export default function Sidebar(props: SidebarProps) {
   return (
-    <aside class="w-56 h-full flex flex-col bg-kodak-cream border-r border-kodak-cream-dark shrink-0">
+    <aside class="w-56 h-full flex flex-col bg-kodak-cream border-r border-kodak-cream-dark shrink-0" role="navigation" aria-label="Main navigation">
       {/* Logo */}
       <div class="relative bg-kodak-yellow px-4 py-3">
         <div class="text-sm font-bold text-kodak-red tracking-wide font-[Nunito]">
