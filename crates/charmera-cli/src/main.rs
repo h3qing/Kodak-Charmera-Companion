@@ -51,6 +51,17 @@ enum Commands {
         #[arg(short, long)]
         model: Option<String>,
     },
+    /// AI-rename a photo based on its content
+    Rename {
+        /// Photo path
+        input: String,
+        /// Naming pattern (default: b {MM}-{DD}-{YYYY} {content})
+        #[arg(short, long)]
+        pattern: Option<String>,
+        /// Dry run — show proposed name without renaming
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Detect connected camera
     Detect,
     /// Create or install boot splash screen
@@ -193,6 +204,69 @@ fn main() -> Result<()> {
                     println!("Tags: {}", label.tags.join(", "));
                 }
             }
+            Ok(())
+        }
+        Commands::Rename {
+            input,
+            pattern,
+            dry_run,
+        } => {
+            let path = std::path::Path::new(&input);
+            if !path.exists() {
+                anyhow::bail!("file not found: {input}");
+            }
+
+            // Label the photo
+            let label = charmera_core::ai::label_photo(path)?;
+
+            // Extract EXIF date
+            let exif = charmera_core::import::extract_exif(path);
+
+            // Apply naming pattern
+            let pat = pattern.unwrap_or_else(|| "b {MM}-{DD}-{YYYY} {content}".to_string());
+            let original_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("photo");
+            let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("jpg");
+
+            let new_stem = charmera_core::import::apply_naming_pattern(
+                &pat,
+                exif.taken_at.as_deref(),
+                &label.description,
+                1,
+                original_stem,
+            );
+            let new_name = format!("{new_stem}.{ext}");
+            let new_path = path.with_file_name(&new_name);
+
+            if cli.json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "original": input,
+                        "proposed": new_path.display().to_string(),
+                        "new_name": new_name,
+                        "description": label.description,
+                        "tags": label.tags,
+                        "dry_run": dry_run,
+                        "renamed": !dry_run && !new_path.exists(),
+                    })
+                );
+            } else {
+                println!("AI: {}", label.description);
+                println!("{input} → {new_name}");
+            }
+
+            if !dry_run {
+                if new_path.exists() {
+                    anyhow::bail!("target already exists: {}", new_path.display());
+                }
+                std::fs::rename(path, &new_path)?;
+                if !cli.json {
+                    println!("Renamed!");
+                }
+            } else if !cli.json {
+                println!("(dry run — no changes made)");
+            }
+
             Ok(())
         }
         Commands::Detect => {
