@@ -153,11 +153,19 @@ cargo tauri dev
 ```bash
 cargo build -p charmera-cli
 
+# Detect camera
+charmera detect --json
+# → {"detected": true, "path": "/Volumes/SDCARD"}
+
 # List photos on connected camera
 charmera list --json
 
 # Import with auto-detection
 charmera import
+
+# Label a photo with local AI
+charmera label photo.jpg --json
+# → {"description": "A brown dog on the couch", "tags": ["dog", "indoor", "couch"]}
 
 # Apply effects
 charmera effects photo.jpg --effects vintage,grain --frame polaroid --output edited.jpg

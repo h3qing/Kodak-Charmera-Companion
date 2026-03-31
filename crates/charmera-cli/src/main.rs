@@ -43,6 +43,16 @@ enum Commands {
         #[arg(short, long)]
         output: Option<String>,
     },
+    /// Label a photo using local AI (Ollama)
+    Label {
+        /// Photo path
+        input: String,
+        /// Ollama model to use (auto-detects if omitted)
+        #[arg(short, long)]
+        model: Option<String>,
+    },
+    /// Detect connected camera
+    Detect,
     /// Create or install boot splash screen
     Splash {
         /// Source image
@@ -153,6 +163,52 @@ fn main() -> Result<()> {
                 println!("{}", serde_json::json!({"output": out_path}));
             } else {
                 println!("Saved to {out_path}");
+            }
+            Ok(())
+        }
+        Commands::Label { input, model } => {
+            let path = std::path::Path::new(&input);
+            if !path.exists() {
+                anyhow::bail!("file not found: {input}");
+            }
+
+            let label = if let Some(m) = &model {
+                charmera_core::ai::label_photo_with_model(path, m)?
+            } else {
+                charmera_core::ai::label_photo(path)?
+            };
+
+            if cli.json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "description": label.description,
+                        "tags": label.tags,
+                        "file": input,
+                    })
+                );
+            } else {
+                println!("Description: {}", label.description);
+                if !label.tags.is_empty() {
+                    println!("Tags: {}", label.tags.join(", "));
+                }
+            }
+            Ok(())
+        }
+        Commands::Detect => {
+            let camera = charmera_core::import::find_camera();
+            if cli.json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "detected": camera.is_some(),
+                        "path": camera.as_ref().map(|p| p.display().to_string()),
+                    })
+                );
+            } else if let Some(path) = camera {
+                println!("Camera detected at {}", path.display());
+            } else {
+                println!("No camera detected");
             }
             Ok(())
         }
