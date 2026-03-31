@@ -1,7 +1,16 @@
-import { For, Show, createSignal, createEffect, onMount } from "solid-js";
+import { For, Show, createSignal, createEffect, createMemo, onMount } from "solid-js";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { PhotoSummary } from "../../lib/tauri";
 import { getThumbnailBase64, getPhotoBase64, previewEffect, exportPhoto, getPhotoLabels, type PhotoLabels } from "../../lib/tauri";
+
+type SortBy = "newest" | "oldest" | "name-asc" | "name-desc";
+type GridSize = "small" | "medium" | "large";
+
+const GRID_SIZES: Record<GridSize, string> = {
+  small: "grid-cols-[repeat(auto-fill,minmax(120px,1fr))]",
+  medium: "grid-cols-[repeat(auto-fill,minmax(180px,1fr))]",
+  large: "grid-cols-[repeat(auto-fill,minmax(260px,1fr))]",
+};
 
 interface PhotoGridProps {
   photos: PhotoSummary[];
@@ -11,8 +20,26 @@ export default function PhotoGrid(props: PhotoGridProps) {
   const [selectedIds, setSelectedIds] = createSignal<Set<number>>(new Set());
   const [viewingId, setViewingId] = createSignal<number | null>(null);
   const [batchExporting, setBatchExporting] = createSignal(false);
+  const [sortBy, setSortBy] = createSignal<SortBy>("newest");
+  const [gridSize, setGridSize] = createSignal<GridSize>("medium");
 
-  const viewingPhoto = () => props.photos.find((p) => p.id === viewingId());
+  const sortedPhotos = createMemo(() => {
+    const photos = [...props.photos];
+    switch (sortBy()) {
+      case "newest":
+        return photos.sort((a, b) => b.id - a.id);
+      case "oldest":
+        return photos.sort((a, b) => a.id - b.id);
+      case "name-asc":
+        return photos.sort((a, b) => a.relative_path.localeCompare(b.relative_path));
+      case "name-desc":
+        return photos.sort((a, b) => b.relative_path.localeCompare(a.relative_path));
+      default:
+        return photos;
+    }
+  });
+
+  const viewingPhoto = () => sortedPhotos().find((p) => p.id === viewingId());
   const selectedCount = () => selectedIds().size;
 
   const handleClick = (id: number, e: MouseEvent) => {
@@ -118,12 +145,53 @@ export default function PhotoGrid(props: PhotoGridProps) {
 
       {/* Grid view */}
       <Show when={!viewingId()}>
-        <div class="flex-1 overflow-auto p-3">
-          <p class="text-[10px] text-kodak-warm-gray mb-2">
-            Cmd+click to multi-select, Shift+click for range
-          </p>
-          <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2">
-            <For each={props.photos}>
+        <div class="flex-1 overflow-auto">
+          {/* Toolbar */}
+          <div class="flex items-center justify-between px-3 py-2 border-b border-kodak-cream-dark bg-kodak-cream/50">
+            <span class="text-[10px] text-kodak-warm-gray">
+              {props.photos.length} photos &middot; Cmd+click to multi-select
+            </span>
+            <div class="flex items-center gap-2">
+              {/* Sort dropdown */}
+              <select
+                value={sortBy()}
+                onChange={(e) => setSortBy(e.currentTarget.value as SortBy)}
+                class="text-[11px] px-2 py-1 rounded-md border border-kodak-cream-dark bg-white text-kodak-charcoal focus:outline-none focus:ring-1 focus:ring-kodak-yellow/40"
+              >
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="name-asc">Name A-Z</option>
+                <option value="name-desc">Name Z-A</option>
+              </select>
+              {/* Grid size buttons */}
+              <div class="flex rounded-md border border-kodak-cream-dark overflow-hidden">
+                {(["small", "medium", "large"] as GridSize[]).map((size) => (
+                  <button
+                    onClick={() => setGridSize(size)}
+                    class={`px-1.5 py-1 transition-colors ${
+                      gridSize() === size
+                        ? "bg-kodak-yellow/20 text-kodak-yellow-dark"
+                        : "bg-white text-kodak-warm-gray hover:bg-kodak-cream-dark"
+                    }`}
+                    title={`${size} grid`}
+                  >
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
+                      {size === "small" ? (
+                        <path d="M1 2.5A1.5 1.5 0 012.5 1h3A1.5 1.5 0 017 2.5v3A1.5 1.5 0 015.5 7h-3A1.5 1.5 0 011 5.5v-3zm8 0A1.5 1.5 0 0110.5 1h3A1.5 1.5 0 0115 2.5v3A1.5 1.5 0 0113.5 7h-3A1.5 1.5 0 019 5.5v-3zm-8 8A1.5 1.5 0 012.5 9h3A1.5 1.5 0 017 10.5v3A1.5 1.5 0 015.5 15h-3A1.5 1.5 0 011 13.5v-3zm8 0A1.5 1.5 0 0110.5 9h3a1.5 1.5 0 011.5 1.5v3a1.5 1.5 0 01-1.5 1.5h-3A1.5 1.5 0 019 13.5v-3z" />
+                      ) : size === "medium" ? (
+                        <path d="M1 2a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H2a1 1 0 01-1-1V2zm8 0a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1h-5a1 1 0 01-1-1V2zM1 10a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H2a1 1 0 01-1-1v-5zm8 0a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1h-5a1 1 0 01-1-1v-5z" />
+                      ) : (
+                        <path d="M1 2a1 1 0 011-1h12a1 1 0 011 1v5a1 1 0 01-1 1H2a1 1 0 01-1-1V2zm0 8a1 1 0 011-1h12a1 1 0 011 1v4a1 1 0 01-1 1H2a1 1 0 01-1-1v-4z" />
+                      )}
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div class="p-3">
+          <div class={`grid ${GRID_SIZES[gridSize()]} gap-2`}>
+            <For each={sortedPhotos()}>
               {(photo) => (
                 <PhotoCard
                   photo={photo}
@@ -134,6 +202,7 @@ export default function PhotoGrid(props: PhotoGridProps) {
               )}
             </For>
           </div>
+          </div>
         </div>
       </Show>
 
@@ -141,7 +210,7 @@ export default function PhotoGrid(props: PhotoGridProps) {
       <Show when={viewingId()}>
         <PhotoDetailView
           photo={viewingPhoto()!}
-          photos={props.photos}
+          photos={sortedPhotos()}
           onBack={() => setViewingId(null)}
           onNavigate={(id) => setViewingId(id)}
         />
