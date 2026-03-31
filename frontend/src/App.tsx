@@ -1,4 +1,4 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, Show, onMount, onCleanup } from "solid-js";
 import Sidebar from "./components/layout/Sidebar";
 import WelcomeScreen from "./components/shared/WelcomeScreen";
 import PhotoGrid from "./components/photos/PhotoGrid";
@@ -22,7 +22,41 @@ export default function App() {
   const [currentView, setCurrentView] = createSignal<View>("all-photos");
   const [searchQuery, setSearchQuery] = createSignal("");
   const [searchResults, setSearchResults] = createSignal<PhotoSummary[] | null>(null);
+  const [isDragging, setIsDragging] = createSignal(false);
   const library = useLibrary();
+
+  // Listen for Tauri file drop events
+  let dragCounter = 0;
+  onMount(async () => {
+    try {
+      const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+      const appWindow = getCurrentWebviewWindow();
+      const unlisten = await appWindow.onDragDropEvent((event) => {
+        if (event.payload.type === "enter") {
+          dragCounter++;
+          setIsDragging(true);
+        } else if (event.payload.type === "leave") {
+          dragCounter--;
+          if (dragCounter <= 0) {
+            dragCounter = 0;
+            setIsDragging(false);
+          }
+        } else if (event.payload.type === "drop") {
+          dragCounter = 0;
+          setIsDragging(false);
+          const paths = event.payload.paths;
+          if (paths.length > 0) {
+            // Import from the first dropped folder/file's parent
+            const droppedPath = paths[0];
+            library.importFromPath(droppedPath);
+          }
+        }
+      });
+      onCleanup(() => unlisten());
+    } catch (e) {
+      console.error("Failed to set up drag-drop listener:", e);
+    }
+  });
 
   let searchTimeout: number | undefined;
   const handleSearch = (query: string) => {
@@ -202,6 +236,25 @@ export default function App() {
           onImport={library.importFromCamera}
           onDismiss={() => library.dismissCameraPopup()}
         />
+      </Show>
+
+      {/* Drag-and-drop overlay */}
+      <Show when={isDragging()}>
+        <div class="fixed inset-0 z-[100] bg-kodak-yellow/90 flex items-center justify-center backdrop-blur-sm">
+          <div class="text-center">
+            <div class="w-24 h-24 mx-auto mb-4 rounded-2xl bg-white/30 flex items-center justify-center">
+              <svg class="w-12 h-12 text-kodak-charcoal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <h2 class="text-2xl font-extrabold font-[Nunito] text-kodak-charcoal mb-1">
+              Drop to Import
+            </h2>
+            <p class="text-kodak-charcoal/70 text-sm">
+              Drop a folder of photos to import them
+            </p>
+          </div>
+        </div>
       </Show>
     </div>
   );
