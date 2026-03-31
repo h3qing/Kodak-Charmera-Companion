@@ -11,8 +11,11 @@ env:
 
 jobs:
   check:
-    name: Rust Check & Test
-    runs-on: macos-latest
+    name: Rust Check & Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
 

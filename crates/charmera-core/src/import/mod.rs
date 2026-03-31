@@ -56,8 +56,10 @@ pub fn sanitize_label(label: &str) -> String {
         .to_string()
 }
 
-/// Find camera mount point by checking known volume paths.
+/// Find camera mount point by checking known volume paths,
+/// then scanning common mount directories for any volume with a DCIM folder.
 pub fn find_camera() -> Option<PathBuf> {
+    // Check known paths first (fast)
     for path_str in VOLUME_PATHS {
         let path = PathBuf::from(path_str);
         let dcim = path.join(DCIM_DIR);
@@ -65,7 +67,49 @@ pub fn find_camera() -> Option<PathBuf> {
             return Some(path);
         }
     }
+
+    // Scan mount directories for any volume with DCIM
+    for scan_dir in scan_directories() {
+        if let Ok(entries) = std::fs::read_dir(&scan_dir) {
+            for entry in entries.filter_map(|e| e.ok()) {
+                let path = entry.path();
+                if path.is_dir() && path.join(DCIM_DIR).is_dir() {
+                    return Some(path);
+                }
+            }
+        }
+    }
+
     None
+}
+
+/// Platform-specific directories to scan for mounted volumes.
+fn scan_directories() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+
+    #[cfg(target_os = "macos")]
+    dirs.push(PathBuf::from("/Volumes"));
+
+    #[cfg(target_os = "linux")]
+    {
+        dirs.push(PathBuf::from("/media"));
+        dirs.push(PathBuf::from("/mnt"));
+        // Also check user-specific mount point
+        if let Ok(user) = std::env::var("USER") {
+            dirs.push(PathBuf::from(format!("/media/{user}")));
+            dirs.push(PathBuf::from(format!("/run/media/{user}")));
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // Scan drive letters D: through Z:
+        for letter in b'D'..=b'Z' {
+            dirs.push(PathBuf::from(format!("{}:\\", letter as char)));
+        }
+    }
+
+    dirs
 }
 
 /// Find camera or return an error with helpful message.
