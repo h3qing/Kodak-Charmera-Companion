@@ -92,6 +92,7 @@ Find identical photos by file hash. Keep the original, hide the duplicates (file
 | `E` | Toggle effects (in photo detail) |
 | `I` | Toggle info panel (in photo detail) |
 | `←` `→` | Navigate photos |
+| `C` | Compare (before/after effects) |
 | `Esc` | Back to grid |
 
 ## Architecture
@@ -212,13 +213,13 @@ cargo tauri dev
 Planned features — star the repo to follow progress:
 
 - [ ] **Dark mode** toggle
-- [ ] **Photo comparison** — side-by-side before/after effects
+- [x] **Photo comparison** — side-by-side before/after effects *(v0.3.0)*
 - [ ] **Face detection** — group photos by person
 - [ ] **Export presets** — save favorite effect combinations
 - [ ] **Linux support** — auto-detect cameras on Linux
 - [ ] **Windows support** — volume detection for Windows
 - [ ] **Video thumbnails** — preview AVI clips from the camera
-- [ ] **Batch effects** — apply effects to multiple photos at once
+- [x] **Batch effects** — apply effects to multiple photos at once *(v0.3.0)*
 - [ ] **CLIP embeddings** — semantic photo search ("photos near the ocean")
 - [ ] **iCloud/Google Photos export** — one-click cloud upload
 
