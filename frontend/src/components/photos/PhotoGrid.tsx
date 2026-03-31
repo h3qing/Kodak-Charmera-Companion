@@ -53,6 +53,7 @@ function PhotoCard(props: {
   onDoubleClick: () => void;
 }) {
   const [thumbSrc, setThumbSrc] = createSignal<string | null>(null);
+  const [labels, setLabels] = createSignal<PhotoLabels | null>(null);
 
   onMount(async () => {
     if (props.photo.thumbnail_path) {
@@ -63,6 +64,11 @@ function PhotoCard(props: {
         console.error("Failed to load thumbnail:", e);
       }
     }
+    // Load labels
+    try {
+      const l = await getPhotoLabels(props.photo.id);
+      if (l.description || l.tags.length > 0) setLabels(l);
+    } catch { /* no labels yet */ }
   });
 
   const aspectRatio = () => {
@@ -110,9 +116,22 @@ function PhotoCard(props: {
         </div>
       </Show>
 
-      {/* Hover overlay with filename */}
-      <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <p class="text-white text-xs truncate">{props.photo.relative_path.split("/").pop()}</p>
+      {/* Hover overlay with description and tags */}
+      <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Show when={labels()?.description} fallback={
+          <p class="text-white text-xs truncate">{props.photo.relative_path.split("/").pop()}</p>
+        }>
+          <p class="text-white text-[11px] leading-tight line-clamp-2">{labels()!.description}</p>
+        </Show>
+        <Show when={labels()?.tags && labels()!.tags.length > 0}>
+          <div class="flex flex-wrap gap-0.5 mt-1">
+            <For each={labels()!.tags.slice(0, 3)}>
+              {(tag) => (
+                <span class="px-1.5 py-0 bg-white/20 text-white text-[9px] rounded-full">{tag}</span>
+              )}
+            </For>
+          </div>
+        </Show>
       </div>
     </div>
   );

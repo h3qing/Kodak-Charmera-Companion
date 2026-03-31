@@ -154,14 +154,28 @@ impl AppState {
         Ok(PhotoPage { photos, total })
     }
 
+    /// Get the best available image path for a photo.
+    /// Tries original file first, falls back to thumbnail if original is unavailable.
     pub fn get_photo_file_path(&self, id: i64) -> Result<String> {
         let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
-        let path: String = catalog.read_conn().query_row(
-            "SELECT file_path FROM photos WHERE id = ?1",
+        let (file_path, thumb_path): (String, Option<String>) = catalog.read_conn().query_row(
+            "SELECT file_path, thumbnail_path FROM photos WHERE id = ?1",
             [id],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )?;
-        Ok(path)
+
+        // Use original if it exists on disk, otherwise fall back to thumbnail
+        if std::path::Path::new(&file_path).exists() {
+            Ok(file_path)
+        } else if let Some(tp) = thumb_path {
+            if std::path::Path::new(&tp).exists() {
+                Ok(tp)
+            } else {
+                anyhow::bail!("photo file not found: {file_path}")
+            }
+        } else {
+            anyhow::bail!("photo file not found: {file_path}")
+        }
     }
 
     pub fn preview_effect(

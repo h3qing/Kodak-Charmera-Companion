@@ -25,7 +25,8 @@ pub fn check_ollama() -> Result<bool> {
         .map_err(|e| anyhow::anyhow!("ollama not reachable: {e}"))?;
 
     let body: serde_json::Value = resp.into_body().read_json()?;
-    let models = body["models"].as_array().unwrap_or(&vec![]);
+    let empty = vec![];
+    let models = body["models"].as_array().unwrap_or(&empty);
     let has_model = models.iter().any(|m| {
         m["name"]
             .as_str()
