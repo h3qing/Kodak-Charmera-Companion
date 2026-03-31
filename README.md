@@ -1,116 +1,174 @@
-# Kodak Charmera Companion
+<p align="center">
+  <img src="crates/charmera-app/icons/icon.png" width="180" alt="Charmera Companion" />
+</p>
 
-Desktop photo organizer with local AI for **KODAK CHARMERA** and other Generalplus CBB3-based keychain digital cameras.
+<h1 align="center">Charmera Companion</h1>
 
-> Not affiliated with Kodak. KODAK and CHARMERA are trademarks of their respective owners.
+<p align="center">
+  <strong>Desktop photo organizer with local AI for the KODAK CHARMERA keychain camera</strong>
+</p>
 
-## What it does
+<p align="center">
+  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white" alt="Rust" /></a>
+  <a href="https://v2.tauri.app/"><img src="https://img.shields.io/badge/Tauri_2-24C8D8?logo=tauri&logoColor=white" alt="Tauri 2" /></a>
+  <a href="https://www.solidjs.com/"><img src="https://img.shields.io/badge/Solid.js-2C4F7C?logo=solid&logoColor=white" alt="Solid.js" /></a>
+  <a href="https://ollama.com/"><img src="https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white" alt="Ollama" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" /></a>
+</p>
 
-- **Auto-label photos** with local AI (moondream via Ollama, runs 100% on your machine)
-- **Smart import** from camera with AI-based file renaming
-- **Browse & search** photos by AI-generated tags and descriptions
-- **Photo effects** (vintage, noir, faded, warm, cool, sharp, soft, vignette, grain, light leak)
-- **Photo frames** (polaroid, film strip, simple, rounded)
-- **Multi-select & batch export** photos to any folder
-- **Custom boot splash** screen for your camera
-- **Tag browser** to organize photos by AI-detected content
+<p align="center">
+  <em>Import, label, rename, and enhance photos from your keychain camera — all locally, no cloud required.</em>
+</p>
 
-All processing happens locally. No cloud, no API keys, no subscriptions.
+---
+
+## The Problem
+
+You bought a cute KODAK CHARMERA (or similar keychain camera). It takes fun photos. But the files are named `PICT0042.jpg`, there's no metadata, and organizing them is painful.
+
+## The Solution
+
+Plug in your camera, and Charmera Companion **automatically imports, labels, and renames** your photos using a local AI model running entirely on your machine. No cloud uploads. No API keys. No subscriptions.
+
+```
+Camera connected → Import 36 photos → AI: "A brown dog on the couch" → b 03-30-2026 brown dog on couch.jpg
+```
+
+## Features
+
+### Auto-Import & Label
+Plug in your camera and a popup appears. Click "Import" and photos are automatically analyzed by a local vision model (moondream via Ollama). Each photo gets a one-sentence description and auto-extracted tags.
+
+### Smart File Renaming
+Configure your naming pattern: `b {MM}-{DD}-{YYYY} {content}` transforms `PICT0042.jpg` into `b 03-30-2026 sunset at the beach.jpg`. Files are renamed directly on the SD card.
+
+### Browse & Search
+Search photos by AI-generated descriptions and tags. Click a tag to filter. Full-text search across your entire library.
+
+### Photo Effects & Frames
+Apply vintage film effects and frames before exporting:
+
+| Effects | Frames |
+|---------|--------|
+| vintage, noir, faded, warm, cool | polaroid, film strip |
+| sharp, soft, vignette, grain, light leak | simple, rounded |
+
+### Settings & Customization
+- Configurable naming pattern with live preview
+- Token buttons: `{MM}` `{DD}` `{YYYY}` `{content}` `{counter}` `{original}`
+- AI status monitoring
+- Boot splash screen editor for your camera
 
 ## Architecture
 
 ```
-Tauri Desktop App (Solid.js + Tailwind)
-    │
-Rust Backend (charmera-core)
-    ├── catalog    (SQLite, search)
-    ├── effects    (10 effects, 4 frames)
-    ├── ai         (Ollama + moondream, local)
-    ├── import     (camera detect, EXIF, smart rename)
-    ├── thumbnails (256px cache)
-    ├── splash     (boot screen editor)
-    └── export     (batch pipeline)
+Tauri 2 Desktop App
+├── Frontend: Solid.js + Tailwind CSS v4
+│   ├── Vintage Kodak 1987 design system
+│   ├── Camera auto-detect + import popup
+│   ├── Photo grid with film frame styling
+│   └── Settings with naming pattern editor
+│
+└── Backend: Rust (3 crates)
+    ├── charmera-core (library)
+    │   ├── ai         → Ollama/moondream vision labeling
+    │   ├── catalog    → SQLite with WAL, full-text search
+    │   ├── effects    → 10 effects + 4 frames pipeline
+    │   ├── import     → Camera detect, file hash, smart rename
+    │   ├── thumbnails → 256px sharded cache
+    │   ├── splash     → Boot screen editor (960×720)
+    │   └── export     → Batch JPEG pipeline
+    ├── charmera-app   → Tauri commands (25 IPC endpoints)
+    └── charmera-cli   → Agent-friendly CLI with --json
 ```
 
-## Install
+## Quick Start
 
-### Desktop App (Tauri)
+### Prerequisites
 
-Requires: Rust, Node.js/Bun, Ollama
+- [Rust](https://rustup.rs/) (stable)
+- [Bun](https://bun.sh/) or Node.js
+- [Ollama](https://ollama.com/) with moondream model
+
+### Install & Run
 
 ```bash
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Clone
+git clone https://github.com/h3qing/Kodak-Charmera-Companion.git
+cd Kodak-Charmera-Companion
 
-# Install Ollama + vision model
-curl -fsSL https://ollama.com/install.sh | sh
+# Pull the vision model
 ollama pull moondream
 
-# Build & run
+# Install frontend deps
 cd frontend && bun install && cd ..
+
+# Run in development
 cargo tauri dev
 ```
 
-### Python CLI (original)
-
-```bash
-pip install -e .
-kodak-helper import --label "beach day"
-```
-
-### Rust CLI (agent-friendly)
+### CLI (for automation & AI agents)
 
 ```bash
 cargo build -p charmera-cli
-charmera import /Volumes/SDCARD --json
+
+# List photos on connected camera
 charmera list --json
-charmera effects photo.jpg --effects vintage,grain --output edited.jpg
+
+# Import with auto-detection
+charmera import
+
+# Apply effects
+charmera effects photo.jpg --effects vintage,grain --frame polaroid --output edited.jpg
 ```
 
-## Usage
+## How It Works
 
-### Desktop App
+1. **Connect camera** — mounts as USB mass storage at `/Volumes/SDCARD`
+2. **Auto-detect** — app polls every 5s, shows popup when new photos found
+3. **Import** — reads DCIM folder, hashes files (blake3), generates thumbnails
+4. **AI Label** — sends each thumbnail to local moondream model, gets description
+5. **Tag Extract** — parses description for 55+ keyword categories
+6. **Smart Rename** — applies naming pattern, renames directly on SD card
+7. **Browse** — search by description, filter by tags, multi-select & export
 
-1. Connect your KODAK CHARMERA via USB
-2. Click **Import from Camera** (or Add Folder)
-3. Click **Auto Label Photos** to run local AI analysis
-4. Browse by tags, search by description, multi-select and export
+## Compatible Cameras
 
-### Effects
+Built for the **KODAK CHARMERA** (Generalplus CBB3 chipset), but works with any camera that mounts as USB mass storage with JPEG photos in a DCIM folder.
 
-| Effect | Description |
-|--------|-------------|
-| `vintage` | Warm tones, slight desaturation |
-| `noir` | High-contrast black & white |
-| `faded` | Lifted blacks, film fade look |
-| `warm` | Golden warm tones |
-| `cool` | Blue cool tones |
-| `sharp` | Sharpen details |
-| `soft` | Dreamy soft focus |
-| `vignette` | Dark edges |
-| `grain` | Film grain noise |
-| `light_leak` | Warm light leak in corner |
+| Spec | Value |
+|------|-------|
+| Photos | 1440×1080 JPEG |
+| Video | 1440×1080 @ 30fps MJPEG |
+| Boot splash | 960×720 JPEG (`SPIDCIM/SPI00.jpg`) |
+| Connection | USB mass storage |
 
-### Frames
+For firmware hacking details, see [docs/hardware-guide.md](docs/hardware-guide.md).
 
-| Frame | Description |
-|-------|-------------|
-| `simple` | Solid white border |
-| `polaroid` | Classic polaroid with thick bottom |
-| `film_strip` | 35mm film strip with sprocket holes |
-| `rounded` | Rounded corners |
+## Design
 
-## Hardware Hacking
+The UI is inspired by the physical camera — bright Kodak Yellow, the iconic rainbow stripe (red → orange → black → blue → purple), and retro 1987 typography. It's designed to feel like holding the actual camera.
 
-Want to modify the actual firmware? See [docs/hardware-guide.md](docs/hardware-guide.md).
+## Contributing
 
-## Camera Specs (Generalplus CBB3)
+Contributions welcome! This project uses:
+- **Rust** for the backend (3-crate workspace)
+- **Solid.js + Tailwind v4** for the frontend
+- **Tauri 2** for the desktop shell
 
-- Photos: 1440x1080 JPEG
-- Video: 1440x1080 @ 30fps MJPEG + mono audio
-- Boot splash: 960x720 JPEG (stored in `SPIDCIM/SPI00.jpg`)
-- USB: Mass storage (mounts as SD card)
+```bash
+# Run tests
+cargo test
+
+# Build frontend
+cd frontend && bun run build
+
+# Development mode
+cargo tauri dev
+```
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE) for details.
+
+> Not affiliated with Kodak. KODAK and CHARMERA are trademarks of their respective owners.
