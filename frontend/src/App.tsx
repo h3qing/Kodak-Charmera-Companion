@@ -258,7 +258,7 @@ export default function App() {
             <span class="mx-2">|</span>
             <span>{library.labelStatus()}</span>
           </Show>
-          <span class="ml-auto text-kodak-cream/30">v0.3.1</span>
+          <span class="ml-auto text-kodak-cream/30">v0.5.0</span>
         </footer>
       </main>
 
