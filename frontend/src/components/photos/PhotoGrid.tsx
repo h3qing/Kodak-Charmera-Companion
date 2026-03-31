@@ -27,6 +27,9 @@ export default function PhotoGrid(props: PhotoGridProps) {
   const [batchExporting, setBatchExporting] = createSignal(false);
   const [sortBy, setSortBy] = createSignal<SortBy>("newest");
   const [gridSize, setGridSize] = createSignal<GridSize>("medium");
+  const [batchEffects, setBatchEffects] = createSignal<string[]>([]);
+  const [batchFrame, setBatchFrame] = createSignal<string | null>(null);
+  const [showBatchEffects, setShowBatchEffects] = createSignal(false);
 
   const sortedPhotos = createMemo(() => {
     const photos = [...props.photos];
@@ -84,7 +87,7 @@ export default function PhotoGrid(props: PhotoGridProps) {
       if (!photo) continue;
       const fileName = photo.relative_path.split("/").pop() || `photo-${id}.jpg`;
       try {
-        await exportPhoto(id, `${dest}/${fileName}`, [], null);
+        await exportPhoto(id, `${dest}/${fileName}`, batchEffects(), batchFrame());
         count++;
       } catch (e) {
         console.error(`Export failed for ${id}:`, e);
@@ -123,11 +126,22 @@ export default function PhotoGrid(props: PhotoGridProps) {
     <div class="h-full flex flex-col">
       {/* Batch action bar */}
       <Show when={selectedCount() > 1 && !viewingId()}>
-        <div class="flex items-center gap-3 px-4 py-2 bg-kodak-yellow/10 border-b border-kodak-yellow/20 shrink-0">
+        <div class="px-4 py-2 bg-kodak-yellow/10 border-b border-kodak-yellow/20 shrink-0">
+          <div class="flex items-center gap-3">
           <span class="text-sm font-semibold text-kodak-yellow-dark">
             {selectedCount()} selected
           </span>
           <div class="flex items-center gap-1.5 ml-auto">
+            <button
+              onClick={() => setShowBatchEffects(!showBatchEffects())}
+              class={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                showBatchEffects() || batchEffects().length > 0
+                  ? "bg-kodak-yellow/20 text-kodak-yellow-dark font-medium"
+                  : "text-kodak-warm-gray hover:text-kodak-charcoal"
+              }`}
+            >
+              {batchEffects().length > 0 ? `Effects (${batchEffects().length})` : "Add Effects"}
+            </button>
             <button
               onClick={selectAll}
               class="px-2.5 py-1 text-xs text-kodak-warm-gray hover:text-kodak-charcoal transition-colors"
@@ -139,7 +153,7 @@ export default function PhotoGrid(props: PhotoGridProps) {
               disabled={batchExporting()}
               class="px-3 py-1.5 text-xs bg-kodak-yellow hover:bg-kodak-yellow-dark text-white rounded-lg font-medium transition-colors disabled:opacity-50"
             >
-              {batchExporting() ? "Exporting..." : "Export"}
+              {batchExporting() ? "Exporting..." : batchEffects().length > 0 ? "Export with Effects" : "Export"}
             </button>
             <button
               onClick={handleBatchDelete}
@@ -158,6 +172,40 @@ export default function PhotoGrid(props: PhotoGridProps) {
               Cancel
             </button>
           </div>
+          </div>
+          {/* Batch effects row */}
+          <Show when={showBatchEffects()}>
+            <div class="mt-2 flex flex-wrap gap-1">
+              {EFFECTS.map(eff => (
+                <button
+                  onClick={() => {
+                    const cur = batchEffects();
+                    setBatchEffects(cur.includes(eff) ? cur.filter(e => e !== eff) : [...cur, eff].slice(-3));
+                  }}
+                  class={`px-2 py-0.5 text-[10px] rounded transition-colors ${
+                    batchEffects().includes(eff)
+                      ? "bg-kodak-yellow text-white font-medium"
+                      : "bg-white/80 text-kodak-warm-gray hover:bg-kodak-yellow/10"
+                  }`}
+                >
+                  {eff.replace("_", " ")}
+                </button>
+              ))}
+              <span class="text-kodak-warm-gray/50 mx-1">|</span>
+              {FRAMES.map(fr => (
+                <button
+                  onClick={() => setBatchFrame(batchFrame() === fr ? null : fr)}
+                  class={`px-2 py-0.5 text-[10px] rounded transition-colors ${
+                    batchFrame() === fr
+                      ? "bg-kodak-yellow text-white font-medium"
+                      : "bg-white/80 text-kodak-warm-gray hover:bg-kodak-yellow/10"
+                  }`}
+                >
+                  {fr.replace("_", " ")}
+                </button>
+              ))}
+            </div>
+          </Show>
         </div>
       </Show>
 
