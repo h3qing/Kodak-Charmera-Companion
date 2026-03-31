@@ -295,7 +295,7 @@ fn export_labels_json(app: tauri::AppHandle) -> Result<String, String> {
     let photos: Vec<serde_json::Value> = stmt
         .query_map([], |row| {
             let id: i64 = row.get(0)?;
-            let file_path: String = row.get(1)?;
+            let _file_path: String = row.get(1)?;
             let relative_path: String = row.get(2)?;
             let description: Option<String> = row.get(3)?;
             let taken_at: Option<String> = row.get(4)?;
