@@ -120,7 +120,14 @@ Tauri 2 Desktop App
 
 ## Quick Start
 
-### One-Line Install (macOS)
+### Homebrew (CLI only)
+
+```bash
+brew tap h3qing/tap https://github.com/h3qing/Kodak-Charmera-Companion.git
+brew install charmera
+```
+
+### One-Line Install (full app)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/h3qing/Kodak-Charmera-Companion/main/scripts/install.sh | bash
