@@ -23,11 +23,18 @@
 
 ---
 
-> **New in v0.2.0** — Vintage Kodak 1987 UI, drag-and-drop import, auto AI labeling after import, customizable naming patterns, settings view. [Full changelog](CHANGELOG.md)
+> **v0.2.1** — Vintage Kodak 1987 UI, auto AI labeling, smart albums, drag-and-drop, duplicate detection, 22 tests. [Changelog](CHANGELOG.md)
 
 <p align="center">
-  <img src="docs/screenshot.png" width="800" alt="Charmera Companion screenshot" />
+  <img src="docs/screenshot.png" width="800" alt="Charmera Companion — photo grid view" />
 </p>
+
+<details>
+<summary><strong>Photo Detail View</strong> — effects, AI labels, film strip navigation</summary>
+<p align="center">
+  <img src="docs/screenshot-detail.png" width="800" alt="Photo detail with effects and AI labels" />
+</p>
+</details>
 
 ## The Problem
 
@@ -197,6 +204,23 @@ cd frontend && bun run build
 # Development mode
 cargo tauri dev
 ```
+
+## Roadmap
+
+Planned features — star the repo to follow progress:
+
+- [ ] **Dark mode** toggle
+- [ ] **Photo comparison** — side-by-side before/after effects
+- [ ] **Face detection** — group photos by person
+- [ ] **Export presets** — save favorite effect combinations
+- [ ] **Linux support** — auto-detect cameras on Linux
+- [ ] **Windows support** — volume detection for Windows
+- [ ] **Video thumbnails** — preview AVI clips from the camera
+- [ ] **Batch effects** — apply effects to multiple photos at once
+- [ ] **CLIP embeddings** — semantic photo search ("photos near the ocean")
+- [ ] **iCloud/Google Photos export** — one-click cloud upload
+
+Have an idea? [Open a discussion](https://github.com/h3qing/Kodak-Charmera-Companion/discussions) or [file a feature request](https://github.com/h3qing/Kodak-Charmera-Companion/issues/new?template=feature_request.yml).
 
 ## License
 
