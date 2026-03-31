@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use anyhow::{Context, Result};
@@ -89,6 +89,10 @@ impl AppState {
             data_dir,
             thumbnail_dir,
         })
+    }
+
+    pub fn data_dir(&self) -> &Path {
+        &self.data_dir
     }
 
     /// Get a setting value.

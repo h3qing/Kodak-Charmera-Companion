@@ -12,6 +12,44 @@ fn get_app_version() -> String {
 }
 
 #[tauri::command]
+fn generate_demo_photos(app: tauri::AppHandle) -> Result<String, String> {
+    let app_state = app.state::<AppState>();
+    let demo_dir = app_state.data_dir().join("demo");
+    std::fs::create_dir_all(&demo_dir).map_err(|e| e.to_string())?;
+
+    // Generate 6 sample photos with different colors (simulating camera output)
+    let samples = [
+        ([180, 140, 100], "PICT0001.jpg"),
+        ([100, 160, 190], "PICT0002.jpg"),
+        ([160, 180, 110], "PICT0003.jpg"),
+        ([190, 120, 140], "PICT0004.jpg"),
+        ([140, 130, 180], "PICT0005.jpg"),
+        ([170, 170, 130], "PICT0006.jpg"),
+    ];
+
+    for (color, name) in &samples {
+        let path = demo_dir.join(name);
+        if path.exists() {
+            continue;
+        }
+        // Create a 1440x1080 JPEG (same as KODAK CHARMERA resolution)
+        let img = image::RgbImage::from_fn(1440, 1080, |x, y| {
+            // Simple gradient pattern
+            let r = (color[0] as f32 + (x as f32 / 1440.0 * 40.0)) as u8;
+            let g = (color[1] as f32 + (y as f32 / 1080.0 * 40.0)) as u8;
+            let b = color[2];
+            image::Rgb([r, g, b])
+        });
+        let mut buf =
+            std::io::BufWriter::new(std::fs::File::create(&path).map_err(|e| e.to_string())?);
+        let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, 85);
+        img.write_with_encoder(encoder).map_err(|e| e.to_string())?;
+    }
+
+    Ok(demo_dir.display().to_string())
+}
+
+#[tauri::command]
 fn detect_camera() -> Option<String> {
     charmera_core::import::find_camera().map(|p| p.display().to_string())
 }
@@ -346,6 +384,7 @@ fn main() {
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             get_app_version,
+            generate_demo_photos,
             detect_camera,
             list_camera_files,
             import_folder,

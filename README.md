@@ -145,6 +145,8 @@ cd frontend && bun install && cd ..
 cargo tauri dev
 ```
 
+> **No camera?** Click "Try with sample photos" on the welcome screen to generate test images and explore all features.
+
 ### CLI (for automation & AI agents)
 
 ```bash
