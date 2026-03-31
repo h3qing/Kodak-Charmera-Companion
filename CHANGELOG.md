@@ -2,6 +2,21 @@
 
 All notable changes to Charmera Companion will be documented in this file.
 
+## [0.2.1] - 2026-03-31
+
+### Added
+- **Paginated photo loading** — loads 100 photos initially, "Load more" button at bottom
+- **Toast notifications** — non-intrusive success/error messages replace alert()/confirm()
+- **Always-visible export** — "Save Copy" or "Export with Effects" button in detail view
+- **Welcome screen status** — camera and AI readiness indicators
+- **Social preview** — branded 1280x640 image for link sharing
+- **SEO** — Open Graph, Twitter cards, sitemap, robots.txt
+
+### Fixed
+- Batch hide no longer reloads the entire page
+- Export shows loading state and uses original filename
+- Double-click-to-confirm pattern for destructive batch actions
+
 ## [0.2.0] - 2026-03-31
 
 ### Added
