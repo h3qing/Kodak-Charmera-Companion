@@ -167,6 +167,13 @@ charmera import
 charmera label photo.jpg --json
 # → {"description": "A brown dog on the couch", "tags": ["dog", "indoor", "couch"]}
 
+# AI-rename a photo (label + rename in one step)
+charmera rename PICT0042.jpg --json
+# → {"original": "PICT0042.jpg", "new_name": "b 03-30-2026 brown dog on couch.jpg", ...}
+
+# Dry run (show proposed name without renaming)
+charmera rename PICT0042.jpg --dry-run
+
 # Apply effects
 charmera effects photo.jpg --effects vintage,grain --frame polaroid --output edited.jpg
 ```
