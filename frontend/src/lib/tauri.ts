@@ -92,6 +92,23 @@ export async function getPhotoLabels(id: number): Promise<PhotoLabels> {
   return invoke("get_photo_labels", { id });
 }
 
+export interface RenameProposal {
+  id: number;
+  current_name: string;
+  proposed_name: string;
+  description: string;
+  file_path: string;
+  thumbnail_path: string | null;
+}
+
+export async function getRenameProposals(): Promise<RenameProposal[]> {
+  return invoke("get_rename_proposals");
+}
+
+export async function applyRenames(renames: [number, string][]): Promise<number> {
+  return invoke("apply_renames", { renames });
+}
+
 export async function searchPhotos(query: string): Promise<PhotoPage> {
   return invoke("search_photos", { query });
 }

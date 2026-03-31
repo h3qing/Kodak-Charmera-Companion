@@ -1,12 +1,16 @@
 import { createSignal } from "solid-js";
+import { listen } from "@tauri-apps/api/event";
 import {
   getPhotos,
   importFolder,
   detectCamera,
   checkAiStatus,
   autoLabelAll,
+  getRenameProposals,
+  applyRenames,
   type PhotoSummary,
   type AiStatus,
+  type RenameProposal,
 } from "../lib/tauri";
 
 const [photoCount, setPhotoCount] = createSignal(0);
@@ -17,6 +21,18 @@ const [cameraPath, setCameraPath] = createSignal<string | null>(null);
 const [aiStatus, setAiStatus] = createSignal<AiStatus | null>(null);
 const [isLabeling, setIsLabeling] = createSignal(false);
 const [labelStatus, setLabelStatus] = createSignal("");
+const [labelProgress, setLabelProgress] = createSignal({ done: 0, total: 0, current: "" });
+const [renameProposals, setRenameProposals] = createSignal<RenameProposal[]>([]);
+const [showRenameDialog, setShowRenameDialog] = createSignal(false);
+
+// Listen for progress events from backend
+listen("label:progress", (event: any) => {
+  const data = event.payload as { done: number; total: number; current: string };
+  setLabelProgress(data);
+  if (data.total > 0) {
+    setLabelStatus(`Analyzing ${data.done + 1} of ${data.total}: ${data.current}`);
+  }
+});
 
 export function useLibrary() {
   return {
@@ -28,11 +44,16 @@ export function useLibrary() {
     aiStatus,
     isLabeling,
     labelStatus,
+    labelProgress,
+    renameProposals,
+    showRenameDialog,
+    setShowRenameDialog,
     refreshPhotos,
     importFromCamera,
     importFromPath,
     checkCamera,
     runAutoLabel,
+    confirmRenames,
   };
 }
 
@@ -86,18 +107,45 @@ async function importFromPath(source: string) {
 
 async function runAutoLabel() {
   setIsLabeling(true);
-  setLabelStatus("Analyzing photos with AI...");
+  setLabelProgress({ done: 0, total: 0, current: "" });
+  setLabelStatus("Starting AI analysis...");
   try {
     const result = await autoLabelAll();
-    setLabelStatus(
-      `Labeled ${result.labeled} photos` +
-        (result.failed > 0 ? ` (${result.failed} failed)` : "")
-    );
+    if (result.labeled === 0 && result.total === 0) {
+      setLabelStatus("All photos already labeled!");
+    } else {
+      setLabelStatus(`Labeled ${result.labeled} photos`);
+    }
     await refreshPhotos();
+
+    // After labeling, show rename proposals
+    if (result.labeled > 0) {
+      const proposals = await getRenameProposals();
+      if (proposals.length > 0) {
+        setRenameProposals(proposals);
+        setShowRenameDialog(true);
+      }
+    }
   } catch (e) {
     setLabelStatus(`Labeling failed: ${e}`);
   } finally {
     setIsLabeling(false);
+  }
+}
+
+async function confirmRenames(approved: [number, string][]) {
+  if (approved.length === 0) {
+    setShowRenameDialog(false);
+    return;
+  }
+  try {
+    const count = await applyRenames(approved);
+    setLabelStatus(`Renamed ${count} files`);
+    setShowRenameDialog(false);
+    setRenameProposals([]);
+    await refreshPhotos();
+  } catch (e) {
+    setLabelStatus(`Rename failed: ${e}`);
   }
 }
 

@@ -3,6 +3,7 @@ import Sidebar from "./components/layout/Sidebar";
 import WelcomeScreen from "./components/shared/WelcomeScreen";
 import PhotoGrid from "./components/photos/PhotoGrid";
 import TagBrowser from "./components/tags/TagBrowser";
+import RenameDialog from "./components/shared/RenameDialog";
 import { useLibrary } from "./stores/library";
 import { searchPhotos, type PhotoSummary } from "./lib/tauri";
 
@@ -84,6 +85,29 @@ export default function App() {
           </div>
         </header>
 
+        {/* AI Progress bar */}
+        <Show when={library.isLabeling() && library.labelProgress().total > 0}>
+          <div class="px-4 py-2 bg-purple-50 border-b border-purple-100 shrink-0">
+            <div class="flex items-center gap-3 text-xs">
+              <span class="w-3 h-3 border-2 border-purple-500 border-t-transparent rounded-full animate-spin shrink-0" />
+              <span class="text-purple-700 font-medium truncate flex-1">
+                {library.labelStatus()}
+              </span>
+              <span class="text-purple-500 shrink-0">
+                {library.labelProgress().done}/{library.labelProgress().total}
+              </span>
+            </div>
+            <div class="mt-1.5 h-1.5 bg-purple-100 rounded-full overflow-hidden">
+              <div
+                class="h-full bg-purple-500 rounded-full transition-all duration-300"
+                style={{
+                  width: `${(library.labelProgress().done / Math.max(library.labelProgress().total, 1)) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+        </Show>
+
         {/* Content area */}
         <div class="flex-1 overflow-auto">
           <Show when={library.photoCount() > 0} fallback={<WelcomeScreen library={library} />}>
@@ -125,6 +149,15 @@ export default function App() {
           </Show>
         </footer>
       </main>
+
+      {/* Rename confirmation dialog */}
+      <Show when={library.showRenameDialog() && library.renameProposals().length > 0}>
+        <RenameDialog
+          proposals={library.renameProposals()}
+          onConfirm={library.confirmRenames}
+          onCancel={() => library.setShowRenameDialog(false)}
+        />
+      </Show>
     </div>
   );
 }

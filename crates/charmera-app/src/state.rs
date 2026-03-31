@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use anyhow::{Context, Result};
-use charmera_core::catalog::{Catalog, PhotoDetail, PhotoInsert, PhotoSummary};
+use charmera_core::catalog::{Catalog, PhotoInsert, PhotoSummary};
 use charmera_core::catalog::WriteOp;
 use serde::Serialize;
 
@@ -44,6 +44,16 @@ pub struct LabelResult {
 pub struct PhotoLabels {
     pub description: Option<String>,
     pub tags: Vec<String>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct RenameProposal {
+    pub id: i64,
+    pub current_name: String,
+    pub proposed_name: String,
+    pub description: String,
+    pub file_path: String,
+    pub thumbnail_path: Option<String>,
 }
 
 pub struct AppState {
@@ -218,68 +228,150 @@ impl AppState {
         Ok(dest_path.display().to_string())
     }
 
-    pub fn auto_label_all(&self) -> Result<LabelResult> {
+    /// Get unlabeled photos for auto-labeling.
+    pub fn get_unlabeled_photos(&self) -> Result<Vec<(i64, String, Option<String>)>> {
         let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
-
-        // Get all photos that don't have descriptions yet
         let mut stmt = catalog.read_conn().prepare(
-            "SELECT id, thumbnail_path FROM photos WHERE (description IS NULL OR description = '') AND is_hidden = 0",
+            "SELECT id, file_path, thumbnail_path FROM photos
+             WHERE (description IS NULL OR description = '') AND is_hidden = 0",
         )?;
-        let photos: Vec<(i64, Option<String>)> = stmt
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+        let photos = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
             .filter_map(|r| r.ok())
             .collect();
+        Ok(photos)
+    }
 
-        let total = photos.len() as u32;
-        let mut labeled = 0u32;
-        let mut failed = 0u32;
+    /// Store a single photo's AI label results.
+    pub fn store_label(&self, id: i64, label: &charmera_core::ai::PhotoLabel) -> Result<()> {
+        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
 
-        for (id, thumb_path) in &photos {
-            let image_path = thumb_path.as_deref().unwrap_or("");
-            if image_path.is_empty() {
-                failed += 1;
+        catalog.write(charmera_core::catalog::WriteOp::UpdatePhotoDescription(
+            id,
+            label.description.clone(),
+        ))?;
+
+        let tag_assignments: Vec<charmera_core::catalog::TagAssignment> = label
+            .tags
+            .iter()
+            .map(|t| charmera_core::catalog::TagAssignment {
+                tag_name: t.clone(),
+                confidence: Some(0.8),
+                source: "ai".to_string(),
+                category: None,
+            })
+            .collect();
+        catalog.write(charmera_core::catalog::WriteOp::UpdatePhotoTags(
+            id,
+            tag_assignments,
+        ))?;
+
+        Ok(())
+    }
+
+    /// Get rename proposals based on AI descriptions.
+    pub fn get_rename_proposals(&self) -> Result<Vec<RenameProposal>> {
+        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let mut stmt = catalog.read_conn().prepare(
+            "SELECT id, file_path, original_name, description, thumbnail_path
+             FROM photos
+             WHERE description IS NOT NULL AND description != '' AND is_hidden = 0",
+        )?;
+        let proposals = stmt
+            .query_map([], |row| {
+                let id: i64 = row.get(0)?;
+                let file_path: String = row.get(1)?;
+                let original_name: Option<String> = row.get(2)?;
+                let description: String = row.get(3)?;
+                let thumbnail_path: Option<String> = row.get(4)?;
+
+                let path = std::path::Path::new(&file_path);
+                let current_name = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+                let ext = path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("jpg");
+
+                // Build proposed name from description (first ~40 chars, sanitized)
+                let short_desc = charmera_core::import::sanitize_label(
+                    &description
+                        .split('.')
+                        .next()
+                        .unwrap_or(&description)
+                        .chars()
+                        .take(40)
+                        .collect::<String>(),
+                );
+                let proposed = if short_desc.is_empty() {
+                    current_name.clone()
+                } else {
+                    format!("{short_desc}.{ext}")
+                };
+
+                Ok(RenameProposal {
+                    id,
+                    current_name,
+                    proposed_name: proposed,
+                    description,
+                    file_path,
+                    thumbnail_path,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(proposals)
+    }
+
+    /// Apply approved renames.
+    pub fn apply_renames(&self, renames: &[(i64, String)]) -> Result<u32> {
+        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let mut count = 0u32;
+
+        for (id, new_name) in renames {
+            let file_path: String = catalog.read_conn().query_row(
+                "SELECT file_path FROM photos WHERE id = ?1",
+                [id],
+                |row| row.get(0),
+            )?;
+
+            let path = std::path::Path::new(&file_path);
+            if !path.exists() {
+                tracing::warn!("skipping rename for {id}: file not found");
                 continue;
             }
 
-            tracing::info!("labeling photo {id}...");
-            match charmera_core::ai::label_photo(std::path::Path::new(image_path)) {
-                Ok(label) => {
-                    // Store description
-                    catalog.write(charmera_core::catalog::WriteOp::UpdatePhotoDescription(
-                        *id,
-                        label.description.clone(),
-                    ))?;
-
-                    // Store tags
-                    let tag_assignments: Vec<charmera_core::catalog::TagAssignment> = label
-                        .tags
-                        .iter()
-                        .map(|t| charmera_core::catalog::TagAssignment {
-                            tag_name: t.clone(),
-                            confidence: Some(0.8),
-                            source: "ai".to_string(),
-                            category: None,
-                        })
-                        .collect();
-                    catalog.write(charmera_core::catalog::WriteOp::UpdatePhotoTags(
-                        *id,
-                        tag_assignments,
-                    ))?;
-
-                    labeled += 1;
-                    tracing::info!("  -> {}: {}", id, label.description);
-                }
-                Err(e) => {
-                    tracing::warn!("  -> failed to label photo {id}: {e}");
-                    failed += 1;
-                }
+            let new_path = path.with_file_name(new_name);
+            if new_path.exists() {
+                tracing::warn!("skipping rename for {id}: target exists: {}", new_path.display());
+                continue;
             }
+
+            std::fs::rename(path, &new_path)
+                .with_context(|| format!("renaming {} -> {}", path.display(), new_path.display()))?;
+
+            // Update catalog
+            catalog.write(charmera_core::catalog::WriteOp::Custom(Box::new({
+                let new_path_str = new_path.display().to_string();
+                let id = *id;
+                move |conn| {
+                    conn.execute(
+                        "UPDATE photos SET file_path = ?1 WHERE id = ?2",
+                        rusqlite::params![new_path_str, id],
+                    )?;
+                    Ok(())
+                }
+            })))?;
+
+            count += 1;
+            tracing::info!("renamed: {} -> {}", file_path, new_path.display());
         }
 
-        // Give writer time to flush
-        std::thread::sleep(std::time::Duration::from_millis(200));
-        tracing::info!("labeling complete: {labeled} labeled, {failed} failed, {total} total");
-        Ok(LabelResult { labeled, failed, total })
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        Ok(count)
     }
 
     pub fn get_all_tags(&self) -> Result<Vec<charmera_core::catalog::TagInfo>> {
