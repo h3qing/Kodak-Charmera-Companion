@@ -53,7 +53,13 @@ pub fn check_ollama() -> Result<bool> {
 
 /// List all vision-capable models available in Ollama.
 pub fn list_vision_models() -> Result<Vec<String>> {
-    let resp = ureq::get(&format!("{OLLAMA_URL}/api/tags"))
+    let agent = ureq::Agent::new_with_config(
+        ureq::config::Config::builder()
+            .timeout_global(Some(std::time::Duration::from_secs(5)))
+            .build(),
+    );
+    let resp = agent
+        .get(&format!("{OLLAMA_URL}/api/tags"))
         .call()
         .map_err(|e| anyhow::anyhow!("ollama not reachable: {e}"))?;
 
@@ -123,9 +129,15 @@ pub fn label_photo_bytes(image_bytes: &[u8], model: Option<&str>) -> Result<Phot
         "stream": false,
     });
 
-    let resp = ureq::post(&format!("{OLLAMA_URL}/api/generate"))
+    let agent = ureq::Agent::new_with_config(
+        ureq::config::Config::builder()
+            .timeout_global(Some(std::time::Duration::from_secs(120)))
+            .build(),
+    );
+    let resp = agent
+        .post(&format!("{OLLAMA_URL}/api/generate"))
         .send_json(&request_body)
-        .map_err(|e| anyhow::anyhow!("ollama request failed: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("ollama request failed (timeout 120s): {e}"))?;
 
     let ollama_resp: OllamaResponse = resp.into_body().read_json()?;
 
