@@ -5,7 +5,8 @@
 <h1 align="center">Charmera Companion</h1>
 
 <p align="center">
-  <strong>Desktop photo organizer with local AI for the KODAK CHARMERA keychain camera</strong>
+  <strong>AI photo organizer — label, rename, and enhance photos locally. No cloud required.</strong><br/>
+  <em>Built for KODAK CHARMERA keychain cameras. Works with any JPEG folder.</em>
 </p>
 
 <p align="center">

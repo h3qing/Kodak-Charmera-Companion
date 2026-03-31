@@ -79,6 +79,11 @@ enum Commands {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Show photo metadata (EXIF, dimensions, hash)
+    Info {
+        /// Photo path
+        input: String,
+    },
     /// Detect connected camera
     Detect,
     /// Create or install boot splash screen
@@ -428,6 +433,50 @@ fn main() -> Result<()> {
                 );
             }
 
+            Ok(())
+        }
+        Commands::Info { input } => {
+            let path = std::path::Path::new(&input);
+            if !path.exists() {
+                anyhow::bail!("file not found: {input}");
+            }
+
+            let file_bytes = std::fs::read(path)?;
+            let hash = blake3::hash(&file_bytes);
+            let (width, height) =
+                charmera_core::thumbnails::get_image_dimensions(path).unwrap_or((0, 0));
+            let exif = charmera_core::import::extract_exif(path);
+            let file_size = file_bytes.len();
+
+            if cli.json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "file": input,
+                        "size_bytes": file_size,
+                        "width": width,
+                        "height": height,
+                        "hash_blake3": hash.to_hex().to_string(),
+                        "taken_at": exif.taken_at,
+                        "camera_make": exif.camera_make,
+                        "camera_model": exif.camera_model,
+                    })
+                );
+            } else {
+                println!("File:    {input}");
+                println!("Size:    {:.1} KB", file_size as f64 / 1024.0);
+                println!("Dims:    {width} x {height}");
+                println!("Hash:    {}", &hash.to_hex().to_string()[..16]);
+                if let Some(date) = &exif.taken_at {
+                    println!("Taken:   {date}");
+                }
+                if let Some(make) = &exif.camera_make {
+                    println!("Camera:  {make}");
+                }
+                if let Some(model) = &exif.camera_model {
+                    println!("Model:   {model}");
+                }
+            }
             Ok(())
         }
         Commands::Detect => {
