@@ -89,6 +89,8 @@ enum Commands {
         /// Photo path
         input: String,
     },
+    /// Show system status (camera, AI, storage)
+    Status,
     /// Detect connected camera
     Detect,
     /// Create or install boot splash screen
@@ -489,6 +491,67 @@ fn main() -> Result<()> {
                 }
                 if let Some(model) = &exif.camera_model {
                     println!("Model:   {model}");
+                }
+            }
+            Ok(())
+        }
+        Commands::Status => {
+            let camera = charmera_core::import::find_camera();
+            let ai_models = charmera_core::ai::list_vision_models().unwrap_or_default();
+            let best_model = charmera_core::ai::best_available_model().ok();
+            let data_dir =
+                dirs_next::home_dir().map(|h| h.join(charmera_core::constants::APP_DIR_NAME));
+            let db_exists = data_dir
+                .as_ref()
+                .map(|d| d.join("catalog.db").exists())
+                .unwrap_or(false);
+
+            if cli.json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "version": env!("CARGO_PKG_VERSION"),
+                        "camera": {
+                            "detected": camera.is_some(),
+                            "path": camera.as_ref().map(|p| p.display().to_string()),
+                        },
+                        "ai": {
+                            "available": !ai_models.is_empty(),
+                            "models": ai_models,
+                            "best_model": best_model,
+                        },
+                        "storage": {
+                            "data_dir": data_dir.as_ref().map(|d| d.display().to_string()),
+                            "catalog_exists": db_exists,
+                        },
+                    })
+                );
+            } else {
+                println!("Charmera Companion v{}", env!("CARGO_PKG_VERSION"));
+                println!();
+                if let Some(path) = &camera {
+                    println!("Camera:  {} (connected)", path.display());
+                } else {
+                    println!("Camera:  not detected");
+                }
+                if ai_models.is_empty() {
+                    println!("AI:      not available (install Ollama + vision model)");
+                } else {
+                    println!(
+                        "AI:      {} model(s): {}",
+                        ai_models.len(),
+                        ai_models.join(", ")
+                    );
+                    if let Some(best) = &best_model {
+                        println!("         using: {best}");
+                    }
+                }
+                if let Some(dir) = &data_dir {
+                    println!("Storage: {}", dir.display());
+                    println!(
+                        "         catalog: {}",
+                        if db_exists { "exists" } else { "not created" }
+                    );
                 }
             }
             Ok(())

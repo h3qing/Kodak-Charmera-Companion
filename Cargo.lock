@@ -542,6 +542,7 @@ dependencies = [
  "charmera-core",
  "clap",
  "clap_complete",
+ "dirs-next",
  "image 0.25.10",
  "serde_json",
  "tokio",
