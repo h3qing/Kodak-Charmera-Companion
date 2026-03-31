@@ -135,7 +135,10 @@ impl AppState {
 
         for file_path in &files {
             let ext = file_path.extension().and_then(|e| e.to_str()).unwrap_or("");
-            if !matches!(ext.to_lowercase().as_str(), "jpg" | "jpeg") {
+            if !matches!(
+                ext.to_lowercase().as_str(),
+                "jpg" | "jpeg" | "png" | "bmp" | "webp"
+            ) {
                 skipped += 1;
                 continue;
             }
