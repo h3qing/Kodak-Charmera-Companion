@@ -35,13 +35,6 @@ pub struct AiStatus {
 }
 
 #[derive(Serialize)]
-pub struct LabelResult {
-    pub labeled: u32,
-    pub failed: u32,
-    pub total: u32,
-}
-
-#[derive(Serialize)]
 pub struct PhotoLabels {
     pub description: Option<String>,
     pub tags: Vec<String>,
