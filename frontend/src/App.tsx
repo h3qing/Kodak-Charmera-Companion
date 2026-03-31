@@ -216,7 +216,7 @@ export default function App() {
                 <p class="text-sm text-kodak-warm-gray mb-2">
                   {searchResults()!.length} results for "{searchQuery()}"
                 </p>
-                <PhotoGrid photos={searchResults()!} onRefresh={library.refreshPhotos} />
+                <PhotoGrid photos={searchResults()!} onRefresh={library.refreshPhotos} searchQuery={searchQuery()} />
               </div>
             );
             return <PhotoGrid photos={library.photos()} onRefresh={library.refreshPhotos} onLoadMore={library.loadMorePhotos} hasMore={library.hasMore()} loadingMore={library.loadingMore()} />;

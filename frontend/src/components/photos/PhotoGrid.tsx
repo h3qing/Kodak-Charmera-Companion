@@ -19,6 +19,7 @@ interface PhotoGridProps {
   onLoadMore?: () => void;
   hasMore?: boolean;
   loadingMore?: boolean;
+  searchQuery?: string;
 }
 
 export default function PhotoGrid(props: PhotoGridProps) {
@@ -264,6 +265,7 @@ export default function PhotoGrid(props: PhotoGridProps) {
                   selected={selectedIds().has(photo.id)}
                   onClick={(e) => handleClick(photo.id, e)}
                   onDoubleClick={() => setViewingId(photo.id)}
+                  searchQuery={props.searchQuery}
                 />
               )}
             </For>
@@ -303,11 +305,19 @@ export default function PhotoGrid(props: PhotoGridProps) {
   );
 }
 
+function highlightText(text: string, query?: string): string {
+  if (!query || !query.trim()) return text;
+  // Simple case-insensitive highlight using mark tags
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(new RegExp(`(${escaped})`, "gi"), "**$1**");
+}
+
 function PhotoCard(props: {
   photo: PhotoSummary;
   selected: boolean;
   onClick: (e: MouseEvent) => void;
   onDoubleClick: () => void;
+  searchQuery?: string;
 }) {
   const [thumbSrc, setThumbSrc] = createSignal<string | null>(null);
   const [labels, setLabels] = createSignal<PhotoLabels | null>(null);
@@ -385,7 +395,9 @@ function PhotoCard(props: {
       </Show>
 
       {/* Hover overlay with description and tags */}
-      <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div class={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 transition-opacity ${
+        props.searchQuery ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+      }`}>
         <Show when={labels()?.description} fallback={
           <p class="text-white text-xs truncate">{props.photo.relative_path.split("/").pop()}</p>
         }>
@@ -394,9 +406,14 @@ function PhotoCard(props: {
         <Show when={labels()?.tags && labels()!.tags.length > 0}>
           <div class="flex flex-wrap gap-0.5 mt-1">
             <For each={labels()!.tags.slice(0, 3)}>
-              {(tag) => (
-                <span class="px-1.5 py-0 bg-white/20 text-white text-[9px] rounded-full">{tag}</span>
-              )}
+              {(tag) => {
+                const isMatch = props.searchQuery && tag.toLowerCase().includes(props.searchQuery.toLowerCase());
+                return (
+                  <span class={`px-1.5 py-0 text-[9px] rounded-full ${
+                    isMatch ? "bg-kodak-yellow text-kodak-charcoal font-bold" : "bg-white/20 text-white"
+                  }`}>{tag}</span>
+                );
+              }}
             </For>
           </div>
         </Show>
