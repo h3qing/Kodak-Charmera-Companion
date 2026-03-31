@@ -14,6 +14,7 @@
   <a href="https://www.solidjs.com/"><img src="https://img.shields.io/badge/Solid.js-2C4F7C?logo=solid&logoColor=white" alt="Solid.js" /></a>
   <a href="https://ollama.com/"><img src="https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white" alt="Ollama" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" /></a>
+  <a href="https://github.com/h3qing/Kodak-Charmera-Companion/actions"><img src="https://github.com/h3qing/Kodak-Charmera-Companion/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
 <p align="center">
