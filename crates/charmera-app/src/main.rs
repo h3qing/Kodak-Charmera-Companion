@@ -58,6 +58,17 @@ fn get_photos(app: tauri::AppHandle, offset: u32, limit: u32) -> Result<state::P
 }
 
 #[tauri::command]
+fn get_recent_photos(
+    app: tauri::AppHandle,
+    hours: Option<u32>,
+) -> Result<state::PhotoPage, String> {
+    let app_state = app.state::<AppState>();
+    app_state
+        .get_recent_photos(hours.unwrap_or(24))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn get_thumbnail_base64(path: String) -> Result<String, String> {
     read_image_as_base64(&path)
 }
@@ -296,6 +307,7 @@ fn main() {
             list_camera_files,
             import_folder,
             get_photos,
+            get_recent_photos,
             get_thumbnail_base64,
             get_photo_base64,
             preview_effect,

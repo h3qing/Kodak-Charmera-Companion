@@ -44,6 +44,10 @@ export async function getPhotos(offset: number, limit: number): Promise<PhotoPag
   return invoke("get_photos", { offset, limit });
 }
 
+export async function getRecentPhotos(hours?: number): Promise<PhotoPage> {
+  return invoke("get_recent_photos", { hours: hours ?? 24 });
+}
+
 export async function getAppVersion(): Promise<string> {
   return invoke("get_app_version");
 }
