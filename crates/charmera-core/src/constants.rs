@@ -16,13 +16,33 @@ pub const DCIM_DIR: &str = "DCIM";
 pub const PHOTO_EXTENSIONS: &[&str] = &[".jpg", ".jpeg"];
 pub const VIDEO_EXTENSIONS: &[&str] = &[".avi"];
 
-// Default mount points to search (macOS)
+/// Default mount points to search for camera SD cards.
+/// Platform-specific: macOS uses /Volumes, Linux uses /media and /mnt.
+#[cfg(target_os = "macos")]
 pub const VOLUME_PATHS: &[&str] = &[
     "/Volumes/SDCARD",
     "/Volumes/CAMERA",
     "/Volumes/KODAK",
     "/Volumes/CHARMERA",
 ];
+
+#[cfg(target_os = "linux")]
+pub const VOLUME_PATHS: &[&str] = &[
+    "/media/SDCARD",
+    "/media/CAMERA",
+    "/media/KODAK",
+    "/media/CHARMERA",
+    "/mnt/SDCARD",
+    "/mnt/CAMERA",
+    "/mnt/KODAK",
+    "/mnt/CHARMERA",
+];
+
+#[cfg(target_os = "windows")]
+pub const VOLUME_PATHS: &[&str] = &["D:\\", "E:\\", "F:\\", "G:\\"];
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+pub const VOLUME_PATHS: &[&str] = &["/Volumes/SDCARD", "/media/SDCARD", "/mnt/SDCARD"];
 
 // EXIF date format: "YYYY:MM:DD HH:MM:SS" (space between date and time)
 pub const DATE_FORMAT_EXIF: &str = "%Y:%m:%d %H:%M:%S";
