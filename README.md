@@ -40,7 +40,7 @@ Camera connected → Import 36 photos → AI: "A brown dog on the couch" → b 0
 ## Features
 
 ### Auto-Import & Label
-Plug in your camera and a popup appears. Click "Import" and photos are automatically analyzed by a local vision model (moondream via Ollama). Each photo gets a one-sentence description and auto-extracted tags. You can also **drag and drop** any folder onto the app to import.
+Plug in your camera and a popup appears. Click "Import" and photos are automatically analyzed by a local vision model. Supports multiple Ollama models — **moondream** (fast, 1B), **llava** (better quality, 7B), **bakllava**, and more. The app auto-selects the best available model. You can also **drag and drop** any folder onto the app to import.
 
 ### Smart File Renaming
 Configure your naming pattern: `b {MM}-{DD}-{YYYY} {content}` transforms `PICT0042.jpg` into `b 03-30-2026 sunset at the beach.jpg`. Files are renamed directly on the SD card.
@@ -123,8 +123,9 @@ Prerequisites: [Rust](https://rustup.rs/), [Bun](https://bun.sh/) or Node.js, [O
 git clone https://github.com/h3qing/Kodak-Charmera-Companion.git
 cd Kodak-Charmera-Companion
 
-# Pull the vision model
-ollama pull moondream
+# Pull a vision model (pick one)
+ollama pull moondream    # Fast, 1B params, basic descriptions
+# ollama pull llava      # Better quality, 7B params (recommended if you have 8GB+ RAM)
 
 # Install frontend deps
 cd frontend && bun install && cd ..
@@ -153,7 +154,7 @@ charmera effects photo.jpg --effects vintage,grain --frame polaroid --output edi
 1. **Connect camera** — mounts as USB mass storage at `/Volumes/SDCARD`
 2. **Auto-detect** — app polls every 5s, shows popup when new photos found
 3. **Import** — reads DCIM folder, hashes files (blake3), generates thumbnails
-4. **AI Label** — sends each thumbnail to local moondream model, gets description
+4. **AI Label** — sends each thumbnail to best available Ollama vision model
 5. **Tag Extract** — parses description for 55+ keyword categories
 6. **Smart Rename** — applies naming pattern, renames directly on SD card
 7. **Browse** — search by description, filter by tags, multi-select & export
