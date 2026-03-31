@@ -24,3 +24,4 @@ blake3 = "1"
 base64 = "0.22"
 image = "0.25"
 rusqlite = { version = "0.31", features = ["bundled"] }
+chrono = "0.4"

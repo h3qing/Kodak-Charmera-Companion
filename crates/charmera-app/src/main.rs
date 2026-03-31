@@ -279,6 +279,52 @@ fn get_all_tags(app: tauri::AppHandle) -> Result<Vec<charmera_core::catalog::Tag
 }
 
 #[tauri::command]
+fn export_labels_json(app: tauri::AppHandle) -> Result<String, String> {
+    let app_state = app.state::<AppState>();
+    let catalog = app_state.catalog_lock().map_err(|e| e.to_string())?;
+    let mut stmt = catalog
+        .read_conn()
+        .prepare(
+            "SELECT p.id, p.file_path, p.relative_path, p.description, p.taken_at,
+                    p.width, p.height, p.original_name
+             FROM photos p WHERE p.is_hidden = 0
+             ORDER BY p.id",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let photos: Vec<serde_json::Value> = stmt
+        .query_map([], |row| {
+            let id: i64 = row.get(0)?;
+            let file_path: String = row.get(1)?;
+            let relative_path: String = row.get(2)?;
+            let description: Option<String> = row.get(3)?;
+            let taken_at: Option<String> = row.get(4)?;
+            let width: u32 = row.get(5)?;
+            let height: u32 = row.get(6)?;
+            let original_name: Option<String> = row.get(7)?;
+            Ok(serde_json::json!({
+                "id": id,
+                "file": relative_path,
+                "original_name": original_name,
+                "description": description,
+                "taken_at": taken_at,
+                "width": width,
+                "height": height,
+            }))
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    serde_json::to_string_pretty(&serde_json::json!({
+        "export_date": chrono::Local::now().to_rfc3339(),
+        "total": photos.len(),
+        "photos": photos,
+    }))
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn search_by_tag(app: tauri::AppHandle, tag: String) -> Result<state::PhotoPage, String> {
     let app_state = app.state::<AppState>();
     app_state.search_by_tag(&tag).map_err(|e| e.to_string())
@@ -409,6 +455,7 @@ fn main() {
             auto_label_all,
             get_photo_labels,
             get_all_tags,
+            export_labels_json,
             search_by_tag,
             search_photos,
             get_rename_proposals,
