@@ -112,6 +112,7 @@ impl AppState {
         catalog.write(WriteOp::SetSetting(key.to_string(), value.to_string()))
     }
 
+    #[allow(dead_code)]
     pub fn import_from_path(&self, source: &str) -> Result<ImportResult> {
         self.import_from_path_with_progress(source, &|_, _, _| {})
     }
