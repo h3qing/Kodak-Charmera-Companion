@@ -2,6 +2,22 @@
 
 All notable changes to Charmera Companion will be documented in this file.
 
+## [0.3.1] - 2026-03-31
+
+### Added
+- **Demo mode** — "Try with sample photos" generates test images without a camera
+- **Before/after comparison** — side-by-side view (C key) for effect preview
+- **CLI `label` command** — `charmera label photo.jpg --json` for AI agents
+- **CLI `detect` command** — `charmera detect --json` for camera status
+- **Photo card tooltips** — hover to see filename, dimensions, AI description
+- **Website improvements** — detail screenshot, demo hint, 2 new feature cards
+- **Crate documentation** — module-level docs on charmera-core
+
+### Changed
+- 35 tests (up from 27) — AI parsing, tag extraction, EXIF, edge cases
+- Zero compiler warnings (removed dead code, fixed duplicate derives)
+- Python code marked as legacy with migration guide
+
 ## [0.3.0] - 2026-03-31
 
 ### Added
