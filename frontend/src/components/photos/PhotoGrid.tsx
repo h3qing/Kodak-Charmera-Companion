@@ -433,14 +433,24 @@ function PhotoDetailView(props: {
     setPreviewing(false);
   };
 
+  const [exporting, setExporting] = createSignal(false);
+
   const handleExport = async () => {
     const { save } = await import("@tauri-apps/plugin-dialog");
+    const fileName = props.photo.relative_path.split("/").pop()?.replace(/\.[^.]+$/, "") || `photo-${props.photo.id}`;
     const dest = await save({
-      defaultPath: `charmera-export-${props.photo.id}.jpg`,
+      defaultPath: `${fileName}-edited.jpg`,
       filters: [{ name: "JPEG", extensions: ["jpg"] }],
     });
     if (dest) {
-      await exportPhoto(props.photo.id, dest, activeEffects(), activeFrame());
+      setExporting(true);
+      try {
+        await exportPhoto(props.photo.id, dest, activeEffects(), activeFrame());
+        showToast("Photo exported!", "success");
+      } catch (e) {
+        showToast(`Export failed: ${e}`, "error");
+      }
+      setExporting(false);
     }
   };
 
@@ -502,14 +512,13 @@ function PhotoDetailView(props: {
           >
             Info
           </button>
-          <Show when={activeEffects().length > 0 || activeFrame()}>
-            <button
-              onClick={handleExport}
-              class="text-xs px-3 py-1 rounded-full bg-kodak-yellow/80 hover:bg-kodak-yellow text-white transition-colors"
-            >
-              Export
-            </button>
-          </Show>
+          <button
+            onClick={handleExport}
+            disabled={exporting()}
+            class="text-xs px-3 py-1 rounded-full bg-kodak-yellow/80 hover:bg-kodak-yellow text-white transition-colors disabled:opacity-50"
+          >
+            {exporting() ? "Saving..." : (activeEffects().length > 0 || activeFrame()) ? "Export with Effects" : "Save Copy"}
+          </button>
         </div>
         <span class="text-white/50 text-xs">
           {currentIndex() + 1} / {props.photos.length}
