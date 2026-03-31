@@ -52,6 +52,10 @@ export async function getAppVersion(): Promise<string> {
   return invoke("get_app_version");
 }
 
+export async function generateDemoPhotos(): Promise<string> {
+  return invoke("generate_demo_photos");
+}
+
 export async function getThumbnailBase64(path: string): Promise<string> {
   return invoke("get_thumbnail_base64", { path });
 }

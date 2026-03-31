@@ -24,6 +24,16 @@ export default function WelcomeScreen(props: WelcomeProps) {
     }
   };
 
+  const handleTryDemo = async () => {
+    try {
+      const { generateDemoPhotos } = await import("../../lib/tauri");
+      const demoDir = await generateDemoPhotos();
+      await props.library.importFromPath(demoDir);
+    } catch (e) {
+      console.error("Demo failed:", e);
+    }
+  };
+
   return (
     <div class="flex-1 flex items-center justify-center h-full">
       <div class="text-center max-w-md px-8">
@@ -100,8 +110,26 @@ export default function WelcomeScreen(props: WelcomeProps) {
             Add Folder
           </button>
 
-          <p class="text-xs text-kodak-warm-gray/60 mt-2">
-            or drag and drop a folder anywhere
+          <div class="flex items-center gap-3 mt-3">
+            <div class="flex-1 h-px bg-kodak-cream-dark" />
+            <span class="text-xs text-kodak-warm-gray/50">or</span>
+            <div class="flex-1 h-px bg-kodak-cream-dark" />
+          </div>
+
+          <button
+            onClick={handleTryDemo}
+            disabled={props.library.isImporting()}
+            class="inline-flex items-center gap-2 px-6 py-2 text-kodak-warm-gray hover:text-kodak-yellow-dark text-sm transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Try with sample photos
+          </button>
+
+          <p class="text-[10px] text-kodak-warm-gray/40 mt-1">
+            Generates 6 test images — drag and drop also works
           </p>
         </div>
 
