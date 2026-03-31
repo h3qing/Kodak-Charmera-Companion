@@ -2,6 +2,19 @@
 
 All notable changes to Charmera Companion will be documented in this file.
 
+## [0.3.2] - 2026-03-31
+
+### Added
+- **Copy photos locally** — photos now copied to `~/.charmera/photos/` during import, accessible after camera disconnect
+- **Import progress bar** — green progress bar with per-file status during import
+- **CLI `rename` command** — `charmera rename photo.jpg` does AI label + rename in one step
+- **Search highlighting** — matching tags highlighted in yellow, overlays visible during search
+- **Version in status bar** — shows current version
+
+### Fixed
+- Photos no longer inaccessible after camera is unplugged (critical)
+- Import shows per-file progress instead of generic "importing" message
+
 ## [0.3.1] - 2026-03-31
 
 ### Added
