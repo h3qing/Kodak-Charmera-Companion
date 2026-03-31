@@ -32,6 +32,15 @@ const [cameraFileCount, setCameraFileCount] = createSignal(0);
 const [namingPattern, setNamingPatternSignal] = createSignal("b {MM}-{DD}-{YYYY} {content}");
 const [recentPhotos, setRecentPhotos] = createSignal<PhotoSummary[]>([]);
 
+const [importProgress, setImportProgress] = createSignal({ done: 0, total: 0, current: "" });
+
+// Listen for import progress events
+listen("import:progress", (event: any) => {
+  const data = event.payload as { done: number; total: number; current: string };
+  setImportProgress(data);
+  setImportStatus(`Importing ${data.done}/${data.total}: ${data.current}`);
+});
+
 // Listen for labeling events from backend
 listen("label:progress", (event: any) => {
   const data = event.payload as { done: number; total: number; current: string };
@@ -74,6 +83,7 @@ export function useLibrary() {
     photos,
     isImporting,
     importStatus,
+    importProgress,
     cameraPath,
     aiStatus,
     isLabeling,
