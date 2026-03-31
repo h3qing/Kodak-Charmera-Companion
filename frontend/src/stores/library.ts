@@ -94,6 +94,9 @@ export function useLibrary() {
     namingPattern,
     recentPhotos,
     refreshRecentPhotos,
+    loadMorePhotos,
+    hasMore,
+    loadingMore,
   };
 }
 
@@ -106,14 +109,35 @@ async function refreshRecentPhotos() {
   }
 }
 
+const PAGE_SIZE = 100;
+const [hasMore, setHasMore] = createSignal(true);
+const [loadingMore, setLoadingMore] = createSignal(false);
+
 async function refreshPhotos() {
   try {
-    const page = await getPhotos(0, 200);
+    const page = await getPhotos(0, PAGE_SIZE);
     setPhotos(page.photos);
     setPhotoCount(page.total);
+    setHasMore(page.photos.length < page.total);
   } catch (e) {
     console.error("Failed to load photos:", e);
   }
+}
+
+async function loadMorePhotos() {
+  if (loadingMore() || !hasMore()) return;
+  setLoadingMore(true);
+  try {
+    const offset = photos().length;
+    const page = await getPhotos(offset, PAGE_SIZE);
+    if (page.photos.length > 0) {
+      setPhotos((prev) => [...prev, ...page.photos]);
+    }
+    setHasMore(photos().length < page.total);
+  } catch (e) {
+    console.error("Failed to load more photos:", e);
+  }
+  setLoadingMore(false);
 }
 
 async function checkCamera() {
