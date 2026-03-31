@@ -1,74 +1,82 @@
-# Kodak Helper
+# Kodak Charmera Companion
 
-Toolkit for the **KODAK CHARMERA** and other Generalplus CBB3-based keychain digital cameras.
+Desktop photo organizer with local AI for **KODAK CHARMERA** and other Generalplus CBB3-based keychain digital cameras.
 
-## Features
+> Not affiliated with Kodak. KODAK and CHARMERA are trademarks of their respective owners.
 
-- **Smart Import** -- Import photos with `mm-dd-yyyy content` renaming
-- **Custom Boot Splash** -- Replace the camera's startup screen with your own image
-- **Photo Effects** -- Vintage, noir, faded, warm, cool, sharp, soft, vignette, grain, light leak
-- **Photo Frames** -- Simple border, polaroid, film strip, rounded corners
-- **Hardware Hacking Guide** -- Dump and modify the camera's firmware
+## What it does
+
+- **Auto-label photos** with local AI (moondream via Ollama, runs 100% on your machine)
+- **Smart import** from camera with AI-based file renaming
+- **Browse & search** photos by AI-generated tags and descriptions
+- **Photo effects** (vintage, noir, faded, warm, cool, sharp, soft, vignette, grain, light leak)
+- **Photo frames** (polaroid, film strip, simple, rounded)
+- **Multi-select & batch export** photos to any folder
+- **Custom boot splash** screen for your camera
+- **Tag browser** to organize photos by AI-detected content
+
+All processing happens locally. No cloud, no API keys, no subscriptions.
+
+## Architecture
+
+```
+Tauri Desktop App (Solid.js + Tailwind)
+    │
+Rust Backend (charmera-core)
+    ├── catalog    (SQLite, search)
+    ├── effects    (10 effects, 4 frames)
+    ├── ai         (Ollama + moondream, local)
+    ├── import     (camera detect, EXIF, smart rename)
+    ├── thumbnails (256px cache)
+    ├── splash     (boot screen editor)
+    └── export     (batch pipeline)
+```
 
 ## Install
 
+### Desktop App (Tauri)
+
+Requires: Rust, Node.js/Bun, Ollama
+
+```bash
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Install Ollama + vision model
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull moondream
+
+# Build & run
+cd frontend && bun install && cd ..
+cargo tauri dev
+```
+
+### Python CLI (original)
+
 ```bash
 pip install -e .
+kodak-helper import --label "beach day"
+```
+
+### Rust CLI (agent-friendly)
+
+```bash
+cargo build -p charmera-cli
+charmera import /Volumes/SDCARD --json
+charmera list --json
+charmera effects photo.jpg --effects vintage,grain --output edited.jpg
 ```
 
 ## Usage
 
-### Import photos from camera
+### Desktop App
 
-```bash
-# Auto-detect camera, label photos
-kodak-helper import --label "beach day"
+1. Connect your KODAK CHARMERA via USB
+2. Click **Import from Camera** (or Add Folder)
+3. Click **Auto Label Photos** to run local AI analysis
+4. Browse by tags, search by description, multi-select and export
 
-# Specify source and destination
-kodak-helper import --source /Volumes/SDCARD --dest ~/Photos/charmera --label dog
-```
-
-Files are renamed to: `03-29-2026 beach day 001.jpg`
-
-### List photos on camera
-
-```bash
-kodak-helper list
-```
-
-### Set custom boot splash screen
-
-```bash
-# Preview -- creates SPI00.jpg locally
-kodak-helper splash my-art.png
-
-# Add text overlay
-kodak-helper splash my-art.png --text "HELLO WORLD"
-
-# Install directly to camera
-kodak-helper splash my-art.png --install
-```
-
-### Apply effects and frames
-
-```bash
-# Single effect
-kodak-helper effects photo.jpg --effect vintage
-
-# Stack effects
-kodak-helper effects photo.jpg --effect warm --effect vignette
-
-# Add a frame
-kodak-helper effects photo.jpg --frame polaroid
-
-# Combine effects + frame
-kodak-helper effects photo.jpg --effect vintage --effect grain --frame film_strip
-
-# Process entire folder
-kodak-helper effects ./imported/ --effect faded --frame simple --output ./processed/
-```
-
-### Available effects
+### Effects
 
 | Effect | Description |
 |--------|-------------|
@@ -83,19 +91,18 @@ kodak-helper effects ./imported/ --effect faded --frame simple --output ./proces
 | `grain` | Film grain noise |
 | `light_leak` | Warm light leak in corner |
 
-### Available frames
+### Frames
 
 | Frame | Description |
 |-------|-------------|
-| `simple` | Solid border (default white) |
+| `simple` | Solid white border |
 | `polaroid` | Classic polaroid with thick bottom |
 | `film_strip` | 35mm film strip with sprocket holes |
 | `rounded` | Rounded corners |
 
 ## Hardware Hacking
 
-Want to modify the actual firmware (filenames, menus, sounds)?
-See [docs/hardware-guide.md](docs/hardware-guide.md).
+Want to modify the actual firmware? See [docs/hardware-guide.md](docs/hardware-guide.md).
 
 ## Camera Specs (Generalplus CBB3)
 
