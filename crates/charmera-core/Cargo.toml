@@ -22,3 +22,6 @@ walkdir = "2"
 chrono = { version = "0.4", features = ["serde"] }
 ureq = { version = "3", features = ["json"] }
 base64 = "0.22"
+
+[dev-dependencies]
+tempfile = "3"
