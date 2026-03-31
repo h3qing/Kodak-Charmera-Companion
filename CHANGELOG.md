@@ -23,6 +23,11 @@ All notable changes to Charmera Companion will be documented in this file.
 - **Keyboard shortcuts** — Cmd+1-4 for views, Cmd+F to search, Cmd+, for settings
 - **Sidebar photo count badges** — see library size at a glance
 - **GitHub Actions CI** — Rust check/test, frontend build, format check
+- **EXIF date extraction** — reads DateTimeOriginal from JPEG metadata on import
+- **Multi-model AI** — auto-detects and uses best Ollama vision model (moondream, llava, bakllava)
+- **Photo sorting toolbar** — sort by newest, oldest, name A-Z/Z-A with grid size toggle
+- **Smart Albums** — auto-groups photos by date with cover images and breadcrumb navigation
+- **One-line install script** — `curl | bash` setup for macOS
 - **GitHub Pages site** — vintage landing page at h3qing.github.io/Kodak-Charmera-Companion
 
 ### Fixed
