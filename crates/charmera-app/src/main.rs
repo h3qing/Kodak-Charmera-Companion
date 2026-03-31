@@ -222,6 +222,38 @@ fn search_photos(
 }
 
 #[tauri::command]
+fn get_naming_pattern(app: tauri::AppHandle) -> Result<String, String> {
+    let app_state = app.state::<AppState>();
+    let pattern = app_state
+        .get_setting("naming_pattern")
+        .map_err(|e| e.to_string())?
+        .unwrap_or_else(|| "b {MM}-{DD}-{YYYY} {content}".to_string());
+    Ok(pattern)
+}
+
+#[tauri::command]
+fn set_naming_pattern(app: tauri::AppHandle, pattern: String) -> Result<(), String> {
+    let app_state = app.state::<AppState>();
+    app_state
+        .set_setting("naming_pattern", &pattern)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_setting(app: tauri::AppHandle, key: String) -> Result<Option<String>, String> {
+    let app_state = app.state::<AppState>();
+    app_state.get_setting(&key).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn set_setting(app: tauri::AppHandle, key: String, value: String) -> Result<(), String> {
+    let app_state = app.state::<AppState>();
+    app_state
+        .set_setting(&key, &value)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn hide_photo(app: tauri::AppHandle, id: i64) -> Result<(), String> {
     let app_state = app.state::<AppState>();
     let catalog = app_state.catalog_lock().map_err(|e| e.to_string())?;
@@ -268,6 +300,10 @@ fn main() {
             get_rename_proposals,
             apply_renames,
             hide_photo,
+            get_naming_pattern,
+            set_naming_pattern,
+            get_setting,
+            set_setting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running charmera companion");

@@ -11,6 +11,7 @@ export default function RenameDialog(props: RenameDialogProps) {
   const [selections, setSelections] = createSignal<Map<number, { checked: boolean; name: string }>>(
     new Map()
   );
+  const [namingPattern, setNamingPatternLocal] = createSignal("b {MM}-{DD}-{YYYY} {content}");
 
   onMount(() => {
     const initial = new Map<number, { checked: boolean; name: string }>();
@@ -19,6 +20,42 @@ export default function RenameDialog(props: RenameDialogProps) {
     }
     setSelections(initial);
   });
+
+  onMount(async () => {
+    try {
+      const { getNamingPattern } = await import("../../lib/tauri");
+      const saved = await getNamingPattern();
+      if (saved) setNamingPatternLocal(saved);
+    } catch {}
+  });
+
+  const handlePatternChange = async (pattern: string) => {
+    setNamingPatternLocal(pattern);
+    try {
+      const { setNamingPattern } = await import("../../lib/tauri");
+      await setNamingPattern(pattern);
+    } catch {}
+  };
+
+  const insertToken = (token: string) => {
+    setNamingPatternLocal(prev => prev + token);
+    handlePatternChange(namingPattern());
+  };
+
+  const patternPreview = () => {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const yyyy = String(now.getFullYear());
+    return namingPattern()
+      .replace("{MM}", mm)
+      .replace("{DD}", dd)
+      .replace("{YYYY}", yyyy)
+      .replace("{content}", "sunset at the beach")
+      .replace("{counter}", "001")
+      .replace("{original}", "IMG_0042")
+      + ".jpg";
+  };
 
   const toggle = (id: number) => {
     const current = selections();
@@ -82,12 +119,51 @@ export default function RenameDialog(props: RenameDialogProps) {
           </p>
         </div>
 
+        {/* Naming Pattern Section */}
+        <div class="px-6 py-3 border-b border-kodak-cream-dark bg-kodak-cream-dark/30">
+          <div class="flex items-center gap-2 mb-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-kodak-warm-gray">Naming Pattern</h3>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              type="text"
+              value={namingPattern()}
+              onInput={(e) => handlePatternChange(e.currentTarget.value)}
+              class="flex-1 text-sm px-3 py-1.5 rounded-lg border border-kodak-cream-dark bg-white focus:outline-none focus:ring-2 focus:ring-kodak-yellow/40 font-mono"
+              placeholder="b {MM}-{DD}-{YYYY} {content}"
+            />
+            <button
+              onClick={() => handlePatternChange("b {MM}-{DD}-{YYYY} {content}")}
+              class="text-xs px-2 py-1.5 text-kodak-warm-gray hover:text-kodak-yellow-dark transition-colors"
+              title="Reset to default"
+            >
+              Reset
+            </button>
+          </div>
+          {/* Token buttons */}
+          <div class="flex flex-wrap gap-1 mt-2">
+            {["{MM}", "{DD}", "{YYYY}", "{content}", "{counter}", "{original}"].map(token => (
+              <button
+                onClick={() => insertToken(token)}
+                class="px-2 py-0.5 text-[10px] font-mono bg-kodak-yellow/10 text-kodak-yellow-dark rounded hover:bg-kodak-yellow/20 transition-colors"
+              >
+                {token}
+              </button>
+            ))}
+          </div>
+          {/* Live preview */}
+          <div class="mt-2 text-xs text-kodak-warm-gray">
+            <span class="font-medium">Preview: </span>
+            <span class="font-mono text-kodak-charcoal">{patternPreview()}</span>
+          </div>
+        </div>
+
         {/* Proposals list */}
         <div class="flex-1 overflow-auto px-6 py-3">
           <div class="flex items-center gap-2 mb-3 text-xs text-kodak-warm-gray">
-            <button onClick={selectAll} class="hover:text-kodak-amber transition-colors">Select all</button>
+            <button onClick={selectAll} class="hover:text-kodak-yellow-dark transition-colors">Select all</button>
             <span>|</span>
-            <button onClick={selectNone} class="hover:text-kodak-amber transition-colors">Select none</button>
+            <button onClick={selectNone} class="hover:text-kodak-yellow-dark transition-colors">Select none</button>
             <span class="ml-auto">{selectedCount()} of {props.proposals.length} selected</span>
           </div>
 
@@ -120,7 +196,7 @@ export default function RenameDialog(props: RenameDialogProps) {
           <button
             onClick={handleConfirm}
             disabled={selectedCount() === 0}
-            class="px-5 py-2 bg-kodak-amber hover:bg-kodak-amber-dark disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-colors"
+            class="px-5 py-2 bg-kodak-yellow hover:bg-kodak-yellow-dark disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-colors"
           >
             Rename {selectedCount()} Files
           </button>
@@ -151,7 +227,7 @@ function RenameRow(props: {
     <div
       class={`flex items-center gap-3 p-2.5 rounded-lg border transition-colors ${
         props.checked
-          ? "border-kodak-amber/30 bg-kodak-amber/5"
+          ? "border-kodak-yellow/30 bg-kodak-yellow/5"
           : "border-kodak-cream-dark bg-white/50 opacity-60"
       }`}
     >
@@ -160,7 +236,7 @@ function RenameRow(props: {
         onClick={props.onToggle}
         class={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
           props.checked
-            ? "bg-kodak-amber border-kodak-amber"
+            ? "bg-kodak-yellow border-kodak-yellow"
             : "border-kodak-cream-dark"
         }`}
       >
@@ -191,7 +267,7 @@ function RenameRow(props: {
           value={props.editedName}
           onInput={(e) => props.onNameChange(e.currentTarget.value)}
           disabled={!props.checked}
-          class="w-full text-sm px-2 py-1 rounded border border-kodak-cream-dark bg-white focus:outline-none focus:ring-1 focus:ring-kodak-amber/40 disabled:opacity-50"
+          class="w-full text-sm px-2 py-1 rounded border border-kodak-cream-dark bg-white focus:outline-none focus:ring-1 focus:ring-kodak-yellow/40 disabled:opacity-50"
         />
       </div>
     </div>

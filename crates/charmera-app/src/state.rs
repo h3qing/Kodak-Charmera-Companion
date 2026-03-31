@@ -84,6 +84,18 @@ impl AppState {
         })
     }
 
+    /// Get a setting value.
+    pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
+        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        catalog.get_setting(key)
+    }
+
+    /// Set a setting value.
+    pub fn set_setting(&self, key: &str, value: &str) -> Result<()> {
+        let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        catalog.write(WriteOp::SetSetting(key.to_string(), value.to_string()))
+    }
+
     pub fn import_from_path(&self, source: &str) -> Result<ImportResult> {
         let source_path = PathBuf::from(source);
         let files = charmera_core::import::list_media_files(&source_path)?;
@@ -273,59 +285,77 @@ impl AppState {
         Ok(())
     }
 
-    /// Get rename proposals based on AI descriptions.
+    /// Get rename proposals based on AI descriptions and naming pattern.
     pub fn get_rename_proposals(&self) -> Result<Vec<RenameProposal>> {
+        // Read naming pattern before locking catalog to avoid deadlock
+        let pattern = self.get_setting("naming_pattern")?
+            .unwrap_or_else(|| "b {MM}-{DD}-{YYYY} {content}".to_string());
+
         let catalog = self.catalog.lock().map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         let mut stmt = catalog.read_conn().prepare(
-            "SELECT id, file_path, original_name, description, thumbnail_path
+            "SELECT id, file_path, original_name, description, thumbnail_path, taken_at
              FROM photos
              WHERE description IS NOT NULL AND description != '' AND is_hidden = 0",
         )?;
+
+        let mut counter = 1u32;
         let proposals = stmt
             .query_map([], |row| {
                 let id: i64 = row.get(0)?;
                 let file_path: String = row.get(1)?;
-                let original_name: Option<String> = row.get(2)?;
+                let _original_name: Option<String> = row.get(2)?;
                 let description: String = row.get(3)?;
                 let thumbnail_path: Option<String> = row.get(4)?;
+                let taken_at: Option<String> = row.get(5)?;
 
-                let path = std::path::Path::new(&file_path);
-                let current_name = path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("unknown")
-                    .to_string();
-                let ext = path
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .unwrap_or("jpg");
-
-                // Build proposed name from description (first ~40 chars, sanitized)
-                let short_desc = charmera_core::import::sanitize_label(
-                    &description
-                        .split('.')
-                        .next()
-                        .unwrap_or(&description)
-                        .chars()
-                        .take(40)
-                        .collect::<String>(),
-                );
-                let proposed = if short_desc.is_empty() {
-                    current_name.clone()
-                } else {
-                    format!("{short_desc}.{ext}")
+                let (current_name, ext, orig_stem) = {
+                    let path = std::path::Path::new(&file_path);
+                    let name = path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("unknown")
+                        .to_string();
+                    let e = path
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("jpg")
+                        .to_string();
+                    let stem = path
+                        .file_stem()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("photo")
+                        .to_string();
+                    (name, e, stem)
                 };
 
-                Ok(RenameProposal {
+                Ok((id, file_path, current_name, description, thumbnail_path, taken_at, ext, orig_stem))
+            })?
+            .filter_map(|r| r.ok())
+            .map(|(id, file_path, current_name, description, thumbnail_path, taken_at, ext, orig_stem)| {
+                let proposed = charmera_core::import::apply_naming_pattern(
+                    &pattern,
+                    taken_at.as_deref(),
+                    &description,
+                    counter,
+                    &orig_stem,
+                );
+                counter += 1;
+
+                let proposed_name = if proposed.is_empty() {
+                    current_name.clone()
+                } else {
+                    format!("{proposed}.{ext}")
+                };
+
+                RenameProposal {
                     id,
                     current_name,
-                    proposed_name: proposed,
+                    proposed_name,
                     description,
                     file_path,
                     thumbnail_path,
-                })
-            })?
-            .filter_map(|r| r.ok())
+                }
+            })
             .collect();
         Ok(proposals)
     }

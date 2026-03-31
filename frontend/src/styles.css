@@ -1,21 +1,24 @@
 @import "tailwindcss";
 
-/* === Vintage Kodak Design System === */
+/* === Kodak Charmera 1987 Design System === */
 
 @theme {
-  /* Kodak color palette */
-  --color-kodak-amber: #D4A843;
-  --color-kodak-amber-light: #E8C968;
-  --color-kodak-amber-dark: #B8912F;
-  --color-kodak-red: #C94040;
+  /* Kodak color palette — Charmera 1987 camera */
+  --color-kodak-yellow: #FCC200;
+  --color-kodak-yellow-dark: #E5AF00;
+  --color-kodak-yellow-light: #FFD84D;
+  --color-kodak-red: #C41E3A;
   --color-kodak-red-light: #E05555;
-  --color-kodak-charcoal: #2A2A2A;
-  --color-kodak-charcoal-light: #3D3D3D;
-  --color-kodak-cream: #F5F0E8;
-  --color-kodak-cream-dark: #E8DFD0;
+  --color-kodak-blue: #003DA5;
+  --color-kodak-orange: #E87D1E;
+  --color-kodak-purple: #3D1F6E;
+  --color-kodak-cream: #FAF6F0;
+  --color-kodak-cream-dark: #EDE7DB;
+  --color-kodak-charcoal: #1C1C1C;
+  --color-kodak-charcoal-light: #3A3A3A;
+  --color-kodak-warm-gray: #7A6E62;
   --color-kodak-brown-dark: #1A1614;
   --color-kodak-brown: #2D2420;
-  --color-kodak-warm-gray: #8A7E72;
   --color-kodak-film-border: #1C1C1C;
 
   /* Spacing uses 4px base */
@@ -29,7 +32,7 @@
 
   /* Typography */
   --font-display: "Nunito", system-ui, -apple-system, sans-serif;
-  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", "Menlo", monospace;
 
   /* Radii */
@@ -54,7 +57,7 @@ html, body, #root {
   content: "";
   position: fixed;
   inset: 0;
-  opacity: 0.015;
+  opacity: 0.01;
   pointer-events: none;
   z-index: 9999;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -73,11 +76,51 @@ html, body, #root {
   border-radius: var(--radius-pill);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-kodak-amber-dark);
+  background: var(--color-kodak-yellow-dark);
 }
 
 /* Prevent text selection on UI elements */
 .no-select {
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* === Kodak Charmera Utilities === */
+
+/* Rainbow stripe band — the iconic horizontal stripe from the camera */
+.kodak-stripe {
+  height: 4px;
+  background: linear-gradient(to right, #C41E3A, #E87D1E, #8B4513, #1C1C1C, #003DA5, #3D1F6E);
+}
+
+/* Thinner 2px version for borders */
+.kodak-stripe-thin {
+  height: 2px;
+  background: linear-gradient(to right, #C41E3A, #E87D1E, #8B4513, #1C1C1C, #003DA5, #3D1F6E);
+}
+
+/* Camera lens loading spinner */
+@keyframes lens-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.kodak-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #FCC200;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: lens-spin 0.8s linear infinite;
+}
+
+/* Film sprocket holes decorative pattern */
+.film-sprockets {
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent,
+    transparent 8px,
+    #1C1C1C 8px,
+    #1C1C1C 10px
+  );
+  height: 6px;
 }

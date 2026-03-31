@@ -84,7 +84,7 @@ export async function checkAiStatus(): Promise<AiStatus> {
   return invoke("check_ai_status");
 }
 
-export async function autoLabelAll(): Promise<LabelResult> {
+export async function autoLabelAll(): Promise<number> {
   return invoke("auto_label_all");
 }
 
@@ -120,4 +120,20 @@ export async function exportPhoto(
   frame: string | null,
 ): Promise<string> {
   return invoke("export_photo", { id, dest, effects, frame });
+}
+
+export async function getNamingPattern(): Promise<string> {
+  return invoke("get_naming_pattern");
+}
+
+export async function setNamingPattern(pattern: string): Promise<void> {
+  return invoke("set_naming_pattern", { pattern });
+}
+
+export async function getSetting(key: string): Promise<string | null> {
+  return invoke("get_setting", { key });
+}
+
+export async function setSetting(key: string, value: string): Promise<void> {
+  return invoke("set_setting", { key, value });
 }

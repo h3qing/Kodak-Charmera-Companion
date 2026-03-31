@@ -58,17 +58,17 @@ function NavButton(props: { item: NavItem; active: boolean; onClick: () => void 
       onClick={props.onClick}
       class={`w-full flex items-center gap-2.5 px-3 py-1.5 text-sm rounded-lg transition-colors relative ${
         props.active
-          ? "bg-kodak-amber/15 text-kodak-amber-dark font-semibold"
+          ? "bg-kodak-yellow/15 text-kodak-yellow-dark font-semibold"
           : "text-kodak-charcoal/70 hover:bg-kodak-cream-dark/60 hover:text-kodak-charcoal"
       }`}
     >
       {props.active && (
-        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-kodak-amber rounded-r" />
+        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-kodak-yellow rounded-r" />
       )}
-      <NavIcon name={props.item.icon} class={props.active ? "text-kodak-amber" : ""} />
+      <NavIcon name={props.item.icon} class={props.active ? "text-kodak-yellow-dark" : ""} />
       <span>{props.item.label}</span>
       {props.item.badge && (
-        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-kodak-amber/20 text-kodak-amber-dark font-medium">
+        <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-kodak-yellow/20 text-kodak-yellow-dark font-medium">
           {props.item.badge}
         </span>
       )}
@@ -88,19 +88,19 @@ export default function Sidebar(props: SidebarProps) {
   return (
     <aside class="w-56 h-full flex flex-col bg-kodak-cream border-r border-kodak-cream-dark shrink-0">
       {/* Logo */}
-      <div class="h-12 flex items-center gap-2 px-4 border-b border-kodak-cream-dark">
-        <div class="w-7 h-7 rounded-lg bg-kodak-amber flex items-center justify-center">
-          <NavIcon name="camera" class="text-white w-4 h-4" />
+      <div class="relative bg-kodak-yellow px-4 py-3">
+        <div class="text-sm font-bold text-kodak-red tracking-wide font-[Nunito]">
+          Kodak
         </div>
-        <div>
-          <div class="text-xs font-extrabold font-[Nunito] tracking-tight text-kodak-charcoal leading-tight">
-            CHARMERA
-          </div>
-          <div class="text-[9px] font-medium text-kodak-warm-gray leading-tight tracking-wide">
-            COMPANION
-          </div>
+        <div class="text-lg font-extrabold text-white leading-tight tracking-tight font-[Nunito]">
+          Charmera
+        </div>
+        <div class="absolute bottom-2 right-3 text-[9px] font-medium text-white bg-kodak-charcoal px-1.5 py-0.5 rounded-full">
+          1987
         </div>
       </div>
+      {/* Rainbow stripe divider */}
+      <div class="kodak-stripe" />
 
       {/* Navigation */}
       <nav class="flex-1 overflow-auto px-2 py-1">
@@ -130,17 +130,17 @@ export default function Sidebar(props: SidebarProps) {
               disabled={props.isLabeling}
               class={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all ${
                 props.isLabeling
-                  ? "bg-purple-100 text-purple-700 cursor-wait"
-                  : "bg-gradient-to-r from-kodak-amber/20 to-purple-500/20 hover:from-kodak-amber/30 hover:to-purple-500/30 text-kodak-charcoal cursor-pointer"
+                  ? "bg-kodak-yellow/30 text-kodak-yellow-dark cursor-wait"
+                  : "bg-kodak-yellow text-white hover:bg-kodak-yellow-dark cursor-pointer"
               }`}
             >
               <Show
                 when={!props.isLabeling}
                 fallback={
-                  <span class="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                  <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 }
               >
-                <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
                 </svg>
               </Show>
@@ -155,7 +155,7 @@ export default function Sidebar(props: SidebarProps) {
         </Show>
 
         <SectionLabel label="Albums" />
-        <button class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-kodak-warm-gray hover:text-kodak-amber transition-colors rounded-lg">
+        <button class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-kodak-warm-gray hover:text-kodak-yellow-dark transition-colors rounded-lg">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4" />
           </svg>

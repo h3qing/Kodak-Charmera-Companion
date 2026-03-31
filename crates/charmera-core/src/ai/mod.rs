@@ -52,7 +52,7 @@ pub fn label_photo_bytes(image_bytes: &[u8]) -> Result<PhotoLabel> {
 
     let request_body = serde_json::json!({
         "model": MODEL,
-        "prompt": "Describe this photo in one short sentence. Then list 3-5 single-word tags separated by commas. Format your response exactly as:\nDESCRIPTION: <sentence>\nTAGS: <tag1>, <tag2>, <tag3>",
+        "prompt": "Describe this image briefly.",
         "images": [img_b64],
         "stream": false,
     });
@@ -110,15 +110,30 @@ fn extract_basic_tags(description: &str) -> Vec<String> {
         "outdoor", "indoor", "dog", "cat", "person", "people", "car", "food",
         "nature", "sky", "water", "beach", "mountain", "tree", "flower",
         "building", "street", "road", "night", "sunset", "sunrise",
-        "grass", "snow", "rain", "animal", "bird",
+        "grass", "snow", "rain", "animal", "bird", "house", "garden",
+        "window", "door", "table", "chair", "couch", "bed", "kitchen",
+        "bathroom", "selfie", "portrait", "landscape", "city", "park",
+        "ocean", "lake", "river", "bridge", "forest", "field",
+        "child", "baby", "family", "group", "pet", "plant", "book",
+        "phone", "computer", "desk", "shelf", "wall", "floor", "ceiling",
+        "light", "dark", "colorful", "close-up", "wide", "sunny", "cloudy",
     ];
 
     let desc_lower = description.to_lowercase();
-    keywords
+    let mut tags: Vec<String> = keywords
         .iter()
-        .filter(|k| desc_lower.contains(*k))
+        .filter(|k| {
+            // Match whole words to avoid partial matches
+            let k_str = **k;
+            desc_lower.split(|c: char| !c.is_alphanumeric() && c != '-')
+                .any(|word| word == k_str)
+        })
         .map(|k| k.to_string())
-        .collect()
+        .collect();
+
+    // Limit to 5 most relevant tags
+    tags.truncate(5);
+    tags
 }
 
 #[cfg(test)]
@@ -135,9 +150,11 @@ mod tests {
 
     #[test]
     fn parse_unstructured_response() {
-        let text = "The image shows a beautiful sunset over the ocean.";
+        let text = "A brown dog sits on the couch in a cozy indoor room.";
         let label = parse_label_response(text).unwrap();
-        assert_eq!(label.description, "The image shows a beautiful sunset over the ocean.");
-        assert!(label.tags.contains(&"sunset".to_string()));
+        assert_eq!(label.description, "A brown dog sits on the couch in a cozy indoor room.");
+        assert!(label.tags.contains(&"dog".to_string()));
+        assert!(label.tags.contains(&"indoor".to_string()));
+        assert!(label.tags.contains(&"couch".to_string()));
     }
 }
