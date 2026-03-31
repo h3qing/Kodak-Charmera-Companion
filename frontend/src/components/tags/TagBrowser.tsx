@@ -70,8 +70,8 @@ export default function TagBrowser() {
                       onClick={() => selectTag(tag.name)}
                       class={`px-2.5 py-1 text-xs rounded-full transition-all cursor-pointer ${
                         selectedTag() === tag.name
-                          ? "bg-purple-500 text-white font-semibold shadow-sm"
-                          : "bg-purple-500/10 text-purple-700 hover:bg-purple-500/20"
+                          ? "bg-kodak-yellow text-white font-semibold shadow-sm"
+                          : "bg-kodak-yellow/10 text-kodak-yellow-dark hover:bg-kodak-yellow/20"
                       }`}
                     >
                       {tag.name}
@@ -93,8 +93,8 @@ export default function TagBrowser() {
                       onClick={() => selectTag(tag.name)}
                       class={`px-2.5 py-1 text-xs rounded-full transition-all cursor-pointer ${
                         selectedTag() === tag.name
-                          ? "bg-kodak-amber text-white font-semibold"
-                          : "bg-kodak-amber/10 text-kodak-amber-dark hover:bg-kodak-amber/20"
+                          ? "bg-kodak-red text-white font-semibold"
+                          : "bg-kodak-red/10 text-kodak-red hover:bg-kodak-red/20"
                       }`}
                     >
                       {tag.name}
@@ -140,7 +140,7 @@ function TagPhotoCard(props: { photo: PhotoSummary }) {
   });
 
   return (
-    <div class="rounded-lg overflow-hidden aspect-[4/3]">
+    <div class="rounded-lg overflow-hidden aspect-[4/3] border border-kodak-cream-dark">
       <Show when={src()} fallback={<div class="w-full h-full bg-kodak-cream-dark" />}>
         <img src={src()!} class="w-full h-full object-cover" />
       </Show>

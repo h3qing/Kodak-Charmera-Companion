@@ -8,6 +8,8 @@ import {
   autoLabelAll,
   getRenameProposals,
   applyRenames,
+  listCameraFiles,
+  getNamingPattern,
   type PhotoSummary,
   type AiStatus,
   type RenameProposal,
@@ -24,6 +26,9 @@ const [labelStatus, setLabelStatus] = createSignal("");
 const [labelProgress, setLabelProgress] = createSignal({ done: 0, total: 0, current: "" });
 const [renameProposals, setRenameProposals] = createSignal<RenameProposal[]>([]);
 const [showRenameDialog, setShowRenameDialog] = createSignal(false);
+const [cameraJustConnected, setCameraJustConnected] = createSignal(false);
+const [cameraFileCount, setCameraFileCount] = createSignal(0);
+const [namingPattern, setNamingPatternSignal] = createSignal("b {MM}-{DD}-{YYYY} {content}");
 
 // Listen for labeling events from backend
 listen("label:progress", (event: any) => {
@@ -81,6 +86,10 @@ export function useLibrary() {
     checkCamera,
     runAutoLabel,
     confirmRenames,
+    cameraJustConnected,
+    cameraFileCount,
+    dismissCameraPopup,
+    namingPattern,
   };
 }
 
@@ -105,6 +114,55 @@ async function checkCamera() {
   }
 }
 
+// Camera polling — check every 5 seconds for camera connection
+let previousCameraPath: string | null = null;
+let initialCheckDone = false;
+
+async function onCameraDetected(path: string) {
+  setCameraJustConnected(true);
+  try {
+    const files = await listCameraFiles(path);
+    const photoFiles = files.filter(f => f.is_photo);
+    setCameraFileCount(photoFiles.length);
+  } catch {
+    setCameraFileCount(0);
+  }
+}
+
+setInterval(async () => {
+  const newPath = await checkCamera();
+  if (newPath && !previousCameraPath) {
+    // Camera just connected (or first detection on app start)
+    await onCameraDetected(newPath);
+  }
+  previousCameraPath = newPath ?? null;
+}, 5000);
+
+// Also check immediately on startup — if camera is already plugged in, show popup
+(async () => {
+  const path = await checkCamera();
+  if (path && !initialCheckDone) {
+    initialCheckDone = true;
+    // Check if we have unimported photos
+    try {
+      const files = await listCameraFiles(path);
+      const photoFiles = files.filter(f => f.is_photo);
+      const currentCount = photoCount();
+      // Show popup if there are more photos on camera than imported
+      if (photoFiles.length > currentCount) {
+        setCameraJustConnected(true);
+        setCameraFileCount(photoFiles.length);
+      }
+    } catch {}
+  }
+  previousCameraPath = path ?? null;
+})();
+
+function dismissCameraPopup() {
+  setCameraJustConnected(false);
+  setCameraFileCount(0);
+}
+
 async function importFromCamera() {
   const path = cameraPath();
   if (!path) {
@@ -119,12 +177,21 @@ async function importFromCamera() {
 }
 
 async function importFromPath(source: string) {
+  // Dismiss camera popup if showing
+  dismissCameraPopup();
   setIsImporting(true);
   setImportStatus(`Importing from ${source}...`);
   try {
     const result = await importFolder(source);
     setImportStatus(`Imported ${result.imported} photos (${result.skipped} skipped)`);
     await refreshPhotos();
+
+    // Auto-trigger AI labeling after import if AI is available
+    const status = aiStatus();
+    if (status?.available && !isLabeling()) {
+      // Short delay so user sees the import result before labeling starts
+      setTimeout(() => runAutoLabel(), 500);
+    }
   } catch (e) {
     setImportStatus(`Import failed: ${e}`);
   } finally {
@@ -171,3 +238,4 @@ async function confirmRenames(approved: [number, string][]) {
 checkCamera();
 refreshPhotos();
 checkAiStatus().then(setAiStatus).catch(() => setAiStatus(null));
+getNamingPattern().then(setNamingPatternSignal).catch(() => {});

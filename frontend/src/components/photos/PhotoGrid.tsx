@@ -82,8 +82,8 @@ export default function PhotoGrid(props: PhotoGridProps) {
     <div class="h-full flex flex-col">
       {/* Batch action bar */}
       <Show when={selectedCount() > 1 && !viewingId()}>
-        <div class="flex items-center gap-3 px-4 py-2 bg-kodak-amber/10 border-b border-kodak-amber/20 shrink-0">
-          <span class="text-sm font-semibold text-kodak-amber-dark">
+        <div class="flex items-center gap-3 px-4 py-2 bg-kodak-yellow/10 border-b border-kodak-yellow/20 shrink-0">
+          <span class="text-sm font-semibold text-kodak-yellow-dark">
             {selectedCount()} selected
           </span>
           <div class="flex items-center gap-1.5 ml-auto">
@@ -96,7 +96,7 @@ export default function PhotoGrid(props: PhotoGridProps) {
             <button
               onClick={handleBatchExport}
               disabled={batchExporting()}
-              class="px-3 py-1.5 text-xs bg-kodak-amber hover:bg-kodak-amber-dark text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              class="px-3 py-1.5 text-xs bg-kodak-yellow hover:bg-kodak-yellow-dark text-white rounded-lg font-medium transition-colors disabled:opacity-50"
             >
               {batchExporting() ? "Exporting..." : "Export"}
             </button>
@@ -186,10 +186,10 @@ function PhotoCard(props: {
     <div
       onClick={props.onClick}
       onDblClick={props.onDoubleClick}
-      class={`relative group cursor-pointer rounded-lg overflow-hidden transition-all duration-150 ${
+      class={`relative group cursor-pointer rounded-lg overflow-hidden border-2 border-kodak-charcoal/10 transition-all duration-150 ${
         props.selected
-          ? "ring-3 ring-kodak-amber scale-[0.97] shadow-lg"
-          : "hover:ring-2 hover:ring-kodak-amber/30 hover:shadow-md"
+          ? "ring-3 ring-kodak-yellow scale-[0.97] shadow-lg"
+          : "hover:ring-2 hover:ring-kodak-yellow/30 hover:shadow-md"
       }`}
       style={{ "aspect-ratio": `${aspectRatio()}` }}
     >
@@ -213,7 +213,7 @@ function PhotoCard(props: {
 
       {/* Selection checkmark */}
       <Show when={props.selected}>
-        <div class="absolute top-2 left-2 w-5 h-5 bg-kodak-amber rounded-full flex items-center justify-center shadow-sm">
+        <div class="absolute top-2 left-2 w-5 h-5 bg-kodak-yellow rounded-full flex items-center justify-center shadow-sm">
           <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
           </svg>
@@ -256,9 +256,10 @@ function PhotoDetailView(props: {
   const [activeFrame, setActiveFrame] = createSignal<string | null>(null);
   const [previewSrc, setPreviewSrc] = createSignal<string | null>(null);
   const [previewing, setPreviewing] = createSignal(false);
-  const [showEffects, setShowEffects] = createSignal(false);
+  const [showEffects, setShowEffects] = createSignal(true);
   const [showInfo, setShowInfo] = createSignal(true);
   const [labels, setLabels] = createSignal<PhotoLabels | null>(null);
+  const [effectError, setEffectError] = createSignal<string | null>(null);
 
   // Load full-res photo and labels
   createEffect(async () => {
@@ -304,14 +305,17 @@ function PhotoDetailView(props: {
   const applyPreview = async (effects: string[], frame: string | null) => {
     if (effects.length === 0 && !frame) {
       setPreviewSrc(null);
+      setEffectError(null);
       return;
     }
     setPreviewing(true);
+    setEffectError(null);
     try {
       const src = await previewEffect(props.photo.id, effects, frame);
       setPreviewSrc(src);
     } catch (e) {
       console.error("Preview failed:", e);
+      setEffectError(String(e));
     }
     setPreviewing(false);
   };
@@ -369,7 +373,7 @@ function PhotoDetailView(props: {
             onClick={() => setShowEffects(!showEffects())}
             class={`text-xs px-3 py-1 rounded-full transition-colors ${
               showEffects()
-                ? "bg-kodak-amber text-white"
+                ? "bg-kodak-yellow text-white"
                 : "text-white/60 hover:text-white hover:bg-white/10"
             }`}
           >
@@ -388,7 +392,7 @@ function PhotoDetailView(props: {
           <Show when={activeEffects().length > 0 || activeFrame()}>
             <button
               onClick={handleExport}
-              class="text-xs px-3 py-1 rounded-full bg-kodak-amber/80 hover:bg-kodak-amber text-white transition-colors"
+              class="text-xs px-3 py-1 rounded-full bg-kodak-yellow/80 hover:bg-kodak-yellow text-white transition-colors"
             >
               Export
             </button>
@@ -405,7 +409,7 @@ function PhotoDetailView(props: {
         {/* Photo area */}
         <div class="flex-1 flex items-center justify-center relative overflow-hidden">
           <Show when={hasPrev()}>
-            <button onClick={() => navigate(-1)} class="absolute left-4 z-10 w-10 h-10 bg-black/40 hover:bg-black/60 rounded-full flex items-center justify-center text-white transition-colors">
+            <button onClick={() => navigate(-1)} class="absolute left-4 z-10 w-10 h-10 bg-kodak-yellow/40 hover:bg-kodak-yellow/60 rounded-full flex items-center justify-center text-white transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
             </button>
           </Show>
@@ -417,7 +421,7 @@ function PhotoDetailView(props: {
           </Show>
 
           <Show when={hasNext()}>
-            <button onClick={() => navigate(1)} class="absolute right-4 z-10 w-10 h-10 bg-black/40 hover:bg-black/60 rounded-full flex items-center justify-center text-white transition-colors">
+            <button onClick={() => navigate(1)} class="absolute right-4 z-10 w-10 h-10 bg-kodak-yellow/40 hover:bg-kodak-yellow/60 rounded-full flex items-center justify-center text-white transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </button>
           </Show>
@@ -437,7 +441,7 @@ function PhotoDetailView(props: {
             {/* AI Description */}
             <Show when={labels()}>
               <div class="mb-4">
-                <h4 class="text-purple-400 text-[10px] uppercase tracking-wider font-bold mb-2 flex items-center gap-1">
+                <h4 class="text-kodak-yellow text-[10px] uppercase tracking-wider font-bold mb-2 flex items-center gap-1">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12" />
                   </svg>
@@ -451,11 +455,11 @@ function PhotoDetailView(props: {
               {/* AI Tags */}
               <Show when={labels()!.tags.length > 0}>
                 <div class="mb-4">
-                  <h4 class="text-purple-400 text-[10px] uppercase tracking-wider font-bold mb-2">Tags</h4>
+                  <h4 class="text-kodak-yellow text-[10px] uppercase tracking-wider font-bold mb-2">Tags</h4>
                   <div class="flex flex-wrap gap-1">
                     <For each={labels()!.tags}>
                       {(tag) => (
-                        <span class="px-2 py-0.5 bg-purple-500/20 text-purple-300 text-[11px] rounded-full">
+                        <span class="px-2 py-0.5 bg-kodak-yellow/20 text-kodak-yellow-light text-[11px] rounded-full">
                           {tag}
                         </span>
                       )}
@@ -495,7 +499,7 @@ function PhotoDetailView(props: {
                   onClick={() => toggleEffect(effect)}
                   class={`shrink-0 px-3 py-1.5 text-xs rounded-lg transition-all ${
                     activeEffects().includes(effect)
-                      ? "bg-kodak-amber text-white font-semibold"
+                      ? "bg-kodak-yellow text-white font-semibold"
                       : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
                   }`}
                 >
@@ -514,7 +518,7 @@ function PhotoDetailView(props: {
                   onClick={() => toggleFrame(frame)}
                   class={`shrink-0 px-3 py-1.5 text-xs rounded-lg transition-all ${
                     activeFrame() === frame
-                      ? "bg-kodak-amber text-white font-semibold"
+                      ? "bg-kodak-yellow text-white font-semibold"
                       : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
                   }`}
                 >
@@ -523,6 +527,19 @@ function PhotoDetailView(props: {
               )}
             </For>
           </div>
+          {/* Error feedback */}
+          <Show when={effectError()}>
+            <div class="mt-2 px-2 py-1 bg-kodak-red/20 text-kodak-red-light text-xs rounded">
+              Effect failed: {effectError()}
+            </div>
+          </Show>
+          {/* Rendering indicator */}
+          <Show when={previewing()}>
+            <div class="mt-2 flex items-center gap-2 text-xs text-white/50">
+              <span class="kodak-spinner" style="width: 12px; height: 12px; border-width: 1.5px;" />
+              Rendering preview...
+            </div>
+          </Show>
         </div>
       </Show>
 
@@ -559,7 +576,7 @@ function FilmStripThumb(props: { photo: PhotoSummary; active: boolean; onClick: 
       onClick={props.onClick}
       class={`shrink-0 w-14 h-14 rounded overflow-hidden border-2 transition-all ${
         props.active
-          ? "border-kodak-amber scale-105"
+          ? "border-kodak-yellow scale-105"
           : "border-transparent opacity-60 hover:opacity-100"
       }`}
     >

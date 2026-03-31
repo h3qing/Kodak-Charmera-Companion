@@ -88,6 +88,80 @@ pub fn build_new_name(
     }
 }
 
+/// Apply a naming pattern to generate a filename (without extension).
+/// Pattern tokens: {MM}, {DD}, {YYYY}, {content}, {counter}, {original}
+pub fn apply_naming_pattern(
+    pattern: &str,
+    taken_at: Option<&str>,
+    description: &str,
+    counter: u32,
+    original_stem: &str,
+) -> String {
+    let (mm, dd, yyyy) = if let Some(date_str) = taken_at {
+        parse_date_tokens(date_str)
+    } else {
+        let now = chrono::Local::now();
+        use chrono::Datelike;
+        (
+            format!("{:02}", now.month()),
+            format!("{:02}", now.day()),
+            format!("{}", now.year()),
+        )
+    };
+
+    let content = sanitize_label(
+        &description
+            .split('.')
+            .next()
+            .unwrap_or(description)
+            .chars()
+            .take(40)
+            .collect::<String>(),
+    );
+
+    pattern
+        .replace("{MM}", &mm)
+        .replace("{DD}", &dd)
+        .replace("{YYYY}", &yyyy)
+        .replace("{content}", &content)
+        .replace("{counter}", &format!("{counter:03}"))
+        .replace("{original}", original_stem)
+        .trim()
+        .to_string()
+}
+
+/// Parse date tokens from various date formats.
+fn parse_date_tokens(date_str: &str) -> (String, String, String) {
+    use chrono::Datelike;
+
+    // Try EXIF format: "YYYY:MM:DD HH:MM:SS"
+    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(date_str, "%Y:%m:%d %H:%M:%S") {
+        return (
+            format!("{:02}", dt.month()),
+            format!("{:02}", dt.day()),
+            format!("{}", dt.year()),
+        );
+    }
+    // Try ISO format: "YYYY-MM-DD..."
+    if date_str.len() >= 10 {
+        let parts: Vec<&str> = date_str[..10].split('-').collect();
+        if parts.len() == 3 {
+            return (
+                parts[1].to_string(),
+                parts[2].to_string(),
+                parts[0].to_string(),
+            );
+        }
+    }
+    // Fallback to current date
+    let now = chrono::Local::now();
+    (
+        format!("{:02}", now.month()),
+        format!("{:02}", now.day()),
+        format!("{}", now.year()),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

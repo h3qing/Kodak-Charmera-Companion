@@ -23,6 +23,7 @@ pub enum WriteOp {
     SetPhotoRating(i64, u8),
     HidePhoto(i64),
     UnhidePhoto(i64),
+    SetSetting(String, String),
     Custom(Box<dyn FnOnce(&Connection) -> Result<()> + Send>),
 }
 
@@ -274,6 +275,13 @@ impl Catalog {
                 conn.execute("UPDATE photos SET is_hidden = 0 WHERE id = ?1", [id])?;
                 Ok(())
             }
+            WriteOp::SetSetting(key, value) => {
+                conn.execute(
+                    "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
+                    rusqlite::params![key, value],
+                )?;
+                Ok(())
+            }
             WriteOp::Custom(f) => f(conn),
         }
     }
@@ -392,6 +400,20 @@ impl Catalog {
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
         Ok(tags)
+    }
+
+    /// Get a setting value by key.
+    pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
+        let result = self.read_conn.query_row(
+            "SELECT value FROM settings WHERE key = ?1",
+            [key],
+            |row| row.get(0),
+        );
+        match result {
+            Ok(val) => Ok(Some(val)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
     }
 
     pub fn db_path(&self) -> &Path {

@@ -27,9 +27,14 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["dmg", "app"],
     "icon": [
-      "icons/icon.png"
-    ]
+      "icons/icon.png",
+      "icons/icon.icns"
+    ],
+    "category": "public.app-category.photography",
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    }
   }
 }
