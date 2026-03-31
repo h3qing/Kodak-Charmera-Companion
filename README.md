@@ -25,6 +25,10 @@
 
 > **New in v0.2.0** — Vintage Kodak 1987 UI, drag-and-drop import, auto AI labeling after import, customizable naming patterns, settings view. [Full changelog](CHANGELOG.md)
 
+<p align="center">
+  <img src="docs/screenshot.png" width="800" alt="Charmera Companion screenshot" />
+</p>
+
 ## The Problem
 
 You bought a cute KODAK CHARMERA (or similar keychain camera). It takes fun photos. But the files are named `PICT0042.jpg`, there's no metadata, and organizing them is painful.
