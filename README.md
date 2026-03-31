@@ -108,13 +108,15 @@ Tauri 2 Desktop App
 
 ## Quick Start
 
-### Prerequisites
+### One-Line Install (macOS)
 
-- [Rust](https://rustup.rs/) (stable)
-- [Bun](https://bun.sh/) or Node.js
-- [Ollama](https://ollama.com/) with moondream model
+```bash
+curl -fsSL https://raw.githubusercontent.com/h3qing/Kodak-Charmera-Companion/main/scripts/install.sh | bash
+```
 
-### Install & Run
+### Manual Install
+
+Prerequisites: [Rust](https://rustup.rs/), [Bun](https://bun.sh/) or Node.js, [Ollama](https://ollama.com/)
 
 ```bash
 # Clone
