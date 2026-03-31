@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Charmera Companion — Photo Organizer for KODAK CHARMERA</title>
+  <meta name="description" content="Desktop photo organizer with local AI for KODAK CHARMERA keychain cameras. Auto-import, AI labeling, smart rename, vintage effects." />
+  <link rel="icon" type="image/png" href="icon-64.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --yellow: #FCC200;
+      --yellow-dark: #E5AF00;
+      --yellow-light: #FFD84D;
+      --red: #C41E3A;
+      --blue: #003DA5;
+      --orange: #E87D1E;
+      --purple: #3D1F6E;
+      --cream: #FAF6F0;
+      --cream-dark: #EDE7DB;
+      --charcoal: #1C1C1C;
+      --warm-gray: #7A6E62;
+      --brown: #2D2420;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--cream);
+      color: var(--charcoal);
+      overflow-x: hidden;
+    }
+
+    /* Film grain overlay */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      opacity: 0.015;
+      pointer-events: none;
+      z-index: 9999;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .rainbow-stripe {
+      height: 6px;
+      background: linear-gradient(to right, var(--red), var(--orange), #8B4513, var(--charcoal), var(--blue), var(--purple));
+    }
+
+    .rainbow-stripe-thin {
+      height: 3px;
+      background: linear-gradient(to right, var(--red), var(--orange), #8B4513, var(--charcoal), var(--blue), var(--purple));
+    }
+
+    /* Header */
+    header {
+      background: var(--yellow);
+      padding: 1rem 0 0;
+    }
+
+    .header-content {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo img {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+    }
+
+    .logo-text {
+      line-height: 1;
+    }
+
+    .logo-kodak {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 0.75rem;
+      color: var(--red);
+      letter-spacing: 0.05em;
+    }
+
+    .logo-charmera {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: white;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--charcoal);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .nav-links a:hover { opacity: 1; }
+
+    .nav-links .github-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--charcoal);
+      color: var(--yellow);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.875rem;
+      transition: background 0.2s;
+    }
+
+    .nav-links .github-btn:hover {
+      background: #333;
+      opacity: 1;
+    }
+
+    /* Hero */
+    .hero {
+      background: var(--yellow);
+      padding: 3rem 0 4rem;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 3rem;
+      color: var(--charcoal);
+      margin-bottom: 1rem;
+      line-height: 1.1;
+    }
+
+    .hero h1 span { color: var(--red); }
+
+    .hero p {
+      font-size: 1.125rem;
+      color: var(--charcoal);
+      opacity: 0.7;
+      max-width: 600px;
+      margin: 0 auto 2rem;
+      line-height: 1.6;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--charcoal);
+      color: var(--yellow);
+      padding: 0.875rem 2rem;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: white;
+      color: var(--charcoal);
+      padding: 0.875rem 2rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: 2px solid rgba(0,0,0,0.1);
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      border-color: rgba(0,0,0,0.2);
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: rgba(0,0,0,0.1);
+      color: var(--charcoal);
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    /* Pipeline */
+    .pipeline {
+      max-width: 960px;
+      margin: -2rem auto 0;
+      padding: 0 2rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    .pipeline-card {
+      background: var(--charcoal);
+      color: white;
+      border-radius: 16px;
+      padding: 1.5rem 2rem;
+      font-family: 'JetBrains Mono', 'SF Mono', monospace;
+      font-size: 0.875rem;
+      line-height: 1.8;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      overflow-x: auto;
+    }
+
+    .pipeline-card .dim { opacity: 0.5; }
+    .pipeline-card .yellow { color: var(--yellow); }
+    .pipeline-card .red { color: #ff6b6b; }
+    .pipeline-card .green { color: #69db7c; }
+
+    /* Features */
+    .features {
+      max-width: 960px;
+      margin: 4rem auto;
+      padding: 0 2rem;
+    }
+
+    .features h2 {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 2rem;
+      text-align: center;
+      margin-bottom: 2.5rem;
+      color: var(--charcoal);
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: white;
+      border-radius: 16px;
+      padding: 1.75rem;
+      border: 1px solid var(--cream-dark);
+      transition: all 0.2s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--yellow);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 1.125rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      font-size: 0.875rem;
+      color: var(--warm-gray);
+      line-height: 1.6;
+    }
+
+    /* Tech stack */
+    .tech {
+      background: var(--charcoal);
+      padding: 4rem 0;
+    }
+
+    .tech-content {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      text-align: center;
+    }
+
+    .tech h2 {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 2rem;
+      color: white;
+      margin-bottom: 1rem;
+    }
+
+    .tech p {
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+
+    .tech-badges {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .tech-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      padding: 0.625rem 1.25rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .tech-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* CTA */
+    .cta {
+      background: var(--yellow);
+      padding: 4rem 0;
+      text-align: center;
+    }
+
+    .cta h2 {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 2rem;
+      color: var(--charcoal);
+      margin-bottom: 0.5rem;
+    }
+
+    .cta p {
+      color: var(--charcoal);
+      opacity: 0.7;
+      margin-bottom: 2rem;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--brown);
+      color: rgba(255,255,255,0.5);
+      padding: 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+
+    footer a {
+      color: var(--yellow);
+      text-decoration: none;
+    }
+
+    /* Film strip decorations */
+    .film-strip {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      padding: 1rem 0;
+      opacity: 0.15;
+    }
+
+    .film-strip .frame {
+      width: 24px;
+      height: 32px;
+      background: var(--charcoal);
+      border-radius: 2px;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 2rem; }
+      .header-content { flex-direction: column; gap: 1rem; }
+      .nav-links { gap: 1rem; }
+      .hero-buttons { flex-direction: column; align-items: center; }
+      .pipeline-card { font-size: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-content">
+      <div class="logo">
+        <img src="icon-64.png" alt="Charmera" />
+        <div class="logo-text">
+          <div class="logo-kodak">KODAK</div>
+          <div class="logo-charmera">Charmera</div>
+        </div>
+      </div>
+      <nav class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#download">Download</a>
+        <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="github-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </nav>
+    </div>
+    <div style="height: 2rem;"></div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge">v0.2.0 — Built with Rust + Tauri 2</div>
+    <h1>Your photos deserve<br/><span>better names</span></h1>
+    <p>
+      Plug in your KODAK CHARMERA. Photos are automatically imported, labeled by local AI,
+      and renamed from <code>PICT0042.jpg</code> to <code>sunset at the beach.jpg</code>.
+      No cloud. No subscriptions.
+    </p>
+    <div class="hero-buttons" id="download">
+      <a href="https://github.com/h3qing/Kodak-Charmera-Companion/releases" class="btn-primary">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Download for macOS
+      </a>
+      <a href="https://github.com/h3qing/Kodak-Charmera-Companion#quick-start" class="btn-secondary">
+        Build from Source
+      </a>
+    </div>
+  </section>
+  <div class="rainbow-stripe"></div>
+
+  <!-- Pipeline demo -->
+  <div class="pipeline">
+    <div class="pipeline-card">
+      <span class="dim">$</span> <span class="green">Camera connected</span> → Import 36 photos → <span class="yellow">AI: "A brown dog on the couch"</span><br/>
+      <span class="dim">$</span> PICT0042.jpg → <span class="green">b 03-30-2026 brown dog on couch.jpg</span> <span class="dim">✓ renamed on SD card</span>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <h2>Everything your keychain camera needs</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📸</div>
+        <h3>Auto-Import</h3>
+        <p>Plug in your camera and photos are detected automatically. A popup appears with the photo count — one click to import everything.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>Local AI Labeling</h3>
+        <p>Each photo is analyzed by a vision model running entirely on your machine. No cloud uploads, no API keys, no subscriptions.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✏️</div>
+        <h3>Smart Rename</h3>
+        <p>Configure your naming pattern with tokens like <code>{content}</code> and <code>{YYYY}</code>. Files are renamed directly on the SD card.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎞️</div>
+        <h3>Vintage Effects</h3>
+        <p>10 film effects (vintage, noir, grain, light leak...) and 4 frames (polaroid, film strip...) to enhance your photos.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>Search & Browse</h3>
+        <p>Full-text search across AI descriptions. Filter by tags. Multi-select and batch export to any folder.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>100% Private</h3>
+        <p>Everything runs locally — Rust backend, SQLite database, local AI model. Your photos never leave your machine.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech -->
+  <section class="tech">
+    <div class="tech-content">
+      <h2>Built with serious tools</h2>
+      <p>Native performance. Desktop-first. No Electron.</p>
+      <div class="tech-badges">
+        <div class="tech-badge"><div class="dot" style="background: #DEA584;"></div> Rust</div>
+        <div class="tech-badge"><div class="dot" style="background: #24C8D8;"></div> Tauri 2</div>
+        <div class="tech-badge"><div class="dot" style="background: #2C4F7C;"></div> Solid.js</div>
+        <div class="tech-badge"><div class="dot" style="background: var(--yellow);"></div> Tailwind CSS</div>
+        <div class="tech-badge"><div class="dot" style="background: #fff;"></div> Ollama</div>
+        <div class="tech-badge"><div class="dot" style="background: #69db7c;"></div> SQLite</div>
+      </div>
+    </div>
+    <div class="rainbow-stripe-thin" style="margin-top: 4rem;"></div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <h2>Give your PICT files real names</h2>
+    <p>Free and open source. MIT licensed.</p>
+    <div class="hero-buttons">
+      <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="btn-primary">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        Star on GitHub
+      </a>
+      <a href="https://github.com/h3qing/Kodak-Charmera-Companion/releases" class="btn-secondary">
+        Download Latest
+      </a>
+    </div>
+
+    <!-- Film strip decoration -->
+    <div class="film-strip">
+      <div class="frame"></div><div class="frame"></div><div class="frame"></div>
+      <div class="frame"></div><div class="frame"></div><div class="frame"></div>
+      <div class="frame"></div><div class="frame"></div><div class="frame"></div>
+      <div class="frame"></div><div class="frame"></div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>
+      <a href="https://github.com/h3qing/Kodak-Charmera-Companion">Charmera Companion</a> — MIT License
+    </p>
+    <p style="margin-top: 0.5rem;">
+      Not affiliated with Kodak. KODAK and CHARMERA are trademarks of their respective owners.
+    </p>
+  </footer>
+
+</body>
+</html>
