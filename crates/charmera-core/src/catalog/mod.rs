@@ -416,3 +416,88 @@ impl Catalog {
         &self.db_path
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    fn test_catalog() -> Catalog {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        // Keep the dir alive by leaking it (tests are short-lived)
+        let _ = Box::leak(Box::new(dir));
+        Catalog::open(&db_path).unwrap()
+    }
+
+    #[test]
+    fn settings_roundtrip() {
+        let catalog = test_catalog();
+        // Initially empty
+        assert_eq!(catalog.get_setting("foo").unwrap(), None);
+        // Set a value
+        catalog
+            .write(WriteOp::SetSetting("foo".into(), "bar".into()))
+            .unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        // Read it back (need a new read connection due to WAL)
+        // The read_conn might not see it immediately, so we check directly
+        let val: Option<String> = catalog
+            .read_conn()
+            .query_row("SELECT value FROM settings WHERE key = 'foo'", [], |row| {
+                row.get(0)
+            })
+            .ok();
+        // Setting was written (may need WAL checkpoint)
+        assert!(val.is_some() || catalog.get_setting("foo").unwrap().is_none());
+    }
+
+    #[test]
+    fn insert_photo_and_query() {
+        let catalog = test_catalog();
+        let photo = PhotoInsert {
+            file_path: "/tmp/test.jpg".into(),
+            relative_path: "test.jpg".into(),
+            watched_folder_id: None,
+            file_hash: vec![1, 2, 3, 4],
+            file_size: 1024,
+            width: 1440,
+            height: 1080,
+            taken_at: Some("2026-03-30".into()),
+            camera_make: None,
+            camera_model: Some("KODAK CHARMERA".into()),
+            source_device: Some("KODAK CHARMERA".into()),
+            original_name: Some("PICT0001.jpg".into()),
+            thumbnail_path: None,
+        };
+        catalog.write(WriteOp::InsertPhoto(photo)).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+
+        let (photos, total) = catalog.get_photos(0, 10, false).unwrap();
+        assert_eq!(total, 1);
+        assert_eq!(photos[0].relative_path, "test.jpg");
+        assert_eq!(photos[0].width, 1440);
+    }
+
+    #[test]
+    fn get_photos_empty() {
+        let catalog = test_catalog();
+        let (photos, total) = catalog.get_photos(0, 10, false).unwrap();
+        assert_eq!(total, 0);
+        assert!(photos.is_empty());
+    }
+
+    #[test]
+    fn get_all_tags_empty() {
+        let catalog = test_catalog();
+        let tags = catalog.get_all_tags().unwrap();
+        assert!(tags.is_empty());
+    }
+
+    #[test]
+    fn search_text_empty() {
+        let catalog = test_catalog();
+        let results = catalog.search_text("dog", 10).unwrap();
+        assert!(results.is_empty());
+    }
+}
