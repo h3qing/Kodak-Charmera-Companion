@@ -358,4 +358,52 @@ mod tests {
         let after_pixel = img.to_rgb8().get_pixel(50, 40).0;
         assert_eq!(original_pixel, after_pixel);
     }
+
+    #[test]
+    fn pipeline_no_effects_returns_original_size() {
+        let img = test_image();
+        let result = apply_pipeline(&img, &[], None).unwrap();
+        assert_eq!(result.width(), img.width());
+        assert_eq!(result.height(), img.height());
+    }
+
+    #[test]
+    fn pipeline_frame_only() {
+        let img = test_image();
+        let result = apply_pipeline(&img, &[], Some("simple")).unwrap();
+        assert!(result.width() >= img.width());
+    }
+
+    #[test]
+    fn pipeline_max_three_effects() {
+        let img = test_image();
+        // Should handle 3 effects without panic
+        let result = apply_pipeline(
+            &img,
+            &["vintage".into(), "warm".into(), "grain".into()],
+            None,
+        )
+        .unwrap();
+        assert!(result.width() > 0);
+    }
+
+    #[test]
+    fn unknown_frame_returns_error() {
+        let img = test_image();
+        assert!(apply_frame(&img, "nonexistent").is_err());
+    }
+
+    #[test]
+    fn effects_preserve_dimensions() {
+        let img = test_image();
+        for name in EFFECT_NAMES {
+            let result = apply_effect(&img, name).unwrap();
+            assert_eq!(result.width(), img.width(), "effect {name} changed width");
+            assert_eq!(
+                result.height(),
+                img.height(),
+                "effect {name} changed height"
+            );
+        }
+    }
 }
