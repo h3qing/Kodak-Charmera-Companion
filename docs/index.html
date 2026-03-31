@@ -477,12 +477,21 @@
         Build from Source
       </a>
     </div>
+    <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--charcoal); opacity: 0.5;">
+      No camera? The app includes "Try with sample photos" to explore all features.
+    </p>
   </section>
   <div class="rainbow-stripe"></div>
 
   <!-- App screenshot -->
   <div style="max-width: 960px; margin: -2rem auto 2rem; padding: 0 2rem; position: relative; z-index: 2;">
     <img src="screenshot.png" alt="Charmera Companion app" style="width: 100%; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.2);" />
+  </div>
+
+  <!-- Detail view screenshot -->
+  <div style="max-width: 960px; margin: 1rem auto 2rem; padding: 0 2rem;">
+    <p style="text-align: center; color: var(--warm-gray); font-size: 0.875rem; margin-bottom: 0.75rem;">Photo detail with effects, AI labels, and before/after comparison</p>
+    <img src="screenshot-detail.png" alt="Photo detail view" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
   </div>
 
   <!-- Pipeline demo -->
@@ -500,7 +509,7 @@
       <div class="feature-card">
         <div class="feature-icon">📸</div>
         <h3>Auto-Import</h3>
-        <p>Plug in your camera and photos are detected automatically. A popup appears with the photo count — one click to import everything.</p>
+        <p>Plug in your camera and photos are detected automatically. Or drag-and-drop any folder. No camera? Use built-in sample photos to try everything.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🧠</div>
@@ -526,6 +535,16 @@
         <div class="feature-icon">🔒</div>
         <h3>100% Private</h3>
         <p>Everything runs locally — Rust backend, SQLite database, local AI model. Your photos never leave your machine.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔀</div>
+        <h3>Before / After</h3>
+        <p>Compare original and edited photos side-by-side. Apply effects, then press C to toggle the comparison view.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🖥️</div>
+        <h3>Cross-Platform</h3>
+        <p>Camera detection works on macOS, Linux, and Windows. Scans mount points dynamically for any DCIM volume.</p>
       </div>
     </div>
   </section>
