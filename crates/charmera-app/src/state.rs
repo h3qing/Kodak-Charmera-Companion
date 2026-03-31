@@ -155,6 +155,9 @@ impl AppState {
                 .display()
                 .to_string();
 
+            // Extract EXIF metadata (date taken, camera info)
+            let exif = charmera_core::import::extract_exif(file_path);
+
             let photo = PhotoInsert {
                 file_path: file_path.display().to_string(),
                 relative_path: relative,
@@ -163,9 +166,11 @@ impl AppState {
                 file_size,
                 width,
                 height,
-                taken_at: None,
-                camera_make: None,
-                camera_model: Some("KODAK CHARMERA".to_string()),
+                taken_at: exif.taken_at,
+                camera_make: exif.camera_make,
+                camera_model: exif
+                    .camera_model
+                    .or_else(|| Some("KODAK CHARMERA".to_string())),
                 source_device: Some("KODAK CHARMERA".to_string()),
                 original_name: Some(file_name),
                 thumbnail_path: thumb_path,

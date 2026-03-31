@@ -4,6 +4,46 @@ use anyhow::Result;
 
 use crate::constants::*;
 
+/// EXIF metadata extracted from a photo.
+#[derive(Debug, Default)]
+pub struct ExifInfo {
+    pub taken_at: Option<String>,
+    pub camera_make: Option<String>,
+    pub camera_model: Option<String>,
+}
+
+/// Extract EXIF metadata from a JPEG file.
+pub fn extract_exif(path: &Path) -> ExifInfo {
+    let file = match std::fs::File::open(path) {
+        Ok(f) => f,
+        Err(_) => return ExifInfo::default(),
+    };
+    let mut bufreader = std::io::BufReader::new(file);
+    let exif = match exif::Reader::new().read_from_container(&mut bufreader) {
+        Ok(e) => e,
+        Err(_) => return ExifInfo::default(),
+    };
+
+    let taken_at = exif
+        .get_field(exif::Tag::DateTimeOriginal, exif::In::PRIMARY)
+        .or_else(|| exif.get_field(exif::Tag::DateTime, exif::In::PRIMARY))
+        .map(|f| f.display_value().to_string());
+
+    let camera_make = exif
+        .get_field(exif::Tag::Make, exif::In::PRIMARY)
+        .map(|f| f.display_value().to_string().trim_matches('"').to_string());
+
+    let camera_model = exif
+        .get_field(exif::Tag::Model, exif::In::PRIMARY)
+        .map(|f| f.display_value().to_string().trim_matches('"').to_string());
+
+    ExifInfo {
+        taken_at,
+        camera_make,
+        camera_model,
+    }
+}
+
 /// Sanitize a user-provided label for use in filenames.
 /// Strips path separators, null bytes, and restricts to safe characters.
 pub fn sanitize_label(label: &str) -> String {
