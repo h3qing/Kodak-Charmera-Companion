@@ -14,6 +14,7 @@
   <a href="https://www.solidjs.com/"><img src="https://img.shields.io/badge/Solid.js-2C4F7C?logo=solid&logoColor=white" alt="Solid.js" /></a>
   <a href="https://ollama.com/"><img src="https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white" alt="Ollama" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" /></a>
+  <img src="https://img.shields.io/badge/tests-40_passing-brightgreen" alt="40 tests" />
   <a href="https://github.com/h3qing/Kodak-Charmera-Companion/actions"><img src="https://github.com/h3qing/Kodak-Charmera-Companion/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
@@ -23,7 +24,7 @@
 
 ---
 
-> **v0.2.1** — Vintage Kodak 1987 UI, auto AI labeling, smart albums, drag-and-drop, duplicate detection, 22 tests. [Changelog](CHANGELOG.md)
+> **v0.3.2** — Local photo storage, batch-label CLI, 40 tests, Homebrew formula, cross-platform. [Changelog](CHANGELOG.md)
 
 <p align="center">
   <img src="docs/screenshot.png" width="800" alt="Charmera Companion — photo grid view" />
