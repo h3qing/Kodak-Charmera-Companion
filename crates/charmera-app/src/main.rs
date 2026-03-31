@@ -280,6 +280,41 @@ fn get_duplicates(app: tauri::AppHandle) -> Result<Vec<state::DuplicateGroup>, S
 }
 
 #[tauri::command]
+fn preview_splash(source_path: String) -> Result<String, String> {
+    let img = image::open(&source_path).map_err(|e| format!("open {source_path}: {e}"))?;
+    let splash = charmera_core::splash::create_splash(&img);
+    // Encode to base64
+    let mut buf = Vec::new();
+    let mut cursor = std::io::Cursor::new(&mut buf);
+    let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, 85);
+    splash
+        .to_rgb8()
+        .write_with_encoder(encoder)
+        .map_err(|e| format!("encode: {e}"))?;
+    drop(cursor);
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
+    Ok(format!("data:image/jpeg;base64,{b64}"))
+}
+
+#[tauri::command]
+fn install_splash(source_path: String) -> Result<String, String> {
+    let img = image::open(&source_path).map_err(|e| format!("open {source_path}: {e}"))?;
+    let splash = charmera_core::splash::create_splash(&img);
+
+    let camera = charmera_core::import::find_camera()
+        .ok_or_else(|| "No camera connected. Please plug in your KODAK CHARMERA.".to_string())?;
+
+    let splash_dir = camera.join(charmera_core::constants::SPLASH_DIR);
+    std::fs::create_dir_all(&splash_dir).map_err(|e| format!("create dir: {e}"))?;
+
+    let dest = splash_dir.join(charmera_core::constants::SPLASH_FILE);
+    charmera_core::splash::save_splash(&splash, &dest).map_err(|e| e.to_string())?;
+
+    Ok(dest.display().to_string())
+}
+
+#[tauri::command]
 fn hide_photo(app: tauri::AppHandle, id: i64) -> Result<(), String> {
     let app_state = app.state::<AppState>();
     let catalog = app_state.catalog_lock().map_err(|e| e.to_string())?;
@@ -329,6 +364,8 @@ fn main() {
             get_rename_proposals,
             apply_renames,
             get_duplicates,
+            preview_splash,
+            install_splash,
             hide_photo,
             get_naming_pattern,
             set_naming_pattern,
