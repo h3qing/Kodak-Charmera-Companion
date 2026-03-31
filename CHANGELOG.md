@@ -2,6 +2,22 @@
 
 All notable changes to Charmera Companion will be documented in this file.
 
+## [0.3.0] - 2026-03-31
+
+### Added
+- **Cross-platform camera detection** — Linux (/media, /mnt, /run/media) and Windows (D:-Z:) support
+- **Dynamic volume scanning** — finds any mounted volume with a DCIM folder
+- **Batch effects export** — apply effects to multiple selected photos at once
+- **Accessibility** — ARIA roles, labels, dialog management, progress bar attributes
+- **Security Policy** (SECURITY.md) — design principles and vulnerability reporting
+- **Detail view screenshot** in README with expandable gallery
+- **Roadmap** section with 10 planned features
+
+### Changed
+- CI matrix now tests on both macOS and Ubuntu
+- 27 tests (up from 22) with catalog CRUD and settings tests
+- Photo detail mockup added to README and website
+
 ## [0.2.1] - 2026-03-31
 
 ### Added
