@@ -88,6 +88,12 @@ impl AppState {
         &self.data_dir
     }
 
+    pub fn photos_dir(&self) -> PathBuf {
+        let dir = self.data_dir.join("photos");
+        let _ = std::fs::create_dir_all(&dir);
+        dir
+    }
+
     /// Get a setting value.
     pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
         let catalog = self
@@ -147,6 +153,20 @@ impl AppState {
                 .unwrap_or("unknown")
                 .to_string();
 
+            // Copy photo to local storage so it's available after camera disconnect
+            let hash_hex = hash_bytes
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect::<String>();
+            let local_dir = self.photos_dir().join(&hash_hex[..2]);
+            let _ = std::fs::create_dir_all(&local_dir);
+            let local_path = local_dir.join(&file_name);
+            if !local_path.exists() {
+                std::fs::write(&local_path, &file_bytes)
+                    .with_context(|| format!("copying to {}", local_path.display()))?;
+            }
+            let stored_path = local_path.display().to_string();
+
             let relative = file_path
                 .strip_prefix(&source_path)
                 .unwrap_or(file_path)
@@ -157,7 +177,7 @@ impl AppState {
             let exif = charmera_core::import::extract_exif(file_path);
 
             let photo = PhotoInsert {
-                file_path: file_path.display().to_string(),
+                file_path: stored_path,
                 relative_path: relative,
                 watched_folder_id: None,
                 file_hash: hash_bytes,
