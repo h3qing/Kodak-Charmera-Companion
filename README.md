@@ -49,6 +49,33 @@ Plug in your camera, and Charmera Companion **automatically imports, labels, and
 Camera connected → Import 36 photos → AI: "A brown dog on the couch" → b 03-30-2026 brown dog on couch.jpg
 ```
 
+<details>
+<summary><strong>See the CLI in action</strong></summary>
+
+```console
+$ charmera detect --json
+{"detected": true, "path": "/Volumes/SDCARD"}
+
+$ charmera batch-label /Volumes/SDCARD/DCIM/ --rename --dry-run
+[1/36] PICT0001.jpg...
+PICT0001.jpg: A brown and white dog sitting on a couch → b 03-30-2026 brown and white dog sitting on a couch.jpg
+PICT0002.jpg: A sunset over the ocean with orange sky → b 03-30-2026 sunset over the ocean with orange sky.jpg
+PICT0003.jpg: Two people laughing at a park bench → b 03-30-2026 two people laughing at a park bench.jpg
+...
+Labeled 36/36 photos (dry run — no changes made)
+
+$ charmera label PICT0001.jpg --json
+{
+  "description": "A brown and white dog sitting on a couch, gazing at the camera",
+  "tags": ["dog", "indoor", "couch", "pet"],
+  "file": "PICT0001.jpg"
+}
+
+$ charmera effects PICT0001.jpg --effects vintage,grain --frame polaroid --output dog-vintage.jpg
+Saved to dog-vintage.jpg
+```
+</details>
+
 ## Features
 
 ### Auto-Import & Label
@@ -95,6 +122,19 @@ Find identical photos by file hash. Keep the original, hide the duplicates (file
 | `←` `→` | Navigate photos |
 | `C` | Compare (before/after effects) |
 | `Esc` | Back to grid |
+
+## Why Charmera?
+
+| Feature | Charmera | Google Photos | Apple Photos | digiKam |
+|---------|----------|--------------|-------------|---------|
+| AI labeling | Local (Ollama) | Cloud | Cloud | Plugin |
+| Privacy | 100% local | Uploads everything | iCloud | Local |
+| CLI / automation | Full JSON API | None | None | Limited |
+| Keychain camera support | Built for it | Generic | Generic | Generic |
+| Cost | Free | Storage limits | iCloud sub | Free |
+| Custom naming patterns | Yes | No | No | No |
+| Photo effects | 10 + 4 frames | Filters | Filters | Limited |
+| Open source | MIT | No | No | GPL |
 
 ## Architecture
 
