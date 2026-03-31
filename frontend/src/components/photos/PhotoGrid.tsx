@@ -517,8 +517,10 @@ function PhotoDetailView(props: {
     if (e.key === "ArrowRight" && hasNext()) navigate(1);
     if (e.key === "e") setShowEffects(!showEffects());
     if (e.key === "i") setShowInfo(!showInfo());
+    if (e.key === "c" && previewSrc()) setComparing(!comparing());
   };
 
+  const [comparing, setComparing] = createSignal(false);
   const displaySrc = () => previewSrc() || detailSrc();
 
   return (
@@ -560,6 +562,18 @@ function PhotoDetailView(props: {
           >
             Info
           </button>
+          <Show when={previewSrc()}>
+            <button
+              onClick={() => setComparing(!comparing())}
+              class={`text-xs px-3 py-1 rounded-full transition-colors ${
+                comparing()
+                  ? "bg-kodak-red/80 text-white"
+                  : "text-white/60 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              {comparing() ? "Hide Original" : "Compare"}
+            </button>
+          </Show>
           <button
             onClick={handleExport}
             disabled={exporting()}
@@ -587,7 +601,22 @@ function PhotoDetailView(props: {
           <Show when={!loading()} fallback={
             <div class="text-white/40 text-sm">Loading...</div>
           }>
-            <img src={displaySrc()} alt={props.photo.relative_path} class="max-w-full max-h-full object-contain" />
+            <Show when={comparing() && previewSrc()} fallback={
+              <img src={displaySrc()} alt={props.photo.relative_path} class="max-w-full max-h-full object-contain" />
+            }>
+              {/* Side-by-side comparison */}
+              <div class="flex gap-2 max-w-full max-h-full items-center">
+                <div class="flex-1 text-center">
+                  <p class="text-white/40 text-[10px] uppercase tracking-wider mb-1">Original</p>
+                  <img src={detailSrc()} alt="Original" class="max-w-full max-h-[60vh] object-contain mx-auto rounded" />
+                </div>
+                <div class="w-px bg-white/20 self-stretch" />
+                <div class="flex-1 text-center">
+                  <p class="text-kodak-yellow text-[10px] uppercase tracking-wider mb-1">With Effects</p>
+                  <img src={previewSrc()!} alt="With effects" class="max-w-full max-h-[60vh] object-contain mx-auto rounded" />
+                </div>
+              </div>
+            </Show>
           </Show>
 
           <Show when={hasNext()}>
