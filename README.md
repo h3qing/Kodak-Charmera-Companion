@@ -56,11 +56,32 @@ Apply vintage film effects and frames before exporting:
 | vintage, noir, faded, warm, cool | polaroid, film strip |
 | sharp, soft, vignette, grain, light leak | simple, rounded |
 
+### Drag & Drop
+Drop any folder onto the app window to import photos. A bright yellow overlay appears — release to start importing.
+
+### Duplicate Detection
+Find identical photos by file hash. Keep the original, hide the duplicates (files stay on disk).
+
 ### Settings & Customization
 - Configurable naming pattern with live preview
 - Token buttons: `{MM}` `{DD}` `{YYYY}` `{content}` `{counter}` `{original}`
 - AI status monitoring
 - Boot splash screen editor for your camera
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd+1` | All Photos |
+| `Cmd+2` | Recent Imports |
+| `Cmd+3` | Tags |
+| `Cmd+4` | Duplicates |
+| `Cmd+F` | Focus search |
+| `Cmd+,` | Settings |
+| `E` | Toggle effects (in photo detail) |
+| `I` | Toggle info panel (in photo detail) |
+| `←` `→` | Navigate photos |
+| `Esc` | Back to grid |
 
 ## Architecture
 
