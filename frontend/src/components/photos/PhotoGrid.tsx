@@ -335,10 +335,21 @@ function PhotoCard(props: {
     return 4 / 3;
   };
 
+  const tooltip = () => {
+    const name = props.photo.relative_path.split("/").pop() || "";
+    const dims = `${props.photo.width}×${props.photo.height}`;
+    const desc = labels()?.description || "";
+    const parts = [name, dims];
+    if (desc) parts.push(desc);
+    if (props.photo.taken_at) parts.push(props.photo.taken_at);
+    return parts.join("\n");
+  };
+
   return (
     <div
       onClick={props.onClick}
       onDblClick={props.onDoubleClick}
+      title={tooltip()}
       class={`relative group cursor-pointer rounded-lg overflow-hidden border-2 border-kodak-charcoal/10 transition-all duration-150 ${
         props.selected
           ? "ring-3 ring-kodak-yellow scale-[0.97] shadow-lg"
