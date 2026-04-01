@@ -168,9 +168,14 @@ fn parse_label_response(text: &str) -> Result<PhotoLabel> {
         }
     }
 
-    // Fallback: if no structured format, use the whole text as description
+    // Fallback: if no structured format, use the first non-empty line as description
     if description.is_empty() {
-        description = text.lines().next().unwrap_or("").trim().to_string();
+        description = text
+            .lines()
+            .map(|l| l.trim())
+            .find(|l| !l.is_empty())
+            .unwrap_or("")
+            .to_string();
     }
 
     // If no tags parsed, generate basic ones from the description
@@ -301,6 +306,18 @@ mod tests {
         let label = parse_label_response("").unwrap();
         assert_eq!(label.description, "");
         assert!(label.tags.is_empty());
+    }
+
+    #[test]
+    fn parse_leading_newline_response() {
+        // Moondream often returns "\nActual description here."
+        let text = "\nA person petting a brown dog on the couch.";
+        let label = parse_label_response(text).unwrap();
+        assert_eq!(
+            label.description,
+            "A person petting a brown dog on the couch."
+        );
+        assert!(label.tags.contains(&"dog".to_string()));
     }
 
     #[test]
