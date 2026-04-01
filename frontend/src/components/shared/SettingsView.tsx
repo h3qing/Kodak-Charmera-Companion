@@ -1,4 +1,6 @@
 import { createSignal, onMount, Show } from "solid-js";
+import type { NasConfig } from "../../lib/tauri";
+import { showToast } from "./Toast";
 
 export default function SettingsView() {
   const [namingPattern, setNamingPatternLocal] = createSignal("b {MM}-{DD}-{YYYY} {content}");
@@ -8,9 +10,21 @@ export default function SettingsView() {
   const [aiModels, setAiModels] = createSignal<string[]>([]);
   const [saved, setSaved] = createSignal(false);
 
+  // NAS state
+  const defaultNasConfig: NasConfig = { enabled: false, path: "", auto_move: false, organize_by_date: true };
+  const [nasPath, setNasPath] = createSignal("");
+  const [nasAutoMove, setNasAutoMove] = createSignal(false);
+  const [nasOrganizeByDate, setNasOrganizeByDate] = createSignal(true);
+  const [nasEnabled, setNasEnabled] = createSignal(false);
+  const [nasTestResult, setNasTestResult] = createSignal<boolean | null>(null);
+  const [nasTesting, setNasTesting] = createSignal(false);
+  const [nasDetecting, setNasDetecting] = createSignal(false);
+  const [nasSaved, setNasSaved] = createSignal(false);
+  const [nasMovingAll, setNasMovingAll] = createSignal(false);
+
   onMount(async () => {
     try {
-      const { getAppVersion, checkAiStatus, getNamingPattern } = await import("../../lib/tauri");
+      const { getAppVersion, checkAiStatus, getNamingPattern, getNasConfig } = await import("../../lib/tauri");
       setAppVersion(await getAppVersion());
       try {
         const status = await checkAiStatus();
@@ -21,6 +35,13 @@ export default function SettingsView() {
       try {
         const pattern = await getNamingPattern();
         if (pattern) setNamingPatternLocal(pattern);
+      } catch {}
+      try {
+        const cfg = await getNasConfig();
+        setNasPath(cfg.path);
+        setNasAutoMove(cfg.auto_move);
+        setNasOrganizeByDate(cfg.organize_by_date);
+        setNasEnabled(cfg.enabled);
       } catch {}
     } catch (e) {
       console.error("Settings load error:", e);
@@ -173,6 +194,212 @@ export default function SettingsView() {
             >
               Export Labels as JSON
             </button>
+          </div>
+        </section>
+
+        {/* NAS Storage */}
+        <section class="mb-8">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-kodak-warm-gray mb-3 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+            NAS Storage
+          </h2>
+          <div class="bg-white rounded-xl border border-kodak-cream-dark p-4">
+            {/* Setup hint */}
+            <div class="bg-kodak-cream rounded-lg p-3 mb-4 text-xs text-kodak-warm-gray">
+              <p class="font-medium text-kodak-charcoal mb-1">First time? Mount your NAS:</p>
+              <p>Finder &rarr; Go &rarr; Connect to Server &rarr; <code class="font-mono bg-white px-1 rounded">smb://your-nas-ip</code></p>
+            </div>
+
+            {/* Path input with Browse + Detect */}
+            <div class="mb-4">
+              <label class="text-xs font-medium text-kodak-charcoal block mb-1">NAS Path</label>
+              <div class="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={nasPath()}
+                  onInput={(e) => { setNasPath(e.currentTarget.value); setNasTestResult(null); }}
+                  placeholder="/Volumes/NAS/Photos"
+                  class="flex-1 text-sm px-3 py-2 rounded-lg border border-kodak-cream-dark bg-kodak-cream/50 focus:outline-none focus:ring-2 focus:ring-kodak-yellow/40 focus:border-kodak-yellow font-mono"
+                />
+                <button
+                  onClick={async () => {
+                    try {
+                      const { open } = await import("@tauri-apps/plugin-dialog");
+                      const selected = await open({ directory: true, title: "Select NAS folder" });
+                      if (selected) {
+                        setNasPath(selected as string);
+                        setNasTestResult(null);
+                      }
+                    } catch (e) {
+                      console.error("Browse failed:", e);
+                    }
+                  }}
+                  class="px-3 py-2 text-sm bg-kodak-cream hover:bg-kodak-cream-dark text-kodak-charcoal rounded-lg transition-colors"
+                >
+                  Browse
+                </button>
+                <button
+                  onClick={async () => {
+                    setNasDetecting(true);
+                    try {
+                      const { detectNasVolumes } = await import("../../lib/tauri");
+                      const volumes = await detectNasVolumes();
+                      if (volumes.length > 0) {
+                        setNasPath(volumes[0]);
+                        setNasTestResult(null);
+                        showToast(`Found ${volumes.length} NAS volume${volumes.length !== 1 ? "s" : ""}`, "success");
+                      } else {
+                        showToast("No NAS volumes detected", "info");
+                      }
+                    } catch (e) {
+                      showToast("Detection failed", "error");
+                      console.error("Detect NAS failed:", e);
+                    }
+                    setNasDetecting(false);
+                  }}
+                  disabled={nasDetecting()}
+                  class="px-3 py-2 text-sm bg-kodak-cream hover:bg-kodak-cream-dark text-kodak-charcoal rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {nasDetecting() ? "..." : "Detect"}
+                </button>
+              </div>
+            </div>
+
+            {/* Test connection */}
+            <div class="mb-4 flex items-center gap-3">
+              <button
+                onClick={async () => {
+                  if (!nasPath()) {
+                    showToast("Enter a NAS path first", "info");
+                    return;
+                  }
+                  setNasTesting(true);
+                  setNasTestResult(null);
+                  try {
+                    const { testNasPath } = await import("../../lib/tauri");
+                    const ok = await testNasPath(nasPath());
+                    setNasTestResult(ok);
+                  } catch {
+                    setNasTestResult(false);
+                  }
+                  setNasTesting(false);
+                }}
+                disabled={nasTesting() || !nasPath()}
+                class="px-3 py-2 text-sm bg-kodak-cream hover:bg-kodak-cream-dark text-kodak-charcoal rounded-lg transition-colors disabled:opacity-50"
+              >
+                {nasTesting() ? "Testing..." : "Test Connection"}
+              </button>
+              <Show when={nasTestResult() !== null}>
+                <span class="flex items-center gap-1.5 text-sm">
+                  <span class={`w-2.5 h-2.5 rounded-full ${nasTestResult() ? "bg-green-500" : "bg-kodak-red"}`} />
+                  <span class={nasTestResult() ? "text-green-700" : "text-kodak-red"}>
+                    {nasTestResult() ? "Connected" : "Unreachable"}
+                  </span>
+                </span>
+              </Show>
+            </div>
+
+            {/* Toggles */}
+            <div class="space-y-3 mb-4">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <button
+                  onClick={() => setNasAutoMove(!nasAutoMove())}
+                  class={`w-10 h-5 rounded-full transition-colors relative ${
+                    nasAutoMove() ? "bg-kodak-yellow" : "bg-kodak-cream-dark"
+                  }`}
+                  role="switch"
+                  aria-checked={nasAutoMove()}
+                  aria-label="Auto-move after labeling"
+                >
+                  <div class={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                    nasAutoMove() ? "translate-x-5" : "translate-x-0.5"
+                  }`} />
+                </button>
+                <div>
+                  <p class="text-sm text-kodak-charcoal font-medium">Auto-move after labeling</p>
+                  <p class="text-xs text-kodak-warm-gray">Automatically prompt to move photos to NAS after AI labeling completes</p>
+                </div>
+              </label>
+
+              <label class="flex items-center gap-3 cursor-pointer">
+                <button
+                  onClick={() => setNasOrganizeByDate(!nasOrganizeByDate())}
+                  class={`w-10 h-5 rounded-full transition-colors relative ${
+                    nasOrganizeByDate() ? "bg-kodak-yellow" : "bg-kodak-cream-dark"
+                  }`}
+                  role="switch"
+                  aria-checked={nasOrganizeByDate()}
+                  aria-label="Organize by date"
+                >
+                  <div class={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                    nasOrganizeByDate() ? "translate-x-5" : "translate-x-0.5"
+                  }`} />
+                </button>
+                <div>
+                  <p class="text-sm text-kodak-charcoal font-medium">Organize by date</p>
+                  <p class="text-xs text-kodak-warm-gray">Create YYYY/MM/DD subfolders on the NAS</p>
+                </div>
+              </label>
+            </div>
+
+            {/* Save + Move All */}
+            <div class="flex items-center gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    const { setNasConfig } = await import("../../lib/tauri");
+                    await setNasConfig({
+                      enabled: nasEnabled() || !!nasPath(),
+                      path: nasPath(),
+                      auto_move: nasAutoMove(),
+                      organize_by_date: nasOrganizeByDate(),
+                    });
+                    setNasEnabled(nasEnabled() || !!nasPath());
+                    setNasSaved(true);
+                    showToast("NAS settings saved", "success");
+                    setTimeout(() => setNasSaved(false), 2000);
+                  } catch (e) {
+                    showToast("Failed to save NAS settings", "error");
+                    console.error("NAS save error:", e);
+                  }
+                }}
+                disabled={!nasPath()}
+                class="px-4 py-2 bg-kodak-yellow hover:bg-kodak-yellow-dark text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+              >
+                Save NAS Settings
+              </button>
+              <Show when={nasSaved()}>
+                <span class="text-xs text-green-600 font-medium">Saved!</span>
+              </Show>
+              <Show when={nasEnabled()}>
+                <button
+                  onClick={async () => {
+                    setNasMovingAll(true);
+                    try {
+                      const { getPhotos, moveToNas } = await import("../../lib/tauri");
+                      const page = await getPhotos(0, 10000);
+                      const ids = page.photos.map(p => p.id);
+                      if (ids.length === 0) {
+                        showToast("No photos to move", "info");
+                      } else {
+                        const [moved, failed] = await moveToNas(ids, true);
+                        showToast(`Moved ${moved} photos to NAS${failed > 0 ? ` (${failed} failed)` : ""}`, moved > 0 ? "success" : "error");
+                      }
+                    } catch (e) {
+                      showToast("Move failed", "error");
+                      console.error("Move all to NAS error:", e);
+                    }
+                    setNasMovingAll(false);
+                  }}
+                  disabled={nasMovingAll()}
+                  class="px-4 py-2 bg-kodak-charcoal hover:bg-kodak-charcoal-light text-kodak-yellow text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {nasMovingAll() ? "Moving..." : "Move All to NAS"}
+                </button>
+              </Show>
+            </div>
           </div>
         </section>
 

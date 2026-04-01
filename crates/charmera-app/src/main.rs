@@ -423,6 +423,72 @@ fn hide_photo(app: tauri::AppHandle, id: i64) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn detect_nas_volumes() -> Result<Vec<String>, String> {
+    let mut volumes = Vec::new();
+    let skip = ["Macintosh HD", "Recovery", "Preboot", "VM", "Update"];
+    if let Ok(entries) = std::fs::read_dir("/Volumes") {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !skip.iter().any(|s| name.contains(s)) && entry.path().is_dir() {
+                volumes.push(entry.path().display().to_string());
+            }
+        }
+    }
+    // Also check Linux mount points
+    for dir in ["/media", "/mnt"] {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for entry in entries.filter_map(|e| e.ok()) {
+                if entry.path().is_dir() {
+                    volumes.push(entry.path().display().to_string());
+                }
+            }
+        }
+    }
+    Ok(volumes)
+}
+
+#[tauri::command]
+fn test_nas_path(path: String) -> Result<bool, String> {
+    let p = std::path::Path::new(&path);
+    if !p.exists() {
+        return Ok(false);
+    }
+    // Try writing a test file to verify write access
+    let test_file = p.join(".charmera_test");
+    match std::fs::write(&test_file, "test") {
+        Ok(_) => {
+            let _ = std::fs::remove_file(&test_file);
+            Ok(true)
+        }
+        Err(_) => Ok(false),
+    }
+}
+
+#[tauri::command]
+fn get_nas_config(app: tauri::AppHandle) -> Result<state::NasConfig, String> {
+    let app_state = app.state::<AppState>();
+    app_state.get_nas_config().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn set_nas_config(app: tauri::AppHandle, config: state::NasConfig) -> Result<(), String> {
+    let app_state = app.state::<AppState>();
+    app_state.set_nas_config(&config).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn move_to_nas(
+    app: tauri::AppHandle,
+    photo_ids: Vec<i64>,
+    keep_local: bool,
+) -> Result<(u32, u32), String> {
+    let app_state = app.state::<AppState>();
+    app_state
+        .move_photos_to_nas(&photo_ids, keep_local)
+        .map_err(|e| e.to_string())
+}
+
 fn read_image_as_base64(path: &str) -> Result<String, String> {
     let bytes = std::fs::read(path).map_err(|e| format!("read {path}: {e}"))?;
     use base64::Engine;
@@ -473,6 +539,11 @@ fn main() {
             set_naming_pattern,
             get_setting,
             set_setting,
+            detect_nas_volumes,
+            test_nas_path,
+            get_nas_config,
+            set_nas_config,
+            move_to_nas,
         ])
         .run(tauri::generate_context!())
         .expect("error while running charmera companion");
