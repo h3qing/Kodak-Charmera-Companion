@@ -16,7 +16,7 @@
   <a href="https://ollama.com/"><img src="https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white" alt="Ollama" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" /></a>
   <img src="https://img.shields.io/badge/tests-40_passing-brightgreen" alt="40 tests" />
-  <a href="https://github.com/h3qing/Kodak-Charmera-Companion/actions"><img src="https://github.com/h3qing/Kodak-Charmera-Companion/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/v0.5.0-latest-blue" alt="v0.5.0" />
 </p>
 
 <p align="center">
