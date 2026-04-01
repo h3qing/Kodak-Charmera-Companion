@@ -4,6 +4,7 @@ import WelcomeScreen from "./components/shared/WelcomeScreen";
 import PhotoGrid from "./components/photos/PhotoGrid";
 import TagBrowser from "./components/tags/TagBrowser";
 import RenameDialog from "./components/shared/RenameDialog";
+import NasMoveDialog from "./components/shared/NasMoveDialog";
 import CameraPopup from "./components/shared/CameraPopup";
 import SettingsView from "./components/shared/SettingsView";
 import DuplicatesView from "./components/shared/DuplicatesView";
@@ -254,6 +255,13 @@ export default function App() {
               AI ready ({library.aiStatus()?.model})
             </span>
           </Show>
+          <Show when={library.nasConfig()?.enabled}>
+            <span class="mx-2">|</span>
+            <span class="flex items-center gap-1">
+              <span class="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+              NAS
+            </span>
+          </Show>
           <Show when={library.labelStatus() && !library.isLabeling()}>
             <span class="mx-2">|</span>
             <span>{library.labelStatus()}</span>
@@ -268,6 +276,16 @@ export default function App() {
           proposals={library.renameProposals()}
           onConfirm={library.confirmRenames}
           onCancel={() => library.setShowRenameDialog(false)}
+        />
+      </Show>
+
+      {/* NAS move dialog */}
+      <Show when={library.showNasMoveDialog()}>
+        <NasMoveDialog
+          photoCount={library.nasPhotoIds().length}
+          nasPath={library.nasConfig()?.path || ""}
+          onMove={library.movePhotosToNas}
+          onSkip={library.dismissNasDialog}
         />
       </Show>
 

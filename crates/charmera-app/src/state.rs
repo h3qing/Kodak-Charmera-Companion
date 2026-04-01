@@ -4,7 +4,15 @@ use std::sync::Mutex;
 use anyhow::{Context, Result};
 use charmera_core::catalog::WriteOp;
 use charmera_core::catalog::{Catalog, PhotoInsert, PhotoSummary};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct NasConfig {
+    pub enabled: bool,
+    pub path: String,
+    pub auto_move: bool,
+    pub organize_by_date: bool,
+}
 
 #[derive(Serialize, Clone)]
 pub struct FileInfo {
@@ -110,6 +118,126 @@ impl AppState {
             .lock()
             .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         catalog.write(WriteOp::SetSetting(key.to_string(), value.to_string()))
+    }
+
+    /// Get NAS configuration from settings.
+    pub fn get_nas_config(&self) -> Result<NasConfig> {
+        Ok(NasConfig {
+            enabled: self
+                .get_setting("nas_enabled")?
+                .map(|v| v == "true")
+                .unwrap_or(false),
+            path: self.get_setting("nas_path")?.unwrap_or_default(),
+            auto_move: self
+                .get_setting("nas_auto_move")?
+                .map(|v| v == "true")
+                .unwrap_or(false),
+            organize_by_date: self
+                .get_setting("nas_organize_by_date")?
+                .map(|v| v == "true")
+                .unwrap_or(true),
+        })
+    }
+
+    /// Set NAS configuration in settings.
+    pub fn set_nas_config(&self, config: &NasConfig) -> Result<()> {
+        self.set_setting("nas_enabled", &config.enabled.to_string())?;
+        self.set_setting("nas_path", &config.path)?;
+        self.set_setting("nas_auto_move", &config.auto_move.to_string())?;
+        self.set_setting("nas_organize_by_date", &config.organize_by_date.to_string())?;
+        Ok(())
+    }
+
+    /// Move photos to NAS storage. Returns (moved_count, failed_count).
+    pub fn move_photos_to_nas(&self, photo_ids: &[i64], keep_local: bool) -> Result<(u32, u32)> {
+        let config = self.get_nas_config()?;
+        if !config.enabled || config.path.is_empty() {
+            anyhow::bail!("NAS not configured");
+        }
+        let nas_base = PathBuf::from(&config.path);
+        if !nas_base.exists() {
+            anyhow::bail!("NAS path not accessible: {}", config.path);
+        }
+
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let mut moved = 0u32;
+        let mut failed = 0u32;
+
+        for id in photo_ids {
+            let row: (String, Option<String>) = catalog.read_conn().query_row(
+                "SELECT file_path, taken_at FROM photos WHERE id = ?1",
+                [id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )?;
+            let (file_path, taken_at) = row;
+
+            let src = Path::new(&file_path);
+            if !src.exists() {
+                failed += 1;
+                continue;
+            }
+
+            // Build NAS destination path
+            let dest_dir = if config.organize_by_date {
+                let date_folder = taken_at
+                    .as_deref()
+                    .and_then(|d| {
+                        // Parse "YYYY:MM:DD" or "YYYY-MM-DD" -> "YYYY-MM"
+                        let normalized = d.replace(':', "-");
+                        if normalized.len() >= 7 {
+                            Some(normalized[..7].to_string())
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or_else(|| chrono::Local::now().format("%Y-%m").to_string());
+                nas_base.join(&date_folder)
+            } else {
+                nas_base.clone()
+            };
+
+            if let Err(e) = std::fs::create_dir_all(&dest_dir) {
+                tracing::warn!("NAS mkdir failed for {id}: {e}");
+                failed += 1;
+                continue;
+            }
+            let file_name = src.file_name().unwrap_or_default();
+            let dest = dest_dir.join(file_name);
+
+            // Copy to NAS
+            if let Err(e) = std::fs::copy(src, &dest) {
+                tracing::warn!("NAS copy failed for {id}: {e}");
+                failed += 1;
+                continue;
+            }
+
+            // Update catalog to NAS path
+            let dest_str = dest.display().to_string();
+            catalog.write(WriteOp::Custom(Box::new({
+                let dest_str = dest_str.clone();
+                let id = *id;
+                move |conn| {
+                    conn.execute(
+                        "UPDATE photos SET file_path = ?1 WHERE id = ?2",
+                        rusqlite::params![dest_str, id],
+                    )?;
+                    Ok(())
+                }
+            })))?;
+
+            // Delete local copy if requested
+            if !keep_local {
+                let _ = std::fs::remove_file(src);
+            }
+
+            moved += 1;
+        }
+
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        Ok((moved, failed))
     }
 
     #[allow(dead_code)]

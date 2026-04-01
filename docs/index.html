@@ -3,270 +3,251 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Charmera Companion — Photo Organizer for KODAK CHARMERA</title>
-  <meta name="description" content="AI photo organizer — label, rename, and enhance photos locally using Ollama. CLI + desktop app for any JPEG folder. Built with Rust and Tauri. No cloud, no API keys." />
+  <title>Charmera Companion — AI Photo Organizer</title>
+  <meta name="description" content="AI photo organizer — label, rename, and enhance photos locally using Ollama. CLI + desktop app. Built with Rust and Tauri. No cloud." />
+  <link rel="icon" type="image/png" href="icon-64.png" />
 
-  <!-- Open Graph / Social Media -->
+  <!-- Open Graph -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Charmera Companion — Photo Organizer for KODAK CHARMERA" />
-  <meta property="og:description" content="Auto-import, AI label, and smart rename photos from your keychain camera. 100% local, no cloud. Built with Rust + Tauri." />
+  <meta property="og:title" content="Charmera Companion — AI Photo Organizer" />
+  <meta property="og:description" content="Label, rename, and enhance photos locally. No cloud. Built with Rust." />
   <meta property="og:image" content="https://h3qing.github.io/Kodak-Charmera-Companion/social-preview.png" />
   <meta property="og:url" content="https://h3qing.github.io/Kodak-Charmera-Companion/" />
-
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Charmera Companion" />
-  <meta name="twitter:description" content="Desktop photo organizer with local AI for keychain cameras. Built with Rust + Tauri." />
   <meta name="twitter:image" content="https://h3qing.github.io/Kodak-Charmera-Companion/social-preview.png" />
 
-  <link rel="icon" type="image/png" href="icon-64.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Nunito:wght@700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
   <style>
     :root {
       --yellow: #FCC200;
       --yellow-dark: #E5AF00;
-      --yellow-light: #FFD84D;
       --red: #C41E3A;
       --blue: #003DA5;
       --orange: #E87D1E;
       --purple: #3D1F6E;
       --cream: #FAF6F0;
-      --cream-dark: #EDE7DB;
       --charcoal: #1C1C1C;
       --warm-gray: #7A6E62;
-      --brown: #2D2420;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: 'DM Sans', system-ui, sans-serif;
-      background: var(--cream);
-      color: var(--charcoal);
+      background: var(--charcoal);
+      color: white;
       overflow-x: hidden;
     }
 
-    /* Film grain overlay */
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      opacity: 0.015;
-      pointer-events: none;
-      z-index: 9999;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    /* Scroll-triggered animations */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
     }
-
-    .rainbow-stripe {
-      height: 6px;
-      background: linear-gradient(to right, var(--red), var(--orange), #8B4513, var(--charcoal), var(--blue), var(--purple));
-    }
-
-    .rainbow-stripe-thin {
-      height: 3px;
-      background: linear-gradient(to right, var(--red), var(--orange), #8B4513, var(--charcoal), var(--blue), var(--purple));
-    }
-
-    /* Header */
-    header {
-      background: var(--yellow);
-      padding: 1rem 0 0;
-    }
-
-    .header-content {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 0 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .logo img {
-      width: 48px;
-      height: 48px;
-      border-radius: 10px;
-    }
-
-    .logo-text {
-      line-height: 1;
-    }
-
-    .logo-kodak {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 900;
-      font-size: 0.75rem;
-      color: var(--red);
-      letter-spacing: 0.05em;
-    }
-
-    .logo-charmera {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 800;
-      font-size: 1.25rem;
-      color: white;
-      letter-spacing: -0.02em;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 1.5rem;
-      align-items: center;
-    }
-
-    .nav-links a {
-      color: var(--charcoal);
-      text-decoration: none;
-      font-size: 0.875rem;
-      font-weight: 500;
-      opacity: 0.8;
-      transition: opacity 0.2s;
-    }
-
-    .nav-links a:hover { opacity: 1; }
-
-    .nav-links .github-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--charcoal);
-      color: var(--yellow);
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 0.875rem;
-      transition: background 0.2s;
-    }
-
-    .nav-links .github-btn:hover {
-      background: #333;
+    .reveal.visible {
       opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* Rainbow stripe */
+    .stripe {
+      height: 4px;
+      background: linear-gradient(to right, var(--red), var(--orange), #8B4513, var(--charcoal), var(--blue), var(--purple));
     }
 
-    /* Hero */
+    /* ===== HERO ===== */
     .hero {
-      background: var(--yellow);
-      padding: 3rem 0 4rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       text-align: center;
+      background: var(--yellow);
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Floating film frames background */
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 20% 80%, rgba(0,0,0,0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(0,0,0,0.03) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .hero-icon {
+      width: 100px;
+      height: 100px;
+      border-radius: 24px;
+      margin-bottom: 1.5rem;
+      animation: float 3s ease-in-out infinite;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
     }
 
     .hero h1 {
       font-family: 'Nunito', sans-serif;
       font-weight: 900;
-      font-size: 3rem;
+      font-size: clamp(2.5rem, 6vw, 4rem);
       color: var(--charcoal);
+      line-height: 1.05;
       margin-bottom: 1rem;
-      line-height: 1.1;
     }
 
-    .hero h1 span { color: var(--red); }
+    .hero h1 .accent { color: var(--red); }
 
-    .hero p {
-      font-size: 1.125rem;
+    .hero .subtitle {
+      font-size: 1.1rem;
       color: var(--charcoal);
-      opacity: 0.7;
-      max-width: 600px;
-      margin: 0 auto 2rem;
+      opacity: 0.65;
+      max-width: 500px;
       line-height: 1.6;
+      margin-bottom: 2rem;
     }
 
     .hero-buttons {
       display: flex;
-      gap: 1rem;
-      justify-content: center;
+      gap: 0.75rem;
       flex-wrap: wrap;
+      justify-content: center;
     }
 
-    .btn-primary {
+    .btn {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      background: var(--charcoal);
-      color: var(--yellow);
-      padding: 0.875rem 2rem;
+      padding: 0.8rem 1.8rem;
       border-radius: 12px;
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 0.95rem;
       text-decoration: none;
       transition: all 0.2s;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      cursor: pointer;
+      border: none;
     }
+    .btn:hover { transform: translateY(-2px); }
 
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-    }
-
-    .btn-secondary {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: white;
-      color: var(--charcoal);
-      padding: 0.875rem 2rem;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 1rem;
-      text-decoration: none;
-      transition: all 0.2s;
-      border: 2px solid rgba(0,0,0,0.1);
-    }
-
-    .btn-secondary:hover {
-      transform: translateY(-2px);
-      border-color: rgba(0,0,0,0.2);
-    }
-
-    .hero-badge {
-      display: inline-block;
-      background: rgba(0,0,0,0.1);
-      color: var(--charcoal);
-      padding: 0.25rem 0.75rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-    }
-
-    /* Pipeline */
-    .pipeline {
-      max-width: 960px;
-      margin: -2rem auto 0;
-      padding: 0 2rem;
-      position: relative;
-      z-index: 2;
-    }
-
-    .pipeline-card {
+    .btn-dark {
       background: var(--charcoal);
-      color: white;
-      border-radius: 16px;
-      padding: 1.5rem 2rem;
-      font-family: 'JetBrains Mono', 'SF Mono', monospace;
-      font-size: 0.875rem;
-      line-height: 1.8;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-      overflow-x: auto;
+      color: var(--yellow);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--charcoal);
+      border: 2px solid rgba(0,0,0,0.15);
+    }
+    .btn-ghost:hover { border-color: rgba(0,0,0,0.4); }
+
+    .hero-hint {
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--charcoal);
+      opacity: 0.4;
     }
 
-    .pipeline-card .dim { opacity: 0.5; }
-    .pipeline-card .yellow { color: var(--yellow); }
-    .pipeline-card .red { color: #ff6b6b; }
-    .pipeline-card .green { color: #69db7c; }
+    .scroll-arrow {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: bounce 2s infinite;
+      opacity: 0.3;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(8px); }
+    }
 
-    /* Features */
+    /* ===== TERMINAL DEMO ===== */
+    .demo {
+      padding: 4rem 2rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .terminal {
+      background: #0d1117;
+      border-radius: 16px;
+      max-width: 720px;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+    }
+
+    .terminal-bar {
+      display: flex;
+      gap: 8px;
+      padding: 14px 16px;
+      background: #161b22;
+    }
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .terminal-body {
+      padding: 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.8;
+      color: #c9d1d9;
+    }
+    .terminal-body .prompt { color: #58a6ff; }
+    .terminal-body .success { color: #3fb950; }
+    .terminal-body .highlight { color: var(--yellow); }
+    .terminal-body .dim { opacity: 0.4; }
+
+    /* Typing animation */
+    .type-line {
+      opacity: 0;
+      animation: typeFade 0.3s ease forwards;
+    }
+
+    @keyframes typeFade {
+      to { opacity: 1; }
+    }
+
+    /* ===== SCREENSHOT ===== */
+    .screenshot-section {
+      padding: 0 2rem 4rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .screenshot-section img {
+      max-width: 900px;
+      width: 100%;
+      border-radius: 16px;
+      box-shadow: 0 20px 80px rgba(0,0,0,0.4);
+      transition: transform 0.3s ease;
+    }
+    .screenshot-section img:hover {
+      transform: scale(1.02);
+    }
+
+    /* ===== FEATURES ===== */
     .features {
-      max-width: 960px;
-      margin: 4rem auto;
-      padding: 0 2rem;
+      padding: 5rem 2rem;
+      background: var(--cream);
+      color: var(--charcoal);
     }
 
     .features h2 {
@@ -274,113 +255,75 @@
       font-weight: 800;
       font-size: 2rem;
       text-align: center;
-      margin-bottom: 2.5rem;
-      color: var(--charcoal);
+      margin-bottom: 3rem;
     }
 
     .feature-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 1.5rem;
+      max-width: 900px;
+      margin: 0 auto;
     }
 
     .feature-card {
-      background: white;
+      padding: 1.5rem;
       border-radius: 16px;
-      padding: 1.75rem;
-      border: 1px solid var(--cream-dark);
-      transition: all 0.2s;
+      background: white;
+      border: 1px solid #eee;
+      transition: all 0.3s ease;
+      cursor: default;
     }
-
     .feature-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      transform: translateY(-6px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.08);
     }
 
-    .feature-icon {
-      width: 44px;
-      height: 44px;
-      background: var(--yellow);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      margin-bottom: 1rem;
+    .feature-card .icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.75rem;
     }
-
     .feature-card h3 {
       font-family: 'Nunito', sans-serif;
       font-weight: 700;
-      font-size: 1.125rem;
-      margin-bottom: 0.5rem;
+      font-size: 1rem;
+      margin-bottom: 0.4rem;
     }
-
     .feature-card p {
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: var(--warm-gray);
-      line-height: 1.6;
+      line-height: 1.5;
     }
 
-    /* Tech stack */
+    /* ===== TECH ===== */
     .tech {
-      background: var(--charcoal);
-      padding: 4rem 0;
-    }
-
-    .tech-content {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 0 2rem;
+      padding: 4rem 2rem;
       text-align: center;
     }
 
-    .tech h2 {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 800;
-      font-size: 2rem;
-      color: white;
-      margin-bottom: 1rem;
-    }
-
-    .tech p {
-      color: rgba(255,255,255,0.6);
-      margin-bottom: 2rem;
-      font-size: 1rem;
-    }
-
-    .tech-badges {
+    .tech-pills {
       display: flex;
-      gap: 1rem;
+      gap: 0.6rem;
       justify-content: center;
       flex-wrap: wrap;
+      margin-top: 1.5rem;
     }
-
-    .tech-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: rgba(255,255,255,0.1);
-      color: white;
-      padding: 0.625rem 1.25rem;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 0.875rem;
+    .tech-pill {
+      padding: 0.5rem 1.2rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: background 0.2s;
     }
+    .tech-pill:hover { background: rgba(255,255,255,0.15); }
 
-    .tech-badge .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    /* CTA */
+    /* ===== CTA ===== */
     .cta {
+      padding: 5rem 2rem;
       background: var(--yellow);
-      padding: 4rem 0;
       text-align: center;
     }
-
     .cta h2 {
       font-family: 'Nunito', sans-serif;
       font-weight: 900;
@@ -388,216 +331,244 @@
       color: var(--charcoal);
       margin-bottom: 0.5rem;
     }
-
     .cta p {
       color: var(--charcoal);
-      opacity: 0.7;
+      opacity: 0.5;
       margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+    .cta .install-cmd {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      background: rgba(0,0,0,0.08);
+      padding: 0.6rem 1.2rem;
+      border-radius: 10px;
+      color: var(--charcoal);
+      margin-top: 1.5rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .cta .install-cmd:hover { background: rgba(0,0,0,0.12); }
+    .cta .install-cmd .copied {
+      display: none;
+      color: var(--red);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
     }
 
-    /* Footer */
+    /* ===== FOOTER ===== */
     footer {
-      background: var(--brown);
-      color: rgba(255,255,255,0.5);
       padding: 2rem;
       text-align: center;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.3);
     }
+    footer a { color: var(--yellow); text-decoration: none; }
 
-    footer a {
-      color: var(--yellow);
-      text-decoration: none;
-    }
-
-    /* Film strip decorations */
-    .film-strip {
-      display: flex;
-      justify-content: center;
-      gap: 4px;
-      padding: 1rem 0;
-      opacity: 0.15;
-    }
-
-    .film-strip .frame {
-      width: 24px;
-      height: 32px;
-      background: var(--charcoal);
-      border-radius: 2px;
-    }
-
-    /* Responsive */
+    /* ===== RESPONSIVE ===== */
     @media (max-width: 640px) {
-      .hero h1 { font-size: 2rem; }
-      .header-content { flex-direction: column; gap: 1rem; }
-      .nav-links { gap: 1rem; }
+      .hero h1 { font-size: 2.2rem; }
+      .terminal-body { font-size: 0.72rem; }
       .hero-buttons { flex-direction: column; align-items: center; }
-      .pipeline-card { font-size: 0.75rem; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <header>
-    <div class="header-content">
-      <div class="logo">
-        <img src="icon-64.png" alt="Charmera" />
-        <div class="logo-text">
-          <div class="logo-kodak">KODAK</div>
-          <div class="logo-charmera">Charmera</div>
-        </div>
-      </div>
-      <nav class="nav-links">
-        <a href="#features">Features</a>
-        <a href="#download">Download</a>
-        <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="github-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-          GitHub
-        </a>
-      </nav>
-    </div>
-    <div style="height: 2rem;"></div>
-  </header>
-
-  <!-- Hero -->
+  <!-- HERO -->
   <section class="hero">
-    <div class="hero-badge">v0.5.0 — Built with Rust + Tauri 2</div>
-    <h1>Your photos deserve<br/><span>better names</span></h1>
-    <p>
-      Plug in your KODAK CHARMERA. Photos are automatically imported, labeled by local AI,
-      and renamed from <code>PICT0042.jpg</code> to <code>sunset at the beach.jpg</code>.
-      No cloud. No subscriptions.
+    <img src="icon-64.png" alt="Charmera" class="hero-icon" />
+    <h1>
+      Your photos deserve<br/><span class="accent">better names</span>
+    </h1>
+    <p class="subtitle">
+      AI labels and renames your photos locally. No cloud, no subscriptions.
+      Works with any camera or folder.
     </p>
-    <div class="hero-buttons" id="download">
-      <a href="https://github.com/h3qing/Kodak-Charmera-Companion/releases" class="btn-primary">
-        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-        Download for macOS
+    <div class="hero-buttons">
+      <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="btn btn-dark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        Star on GitHub
       </a>
-      <a href="https://github.com/h3qing/Kodak-Charmera-Companion#quick-start" class="btn-secondary">
-        Build from Source
+      <a href="https://github.com/h3qing/Kodak-Charmera-Companion#quick-start" class="btn btn-ghost">
+        Get Started
       </a>
     </div>
-    <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--charcoal); opacity: 0.5;">
-      No camera? The app includes "Try with sample photos" to explore all features.
-    </p>
+    <p class="hero-hint">v0.5.0 &middot; Rust + Tauri 2 &middot; MIT License</p>
+
+    <div class="scroll-arrow">
+      <svg width="24" height="24" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+      </svg>
+    </div>
   </section>
-  <div class="rainbow-stripe"></div>
 
-  <!-- App screenshot -->
-  <div style="max-width: 960px; margin: -2rem auto 2rem; padding: 0 2rem; position: relative; z-index: 2;">
-    <img src="screenshot.png" alt="Charmera Companion app" style="width: 100%; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.2);" />
-  </div>
+  <div class="stripe"></div>
 
-  <!-- Detail view screenshot -->
-  <div style="max-width: 960px; margin: 1rem auto 2rem; padding: 0 2rem;">
-    <p style="text-align: center; color: var(--warm-gray); font-size: 0.875rem; margin-bottom: 0.75rem;">Photo detail with effects, AI labels, and before/after comparison</p>
-    <img src="screenshot-detail.png" alt="Photo detail view" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
-  </div>
-
-  <!-- Pipeline demo -->
-  <div class="pipeline">
-    <div class="pipeline-card">
-      <span class="dim">$</span> <span class="green">Camera connected</span> → Import 36 photos → <span class="yellow">AI: "A brown dog on the couch"</span><br/>
-      <span class="dim">$</span> PICT0042.jpg → <span class="green">b 03-30-2026 brown dog on couch.jpg</span> <span class="dim">✓ renamed on SD card</span>
+  <!-- TERMINAL DEMO -->
+  <section class="demo">
+    <div class="terminal reveal">
+      <div class="terminal-bar">
+        <div class="terminal-dot" style="background:#ff5f57"></div>
+        <div class="terminal-dot" style="background:#ffbd2e"></div>
+        <div class="terminal-dot" style="background:#27c93f"></div>
+      </div>
+      <div class="terminal-body" id="terminal">
+        <!-- Lines injected by JS typing animation -->
+      </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Features -->
-  <section class="features" id="features">
-    <h2>Everything your keychain camera needs</h2>
+  <!-- SCREENSHOT -->
+  <section class="screenshot-section reveal">
+    <img src="screenshot.png" alt="Charmera Companion app" />
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <h2 class="reveal">Everything in one tool</h2>
     <div class="feature-grid">
-      <div class="feature-card">
-        <div class="feature-icon">📸</div>
-        <h3>Auto-Import</h3>
-        <p>Plug in your camera and photos are detected automatically. Or drag-and-drop any folder. No camera? Use built-in sample photos to try everything.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🧠</div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="icon">🧠</div>
         <h3>Local AI Labeling</h3>
-        <p>Each photo is analyzed by a vision model running entirely on your machine. No cloud uploads, no API keys, no subscriptions.</p>
+        <p>Ollama vision models describe every photo. Runs on your machine, never uploads.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">✏️</div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="icon">✏️</div>
         <h3>Smart Rename</h3>
-        <p>Configure your naming pattern with tokens like <code>{content}</code> and <code>{YYYY}</code>. Files are renamed directly on the SD card.</p>
+        <p>PICT0042.jpg becomes "sunset at the beach.jpg" with customizable patterns.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">🎞️</div>
-        <h3>Vintage Effects</h3>
-        <p>10 film effects (vintage, noir, grain, light leak...) and 4 frames (polaroid, film strip...) to enhance your photos.</p>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="icon">🎞️</div>
+        <h3>10 Effects + 4 Frames</h3>
+        <p>Vintage, noir, grain, polaroid. Before/after comparison. Batch export.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔍</div>
-        <h3>Search & Browse</h3>
-        <p>Full-text search across AI descriptions. Filter by tags. Multi-select and batch export to any folder.</p>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="icon">📁</div>
+        <h3>Any Photo Folder</h3>
+        <p>Drag-and-drop any folder. JPEG, PNG, BMP, WebP. Demo mode included.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔒</div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="icon">⌨️</div>
+        <h3>11 CLI Commands</h3>
+        <p>batch-label, rename, info, detect, effects — all with --json for automation.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="icon">🔒</div>
         <h3>100% Private</h3>
-        <p>Everything runs locally — Rust backend, SQLite database, local AI model. Your photos never leave your machine.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔀</div>
-        <h3>Before / After</h3>
-        <p>Compare original and edited photos side-by-side. Apply effects, then press C to toggle the comparison view.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🖥️</div>
-        <h3>Cross-Platform</h3>
-        <p>Camera detection works on macOS, Linux, and Windows. Scans mount points dynamically for any DCIM volume.</p>
+        <p>Rust backend, SQLite, local AI. Your photos never leave your machine.</p>
       </div>
     </div>
   </section>
 
-  <!-- Tech -->
-  <section class="tech">
-    <div class="tech-content">
-      <h2>Built with serious tools</h2>
-      <p>Native performance. Desktop-first. No Electron.</p>
-      <div class="tech-badges">
-        <div class="tech-badge"><div class="dot" style="background: #DEA584;"></div> Rust</div>
-        <div class="tech-badge"><div class="dot" style="background: #24C8D8;"></div> Tauri 2</div>
-        <div class="tech-badge"><div class="dot" style="background: #2C4F7C;"></div> Solid.js</div>
-        <div class="tech-badge"><div class="dot" style="background: var(--yellow);"></div> Tailwind CSS</div>
-        <div class="tech-badge"><div class="dot" style="background: #fff;"></div> Ollama</div>
-        <div class="tech-badge"><div class="dot" style="background: #69db7c;"></div> SQLite</div>
-      </div>
+  <!-- TECH -->
+  <section class="tech reveal">
+    <p style="opacity:0.5; font-size:0.85rem; margin-bottom:0.5rem;">BUILT WITH</p>
+    <div class="tech-pills">
+      <span class="tech-pill">Rust</span>
+      <span class="tech-pill">Tauri 2</span>
+      <span class="tech-pill">Solid.js</span>
+      <span class="tech-pill">Tailwind CSS</span>
+      <span class="tech-pill">Ollama</span>
+      <span class="tech-pill">SQLite</span>
     </div>
-    <div class="rainbow-stripe-thin" style="margin-top: 4rem;"></div>
   </section>
+
+  <div class="stripe"></div>
 
   <!-- CTA -->
   <section class="cta">
-    <h2>Give your PICT files real names</h2>
-    <p>Free and open source. MIT licensed.</p>
-    <div class="hero-buttons">
-      <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="btn-primary">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-        Star on GitHub
+    <h2 class="reveal">Try it now</h2>
+    <p class="reveal">Free. Open source. No camera required.</p>
+    <div class="hero-buttons reveal">
+      <a href="https://github.com/h3qing/Kodak-Charmera-Companion/releases" class="btn btn-dark">
+        Download
       </a>
-      <a href="https://github.com/h3qing/Kodak-Charmera-Companion/releases" class="btn-secondary">
-        Download Latest
+      <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="btn btn-ghost" style="color:var(--charcoal);">
+        View Source
       </a>
     </div>
-
-    <!-- Film strip decoration -->
-    <div class="film-strip">
-      <div class="frame"></div><div class="frame"></div><div class="frame"></div>
-      <div class="frame"></div><div class="frame"></div><div class="frame"></div>
-      <div class="frame"></div><div class="frame"></div><div class="frame"></div>
-      <div class="frame"></div><div class="frame"></div>
+    <div class="install-cmd reveal" onclick="copyInstall(this)">
+      <span class="cmd">curl -fsSL https://raw.githubusercontent.com/h3qing/Kodak-Charmera-Companion/main/scripts/install.sh | bash</span>
+      <span class="copied"> — copied!</span>
     </div>
   </section>
 
-  <!-- Footer -->
+  <!-- FOOTER -->
   <footer>
-    <p>
-      <a href="https://github.com/h3qing/Kodak-Charmera-Companion">Charmera Companion</a> — MIT License
-    </p>
-    <p style="margin-top: 0.5rem;">
-      Not affiliated with Kodak. KODAK and CHARMERA are trademarks of their respective owners.
-    </p>
+    <p><a href="https://github.com/h3qing/Kodak-Charmera-Companion">Charmera Companion</a> &middot; MIT License</p>
+    <p style="margin-top:0.4rem;">Not affiliated with Kodak. Trademarks belong to their respective owners.</p>
   </footer>
+
+  <script>
+    // ===== Scroll reveal =====
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // ===== Terminal typing animation =====
+    const lines = [
+      { text: '$ charmera batch-label ./vacation/ --rename', class: 'prompt' },
+      { text: '[1/36] PICT0001.jpg...', class: 'dim' },
+      { text: 'PICT0001.jpg: A brown dog on the couch', class: '' },
+      { text: '  → b 03-30-2026 brown dog on the couch.jpg', class: 'success' },
+      { text: 'PICT0002.jpg: Sunset over the ocean', class: '' },
+      { text: '  → b 03-30-2026 sunset over the ocean.jpg', class: 'success' },
+      { text: '', class: '' },
+      { text: 'Labeled 36/36 photos, renamed 36', class: 'highlight' },
+    ];
+
+    const terminal = document.getElementById('terminal');
+    let lineIndex = 0;
+    let started = false;
+
+    const terminalObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !started) {
+        started = true;
+        typeLine();
+      }
+    }, { threshold: 0.3 });
+
+    terminalObserver.observe(terminal);
+
+    function typeLine() {
+      if (lineIndex >= lines.length) return;
+      const line = lines[lineIndex];
+      const el = document.createElement('div');
+      el.className = `type-line ${line.class}`;
+      el.style.animationDelay = `${lineIndex * 0.15}s`;
+      el.textContent = line.text || '\u00A0';
+      terminal.appendChild(el);
+      lineIndex++;
+      setTimeout(typeLine, 400);
+    }
+
+    // ===== Copy install command =====
+    function copyInstall(el) {
+      const cmd = el.querySelector('.cmd').textContent;
+      navigator.clipboard.writeText(cmd).then(() => {
+        el.querySelector('.copied').style.display = 'inline';
+        setTimeout(() => {
+          el.querySelector('.copied').style.display = 'none';
+        }, 2000);
+      });
+    }
+
+    // ===== Parallax on hero icon =====
+    const heroIcon = document.querySelector('.hero-icon');
+    window.addEventListener('mousemove', (e) => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 20;
+      const y = (e.clientY / window.innerHeight - 0.5) * 20;
+      heroIcon.style.transform = `translate(${x}px, ${y}px)`;
+    });
+  </script>
 
 </body>
 </html>

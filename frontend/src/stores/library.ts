@@ -11,9 +11,12 @@ import {
   applyRenames,
   listCameraFiles,
   getNamingPattern,
+  getNasConfig,
+  moveToNas,
   type PhotoSummary,
   type AiStatus,
   type RenameProposal,
+  type NasConfig,
 } from "../lib/tauri";
 
 const [photoCount, setPhotoCount] = createSignal(0);
@@ -31,6 +34,10 @@ const [cameraJustConnected, setCameraJustConnected] = createSignal(false);
 const [cameraFileCount, setCameraFileCount] = createSignal(0);
 const [namingPattern, setNamingPatternSignal] = createSignal("b {MM}-{DD}-{YYYY} {content}");
 const [recentPhotos, setRecentPhotos] = createSignal<PhotoSummary[]>([]);
+
+const [nasConfig, setNasConfigSignal] = createSignal<NasConfig | null>(null);
+const [showNasMoveDialog, setShowNasMoveDialog] = createSignal(false);
+const [nasPhotoIds, setNasPhotoIds] = createSignal<number[]>([]);
 
 const [importProgress, setImportProgress] = createSignal({ done: 0, total: 0, current: "" });
 
@@ -74,6 +81,19 @@ listen("label:done", (event: any) => {
         setShowRenameDialog(true);
       }
     });
+
+    // Check if NAS is configured and auto_move is enabled
+    const cfg = nasConfig();
+    if (cfg?.enabled && cfg.auto_move && cfg.path) {
+      // Collect photo IDs for the labeled batch
+      getPhotos(0, 10000).then((page) => {
+        const ids = page.photos.map(p => p.id);
+        if (ids.length > 0) {
+          setNasPhotoIds(ids);
+          setShowNasMoveDialog(true);
+        }
+      }).catch((e) => console.error("Failed to get photos for NAS move:", e));
+    }
   }
 });
 
@@ -107,6 +127,11 @@ export function useLibrary() {
     loadMorePhotos,
     hasMore,
     loadingMore,
+    nasConfig,
+    showNasMoveDialog,
+    nasPhotoIds,
+    movePhotosToNas,
+    dismissNasDialog,
   };
 }
 
@@ -282,9 +307,36 @@ async function confirmRenames(approved: [number, string][]) {
   }
 }
 
+async function movePhotosToNas(keepLocal: boolean) {
+  const ids = nasPhotoIds();
+  if (ids.length === 0) {
+    setShowNasMoveDialog(false);
+    return;
+  }
+  try {
+    const [moved, failed] = await moveToNas(ids, keepLocal);
+    setLabelStatus(`Moved ${moved} to NAS${failed > 0 ? ` (${failed} failed)` : ""}`);
+    setShowNasMoveDialog(false);
+    setNasPhotoIds([]);
+    if (!keepLocal) {
+      await refreshPhotos();
+    }
+  } catch (e) {
+    setLabelStatus(`NAS move failed: ${e}`);
+    setShowNasMoveDialog(false);
+    setNasPhotoIds([]);
+  }
+}
+
+function dismissNasDialog() {
+  setShowNasMoveDialog(false);
+  setNasPhotoIds([]);
+}
+
 // Initialize
 checkCamera();
 refreshPhotos();
 refreshRecentPhotos();
 checkAiStatus().then(setAiStatus).catch(() => setAiStatus(null));
 getNamingPattern().then(setNamingPatternSignal).catch(() => {});
+getNasConfig().then(setNasConfigSignal).catch(() => setNasConfigSignal(null));

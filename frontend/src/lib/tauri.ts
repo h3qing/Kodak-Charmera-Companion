@@ -155,3 +155,30 @@ export async function getSetting(key: string): Promise<string | null> {
 export async function setSetting(key: string, value: string): Promise<void> {
   return invoke("set_setting", { key, value });
 }
+
+export interface NasConfig {
+  enabled: boolean;
+  path: string;
+  auto_move: boolean;
+  organize_by_date: boolean;
+}
+
+export async function detectNasVolumes(): Promise<string[]> {
+  return invoke("detect_nas_volumes");
+}
+
+export async function testNasPath(path: string): Promise<boolean> {
+  return invoke("test_nas_path", { path });
+}
+
+export async function getNasConfig(): Promise<NasConfig> {
+  return invoke("get_nas_config");
+}
+
+export async function setNasConfig(config: NasConfig): Promise<void> {
+  return invoke("set_nas_config", { config });
+}
+
+export async function moveToNas(photoIds: number[], keepLocal: boolean): Promise<[number, number]> {
+  return invoke("move_to_nas", { photoIds, keepLocal });
+}
