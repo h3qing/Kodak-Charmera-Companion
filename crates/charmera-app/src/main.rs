@@ -423,6 +423,62 @@ fn hide_photo(app: tauri::AppHandle, id: i64) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+#[derive(serde::Serialize)]
+struct CloudDrive {
+    provider: String,
+    path: String,
+    account: String,
+}
+
+#[tauri::command]
+fn detect_cloud_drives() -> Vec<CloudDrive> {
+    let mut drives = Vec::new();
+    let home = dirs_next::home_dir().unwrap_or_default();
+    let cloud_storage = home.join("Library/CloudStorage");
+
+    if let Ok(entries) = std::fs::read_dir(&cloud_storage) {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let name = entry.file_name().to_string_lossy().to_string();
+            // Google Drive: GoogleDrive-{email}/My Drive/
+            if name.starts_with("GoogleDrive-") {
+                let my_drive = entry.path().join("My Drive");
+                if my_drive.is_dir() {
+                    let account = name.strip_prefix("GoogleDrive-").unwrap_or("").to_string();
+                    drives.push(CloudDrive {
+                        provider: "google-drive".into(),
+                        path: my_drive.display().to_string(),
+                        account,
+                    });
+                }
+            }
+            // Dropbox: Dropbox/ or Dropbox-{account}/
+            if name.starts_with("Dropbox") && entry.path().is_dir() {
+                let account = name
+                    .strip_prefix("Dropbox-")
+                    .unwrap_or("Dropbox")
+                    .to_string();
+                drives.push(CloudDrive {
+                    provider: "dropbox".into(),
+                    path: entry.path().display().to_string(),
+                    account,
+                });
+            }
+        }
+    }
+
+    // Legacy Dropbox: ~/Dropbox/
+    let legacy_dropbox = home.join("Dropbox");
+    if legacy_dropbox.is_dir() && !drives.iter().any(|d| d.provider == "dropbox") {
+        drives.push(CloudDrive {
+            provider: "dropbox".into(),
+            path: legacy_dropbox.display().to_string(),
+            account: "Dropbox".into(),
+        });
+    }
+
+    drives
+}
+
 #[tauri::command]
 fn detect_nas_volumes() -> Result<Vec<String>, String> {
     let mut volumes = Vec::new();
@@ -539,6 +595,7 @@ fn main() {
             set_naming_pattern,
             get_setting,
             set_setting,
+            detect_cloud_drives,
             detect_nas_volumes,
             test_nas_path,
             get_nas_config,

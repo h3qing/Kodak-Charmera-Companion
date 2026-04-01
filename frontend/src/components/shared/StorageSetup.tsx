@@ -39,17 +39,25 @@ const DESTINATIONS: StorageDestination[] = [
     id: "google-drive",
     name: "Google Drive",
     icon: "☁️",
-    description: "Auto-sync to your Google Drive",
-    available: false,
-    setupSteps: [],
+    description: "Sync via Google Drive for Desktop app",
+    available: true,
+    setupSteps: [
+      "Install Google Drive for Desktop from drive.google.com/drive/download",
+      "Sign in with your Google account",
+      "Come back here — we'll detect your Drive folder automatically",
+    ],
   },
   {
     id: "dropbox",
     name: "Dropbox",
     icon: "📦",
-    description: "Auto-sync to your Dropbox",
-    available: false,
-    setupSteps: [],
+    description: "Sync via Dropbox desktop app",
+    available: true,
+    setupSteps: [
+      "Install Dropbox from dropbox.com/install",
+      "Sign in with your Dropbox account",
+      "Come back here — we'll detect your Dropbox folder automatically",
+    ],
   },
 ];
 
@@ -70,12 +78,32 @@ export default function StorageSetup(props: StorageSetupProps) {
   const [testing, setTesting] = createSignal(false);
   const [autoMove, setAutoMove] = createSignal(props.autoMove);
   const [organizeByDate, setOrganizeByDate] = createSignal(props.organizeByDate);
+  const [cloudDetected, setCloudDetected] = createSignal(false);
+  const [cloudAccount, setCloudAccount] = createSignal("");
 
-  const selectDestination = (dest: StorageDestination) => {
+  const selectDestination = async (dest: StorageDestination) => {
     setSelectedDest(dest);
     setSetupStep(0);
     setTestResult(null);
+    setCloudDetected(false);
+    setCloudAccount("");
     setStep("setup");
+
+    // Auto-detect cloud drives
+    if (dest.id === "google-drive" || dest.id === "dropbox") {
+      try {
+        const { detectCloudDrives } = await import("../../lib/tauri");
+        const drives = await detectCloudDrives();
+        const match = drives.find(d => d.provider === dest.id);
+        if (match) {
+          setPath(match.path + "/Charmera Photos");
+          setCloudDetected(true);
+          setCloudAccount(match.account);
+          setSetupStep(dest.setupSteps.length); // Skip to end
+          showToast(`Found ${dest.name}: ${match.account}`, "success");
+        }
+      } catch {}
+    }
   };
 
   const handleBrowse = async () => {
@@ -201,8 +229,26 @@ export default function StorageSetup(props: StorageSetupProps) {
           </div>
 
           <div class="p-4">
-            {/* Setup instructions */}
-            <Show when={selectedDest()!.setupSteps.length > 0}>
+            {/* Cloud auto-detected banner */}
+            <Show when={cloudDetected()}>
+              <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 bg-green-500 rounded-full" />
+                  <span class="text-sm font-medium text-green-800">
+                    {selectedDest()!.name} detected
+                  </span>
+                </div>
+                <Show when={cloudAccount()}>
+                  <p class="text-xs text-green-700 mt-1">Account: {cloudAccount()}</p>
+                </Show>
+                <p class="text-xs text-green-600 mt-1">
+                  Photos will sync automatically via your {selectedDest()!.name} desktop app.
+                </p>
+              </div>
+            </Show>
+
+            {/* Setup instructions (hidden when auto-detected) */}
+            <Show when={selectedDest()!.setupSteps.length > 0 && !cloudDetected()}>
               <div class="mb-4">
                 <p class="text-xs font-medium text-kodak-charcoal mb-2">
                   {selectedDest()!.id === "local" ? "Pick a folder:" : "Follow these steps:"}

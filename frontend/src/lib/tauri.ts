@@ -167,6 +167,16 @@ export async function detectNasVolumes(): Promise<string[]> {
   return invoke("detect_nas_volumes");
 }
 
+export interface CloudDrive {
+  provider: string;
+  path: string;
+  account: string;
+}
+
+export async function detectCloudDrives(): Promise<CloudDrive[]> {
+  return invoke("detect_cloud_drives");
+}
+
 export async function testNasPath(path: string): Promise<boolean> {
   return invoke("test_nas_path", { path });
 }
