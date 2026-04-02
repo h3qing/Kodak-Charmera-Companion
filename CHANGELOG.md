@@ -2,6 +2,27 @@
 
 All notable changes to Charmera Companion will be documented in this file.
 
+## [0.6.0] - 2026-04-01
+
+### Added
+- **NAS integration** — guided setup, auto-move photos after labeling, date-organized folders
+- **Google Drive sync** — auto-detects desktop app, writes to sync folder, zero OAuth
+- **Dropbox sync** — auto-detects desktop app, same zero-config approach
+- **Guided Storage Setup wizard** — step-by-step flow for NAS, local, cloud destinations
+- **NAS Move Dialog** — per-batch keep/delete local copies toggle
+- **NAS status indicator** in status bar
+
+### Fixed
+- **AI label returns empty** when moondream prefixes response with leading newline
+- Removed accidentally committed `.claude/` directory
+- Replaced broken CI badge with version badge
+- Fixed git push email privacy restriction
+
+### Changed
+- 41 tests (up from 40)
+- Website redesigned with scroll animations, typing terminal, parallax
+- `.claude/` added to `.gitignore`
+
 ## [0.5.0] - 2026-03-31
 
 ### Added

@@ -15,8 +15,8 @@
   <a href="https://www.solidjs.com/"><img src="https://img.shields.io/badge/Solid.js-2C4F7C?logo=solid&logoColor=white" alt="Solid.js" /></a>
   <a href="https://ollama.com/"><img src="https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white" alt="Ollama" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" /></a>
-  <img src="https://img.shields.io/badge/tests-40_passing-brightgreen" alt="40 tests" />
-  <img src="https://img.shields.io/badge/v0.5.0-latest-blue" alt="v0.5.0" />
+  <img src="https://img.shields.io/badge/tests-41_passing-brightgreen" alt="40 tests" />
+  <img src="https://img.shields.io/badge/v0.6.0-latest-blue" alt="v0.6.0" />
 </p>
 
 <p align="center">
@@ -25,7 +25,7 @@
 
 ---
 
-> **v0.5.0** — PNG/BMP/WebP support, 11 CLI commands, shell completions, robustness hardening. [Changelog](CHANGELOG.md)
+> **v0.6.0** — NAS + Google Drive + Dropbox sync, guided storage wizard, 41 tests. [Changelog](CHANGELOG.md)
 
 <p align="center">
   <img src="docs/screenshot.png" width="800" alt="Charmera Companion — photo grid view" />
@@ -287,12 +287,12 @@ Planned features — star the repo to follow progress:
 - [x] **Photo comparison** — side-by-side before/after effects *(v0.3.0)*
 - [ ] **Face detection** — group photos by person
 - [ ] **Export presets** — save favorite effect combinations
-- [ ] **Linux support** — auto-detect cameras on Linux
-- [ ] **Windows support** — volume detection for Windows
+- [x] **Linux support** — auto-detect cameras on Linux *(v0.3.0)*
+- [x] **Windows support** — volume detection for Windows *(v0.3.0)*
 - [ ] **Video thumbnails** — preview AVI clips from the camera
 - [x] **Batch effects** — apply effects to multiple photos at once *(v0.3.0)*
 - [ ] **CLIP embeddings** — semantic photo search ("photos near the ocean")
-- [ ] **iCloud/Google Photos export** — one-click cloud upload
+- [x] **Cloud sync** — Google Drive & Dropbox via desktop apps *(v0.6.0)*
 
 Have an idea? [Open a discussion](https://github.com/h3qing/Kodak-Charmera-Companion/discussions) or [file a feature request](https://github.com/h3qing/Kodak-Charmera-Companion/issues/new?template=feature_request.yml).
 
