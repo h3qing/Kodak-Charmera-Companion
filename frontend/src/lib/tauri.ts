@@ -148,13 +148,7 @@ export async function setNamingPattern(pattern: string): Promise<void> {
   return invoke("set_naming_pattern", { pattern });
 }
 
-export async function getSetting(key: string): Promise<string | null> {
-  return invoke("get_setting", { key });
-}
 
-export async function setSetting(key: string, value: string): Promise<void> {
-  return invoke("set_setting", { key, value });
-}
 
 export interface NasConfig {
   enabled: boolean;

@@ -28,8 +28,17 @@ AI-label and rename a photo in one step. Default pattern: b {MM}-{DD}-{YYYY} {co
 \fBbatch-label\fR \fIfolder\fR [\fB\-\-rename\fR] [\fB\-\-dry\-run\fR]
 Label all photos in a folder. With \fB\-\-rename\fR, renames files using AI descriptions.
 .TP
+\fBinfo\fR \fIphoto\fR
+Show photo metadata: EXIF date, dimensions, blake3 hash, camera model.
+.TP
+\fBstatus\fR
+Show system status: camera detection, AI models, storage location, version.
+.TP
 \fBdetect\fR
 Check if a camera is connected.
+.TP
+\fBcompletions\fR \fIshell\fR
+Generate shell completions (bash, zsh, fish, powershell).
 .TP
 \fBeffects\fR \fIphoto\fR [\fB\-e\fR \fIeffects\fR] [\fB\-f\fR \fIframe\fR] [\fB\-o\fR \fIoutput\fR]
 Apply visual effects (vintage, noir, grain, etc.) and frames (polaroid, film_strip, etc.).

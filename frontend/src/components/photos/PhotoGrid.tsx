@@ -1,5 +1,4 @@
 import { For, Show, createSignal, createEffect, createMemo, onMount } from "solid-js";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import type { PhotoSummary } from "../../lib/tauri";
 import { getThumbnailBase64, getPhotoBase64, previewEffect, exportPhoto, getPhotoLabels, type PhotoLabels } from "../../lib/tauri";
 import { showToast } from "../shared/Toast";
