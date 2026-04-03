@@ -8,20 +8,27 @@ use crate::constants::THUMBNAIL_SIZE;
 /// Generate a thumbnail and save to the cache directory.
 /// Returns the path to the saved thumbnail.
 pub fn generate_thumbnail(source: &Path, cache_dir: &Path, file_hash: &[u8]) -> Result<PathBuf> {
-    let img =
-        image::open(source).with_context(|| format!("opening image: {}", source.display()))?;
-
-    let thumb = img.resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, FilterType::Lanczos3);
-
-    // Shard by first 2 bytes of hash
     let hex = hex_prefix(file_hash);
     let shard_dir = cache_dir.join(&hex[..2]).join(&hex[2..4]);
     std::fs::create_dir_all(&shard_dir)?;
-
     let thumb_path = shard_dir.join(format!("{hex}.jpg"));
-    thumb
-        .to_rgb8()
-        .save_with_format(&thumb_path, image::ImageFormat::Jpeg)
+
+    // Skip if thumbnail already exists
+    if thumb_path.exists() {
+        return Ok(thumb_path);
+    }
+
+    // Decode, resize immediately, then drop the full image to free memory
+    let img =
+        image::open(source).with_context(|| format!("opening image: {}", source.display()))?;
+    // Use Triangle filter (fast, low memory) instead of Lanczos3
+    let thumb = img.resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, FilterType::Triangle);
+    drop(img); // Free the full-resolution pixel buffer immediately
+
+    let rgb = thumb.to_rgb8();
+    drop(thumb);
+
+    rgb.save_with_format(&thumb_path, image::ImageFormat::Jpeg)
         .with_context(|| format!("saving thumbnail: {}", thumb_path.display()))?;
 
     Ok(thumb_path)

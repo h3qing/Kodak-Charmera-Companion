@@ -313,9 +313,16 @@ impl AppState {
         skipped: u32,
         total_files: u32,
     ) -> Result<()> {
-        let file_bytes =
-            std::fs::read(file_path).with_context(|| format!("reading {}", file_path.display()))?;
-        let hash = blake3::hash(&file_bytes);
+        // Stream hash computation instead of reading entire file into memory
+        let mut hasher = blake3::Hasher::new();
+        let file = std::fs::File::open(file_path)
+            .with_context(|| format!("opening {}", file_path.display()))?;
+        let file_size = file.metadata()?.len() as i64;
+
+        // Hash in 64KB chunks (not loading entire file)
+        let mut reader = std::io::BufReader::with_capacity(65536, file);
+        std::io::copy(&mut reader, &mut hasher)?;
+        let hash = hasher.finalize();
         let hash_bytes = hash.as_bytes().to_vec();
 
         let (width, height) =
@@ -328,14 +335,13 @@ impl AppState {
         );
         let thumb_path = thumb_result.ok().map(|p| p.display().to_string());
 
-        let file_size = file_bytes.len() as i64;
         let file_name = file_path
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("unknown")
             .to_string();
 
-        // Copy photo to local storage
+        // Copy photo to local storage using fs::copy (kernel-level, no memory buffer)
         let hash_hex = hash_bytes
             .iter()
             .map(|b| format!("{b:02x}"))
@@ -344,7 +350,7 @@ impl AppState {
         let _ = std::fs::create_dir_all(&local_dir);
         let local_path = local_dir.join(&file_name);
         if !local_path.exists() {
-            std::fs::write(&local_path, &file_bytes)
+            std::fs::copy(file_path, &local_path)
                 .with_context(|| format!("copying to {}", local_path.display()))?;
         }
         let stored_path = local_path.display().to_string();
@@ -464,16 +470,22 @@ impl AppState {
         let file_path = self.get_photo_file_path(id)?;
         let img = image::open(&file_path).with_context(|| format!("opening {file_path}"))?;
 
-        // Resize for preview speed (max 800px on long edge)
+        // Resize for preview speed (max 800px on long edge), then free full image
         let preview = img.resize(800, 800, image::imageops::FilterType::Triangle);
+        drop(img); // Free 4.7MB pixel buffer immediately
+
         let result = charmera_core::effects::apply_pipeline(&preview, effects, frame)?;
+        drop(preview); // Free preview buffer
 
         // Encode to JPEG base64
-        let mut buf = Vec::new();
+        let rgb = result.to_rgb8();
+        drop(result);
+        let mut buf = Vec::with_capacity(100_000); // Pre-allocate ~100KB
         let mut cursor = std::io::Cursor::new(&mut buf);
-        let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, 85);
-        result.to_rgb8().write_with_encoder(encoder)?;
+        let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, 80);
+        rgb.write_with_encoder(encoder)?;
         drop(cursor);
+        drop(rgb);
 
         use base64::Engine;
         let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
