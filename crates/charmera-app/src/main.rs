@@ -85,22 +85,47 @@ fn list_camera_files(source: String) -> Result<Vec<state::FileInfo>, String> {
 }
 
 #[tauri::command]
-fn import_folder(app: tauri::AppHandle, source: String) -> Result<state::ImportResult, String> {
-    let app_state = app.state::<AppState>();
+fn import_folder(app: tauri::AppHandle, source: String) -> Result<(), String> {
+    // Return immediately, do import in background thread (prevents UI freeze)
     let app_handle = app.clone();
-    let emitter = move |done: u32, total: u32, current: &str| {
-        let _ = app_handle.emit(
-            "import:progress",
-            serde_json::json!({
-                "done": done,
-                "total": total,
-                "current": current,
-            }),
-        );
-    };
-    app_state
-        .import_from_path_with_progress(&source, &emitter)
-        .map_err(|e| e.to_string())
+    std::thread::spawn(move || {
+        let app_state = app_handle.state::<AppState>();
+        let emitter_handle = app_handle.clone();
+        let emitter = move |done: u32, total: u32, current: &str| {
+            let _ = emitter_handle.emit(
+                "import:progress",
+                serde_json::json!({
+                    "done": done,
+                    "total": total,
+                    "current": current,
+                }),
+            );
+        };
+        match app_state.import_from_path_with_progress(&source, &emitter) {
+            Ok(result) => {
+                let _ = app_handle.emit(
+                    "import:done",
+                    serde_json::json!({
+                        "imported": result.imported,
+                        "skipped": result.skipped,
+                        "total_files": result.total_files,
+                    }),
+                );
+            }
+            Err(e) => {
+                let _ = app_handle.emit(
+                    "import:done",
+                    serde_json::json!({
+                        "imported": 0,
+                        "skipped": 0,
+                        "total_files": 0,
+                        "error": e.to_string(),
+                    }),
+                );
+            }
+        }
+    });
+    Ok(())
 }
 
 #[tauri::command]

@@ -11,6 +11,10 @@ interface SidebarProps {
   onAutoLabel: () => void;
   photoCount: number;
   recentCount: number;
+  cameraConnected: boolean;
+  isImporting: boolean;
+  onImportCamera: () => void;
+  onImportFolder: () => void;
 }
 
 interface NavItem {
@@ -172,6 +176,36 @@ export default function Sidebar(props: SidebarProps) {
         </button>
 
         <SectionLabel label="Camera" />
+        {/* Import buttons */}
+        <div class="px-1 space-y-1 mb-2">
+          <button
+            onClick={props.onImportCamera}
+            disabled={props.isImporting}
+            class={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              props.cameraConnected
+                ? "text-kodak-charcoal/80 hover:bg-kodak-cream-dark/60 hover:text-kodak-charcoal"
+                : "text-kodak-warm-gray/50 cursor-not-allowed"
+            } ${props.isImporting ? "opacity-50 cursor-wait" : ""}`}
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            </svg>
+            <span>{props.isImporting ? "Importing..." : props.cameraConnected ? "Import from Camera" : "No Camera"}</span>
+            <Show when={props.cameraConnected}>
+              <span class="ml-auto w-1.5 h-1.5 bg-green-500 rounded-full" />
+            </Show>
+          </button>
+          <button
+            onClick={props.onImportFolder}
+            disabled={props.isImporting}
+            class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-kodak-charcoal/70 hover:bg-kodak-cream-dark/60 hover:text-kodak-charcoal rounded-lg transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+            <span>Add Folder</span>
+          </button>
+        </div>
         {cameraItems.map((item) => (
           <NavButton
             item={item}

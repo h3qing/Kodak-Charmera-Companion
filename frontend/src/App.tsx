@@ -113,6 +113,14 @@ export default function App() {
         onAutoLabel={library.runAutoLabel}
         photoCount={library.photoCount()}
         recentCount={library.recentPhotos().length}
+        cameraConnected={!!library.cameraPath()}
+        isImporting={library.isImporting()}
+        onImportCamera={library.importFromCamera}
+        onImportFolder={async () => {
+          const { open } = await import("@tauri-apps/plugin-dialog");
+          const selected = await open({ directory: true, multiple: false });
+          if (selected) library.importFromPath(selected as string);
+        }}
       />
 
       <main class="flex-1 flex flex-col overflow-hidden">

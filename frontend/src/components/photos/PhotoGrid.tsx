@@ -321,21 +321,32 @@ function PhotoCard(props: {
 }) {
   const [thumbSrc, setThumbSrc] = createSignal<string | null>(null);
   const [labels, setLabels] = createSignal<PhotoLabels | null>(null);
+  let cardRef: HTMLDivElement | undefined;
+  let loaded = false;
 
-  onMount(async () => {
-    if (props.photo.thumbnail_path) {
-      try {
-        const src = await getThumbnailBase64(props.photo.thumbnail_path);
-        setThumbSrc(src);
-      } catch (e) {
-        console.error("Failed to load thumbnail:", e);
-      }
-    }
-    // Load labels
-    try {
-      const l = await getPhotoLabels(props.photo.id);
-      if (l.description || l.tags.length > 0) setLabels(l);
-    } catch { /* no labels yet */ }
+  // Lazy load: only fetch thumbnail when card scrolls into view
+  onMount(() => {
+    if (!cardRef) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loaded) {
+          loaded = true;
+          observer.disconnect();
+          // Load thumbnail
+          if (props.photo.thumbnail_path) {
+            getThumbnailBase64(props.photo.thumbnail_path)
+              .then(setThumbSrc)
+              .catch(() => {});
+          }
+          // Load labels
+          getPhotoLabels(props.photo.id)
+            .then((l) => { if (l.description || l.tags.length > 0) setLabels(l); })
+            .catch(() => {});
+        }
+      },
+      { rootMargin: "200px" } // Start loading 200px before visible
+    );
+    observer.observe(cardRef);
   });
 
   const aspectRatio = () => {
@@ -357,6 +368,7 @@ function PhotoCard(props: {
 
   return (
     <div
+      ref={cardRef}
       onClick={props.onClick}
       onDblClick={props.onDoubleClick}
       title={tooltip()}

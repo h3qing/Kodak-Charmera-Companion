@@ -46,6 +46,28 @@ listen("import:progress", (event: any) => {
   const data = event.payload as { done: number; total: number; current: string };
   setImportProgress(data);
   setImportStatus(`Importing ${data.done}/${data.total}: ${data.current}`);
+  // Refresh photos progressively so they appear as they're imported
+  if (data.done % 5 === 0 || data.done === data.total) {
+    refreshPhotos();
+  }
+});
+
+// Listen for import completion
+listen("import:done", (event: any) => {
+  const data = event.payload as { imported: number; skipped: number; total_files: number; error?: string };
+  setIsImporting(false);
+  if (data.error) {
+    setImportStatus(`Import failed: ${data.error}`);
+  } else {
+    setImportStatus(`Imported ${data.imported} photos (${data.skipped} skipped)`);
+  }
+  refreshPhotos();
+  refreshRecentPhotos();
+  // Auto-trigger AI labeling
+  const status = aiStatus();
+  if (status?.available && !isLabeling() && data.imported > 0) {
+    setTimeout(() => runAutoLabel(), 500);
+  }
 });
 
 // Listen for labeling events from backend
@@ -252,24 +274,17 @@ async function importFromPath(source: string) {
   // Dismiss camera popup if showing
   dismissCameraPopup();
   setIsImporting(true);
-  setImportStatus(`Importing from ${source}...`);
+  setImportProgress({ done: 0, total: 0, current: "" });
+  setImportStatus(`Starting import from ${source}...`);
   try {
-    const result = await importFolder(source);
-    setImportStatus(`Imported ${result.imported} photos (${result.skipped} skipped)`);
-    await refreshPhotos();
-    await refreshRecentPhotos();
-
-    // Auto-trigger AI labeling after import if AI is available
-    const status = aiStatus();
-    if (status?.available && !isLabeling()) {
-      // Short delay so user sees the import result before labeling starts
-      setTimeout(() => runAutoLabel(), 500);
-    }
+    // This returns immediately — import runs in background thread
+    // Progress comes via import:progress events, completion via import:done
+    await importFolder(source);
   } catch (e) {
     setImportStatus(`Import failed: ${e}`);
-  } finally {
     setIsImporting(false);
   }
+  // Note: setIsImporting(false) is now handled by the import:done event listener
 }
 
 async function runAutoLabel() {

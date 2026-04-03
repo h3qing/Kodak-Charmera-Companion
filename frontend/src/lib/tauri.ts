@@ -36,7 +36,7 @@ export async function listCameraFiles(source: string): Promise<FileInfo[]> {
   return invoke("list_camera_files", { source });
 }
 
-export async function importFolder(source: string): Promise<ImportResult> {
+export async function importFolder(source: string): Promise<void> {
   return invoke("import_folder", { source });
 }
 
