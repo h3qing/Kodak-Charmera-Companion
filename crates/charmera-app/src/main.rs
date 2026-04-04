@@ -101,9 +101,16 @@ fn import_folder(app: tauri::AppHandle, source: String) -> Result<(), String> {
                 }),
             );
         };
+        // Need a fresh handle for the done event (emitter consumed the other clone)
+        let done_handle = app_handle.clone();
         match app_state.import_from_path_with_progress(&source, &emitter) {
             Ok(result) => {
-                let _ = app_handle.emit(
+                tracing::info!(
+                    "emitting import:done — imported={}, skipped={}",
+                    result.imported,
+                    result.skipped
+                );
+                let _ = done_handle.emit(
                     "import:done",
                     serde_json::json!({
                         "imported": result.imported,
@@ -113,7 +120,8 @@ fn import_folder(app: tauri::AppHandle, source: String) -> Result<(), String> {
                 );
             }
             Err(e) => {
-                let _ = app_handle.emit(
+                tracing::warn!("import error: {e}");
+                let _ = done_handle.emit(
                     "import:done",
                     serde_json::json!({
                         "imported": 0,
