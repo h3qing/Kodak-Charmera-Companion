@@ -219,8 +219,8 @@ export default function StorageSetup(props: StorageSetupProps) {
         <div class="bg-white rounded-xl border border-kodak-cream-dark overflow-hidden">
           {/* Header */}
           <div class="px-4 py-3 bg-kodak-cream/50 border-b border-kodak-cream-dark flex items-center gap-2">
-            <button onClick={() => setStep("choose")} class="text-kodak-warm-gray hover:text-kodak-charcoal transition-colors">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onClick={() => setStep("choose")} class="text-kodak-warm-gray hover:text-kodak-charcoal transition-colors" aria-label="Back to storage selection">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
