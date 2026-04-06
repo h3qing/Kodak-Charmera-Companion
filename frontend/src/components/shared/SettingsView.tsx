@@ -132,7 +132,7 @@ export default function SettingsView() {
               ].map(({ token, label }) => (
                 <button
                   onClick={() => setNamingPatternLocal(prev => prev + token)}
-                  class="px-2.5 py-1.5 text-xs font-mono bg-kodak-yellow/10 text-kodak-yellow-dark rounded-lg hover:bg-kodak-yellow/20 transition-colors flex items-center gap-1"
+                  class="px-2.5 py-1.5 text-xs font-mono bg-kodak-yellow/10 text-kodak-yellow-dark rounded-lg hover:bg-kodak-yellow/20 transition-colors flex items-center gap-1 cursor-pointer"
                   title={label}
                 >
                   {token}

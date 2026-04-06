@@ -145,7 +145,7 @@ export default function RenameDialog(props: RenameDialogProps) {
             {["{MM}", "{DD}", "{YYYY}", "{content}", "{counter}", "{original}"].map(token => (
               <button
                 onClick={() => insertToken(token)}
-                class="px-2 py-0.5 text-[10px] font-mono bg-kodak-yellow/10 text-kodak-yellow-dark rounded hover:bg-kodak-yellow/20 transition-colors"
+                class="px-2 py-0.5 text-[10px] font-mono bg-kodak-yellow/10 text-kodak-yellow-dark rounded hover:bg-kodak-yellow/20 transition-colors cursor-pointer"
               >
                 {token}
               </button>
