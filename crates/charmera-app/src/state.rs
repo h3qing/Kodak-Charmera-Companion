@@ -687,14 +687,15 @@ impl AppState {
                 format!("renaming {} -> {}", path.display(), new_path.display())
             })?;
 
-            // Update catalog
+            // Update catalog — both file_path and relative_path so the UI shows the new name
             catalog.write(charmera_core::catalog::WriteOp::Custom(Box::new({
                 let new_path_str = new_path.display().to_string();
+                let new_name = new_name.clone();
                 let id = *id;
                 move |conn| {
                     conn.execute(
-                        "UPDATE photos SET file_path = ?1 WHERE id = ?2",
-                        rusqlite::params![new_path_str, id],
+                        "UPDATE photos SET file_path = ?1, relative_path = ?2 WHERE id = ?3",
+                        rusqlite::params![new_path_str, new_name, id],
                     )?;
                     Ok(())
                 }

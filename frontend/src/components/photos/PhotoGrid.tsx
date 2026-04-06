@@ -125,7 +125,7 @@ export default function PhotoGrid(props: PhotoGridProps) {
   return (
     <div class="h-full flex flex-col">
       {/* Batch action bar */}
-      <Show when={selectedCount() > 1 && !viewingId()}>
+      <Show when={selectedCount() >= 1 && !viewingId()}>
         <div class="px-4 py-2 bg-kodak-yellow/10 border-b border-kodak-yellow/20 shrink-0">
           <div class="flex items-center gap-3">
           <span class="text-sm font-semibold text-kodak-yellow-dark">
