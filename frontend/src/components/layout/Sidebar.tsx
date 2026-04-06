@@ -52,7 +52,7 @@ function NavIcon(props: { name: string; class?: string }) {
   };
 
   return (
-    <svg class={`w-4 h-4 ${props.class || ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg class={`w-4 h-4 ${props.class || ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={icons[props.name] || ""} />
     </svg>
   );
@@ -153,7 +153,7 @@ export default function Sidebar(props: SidebarProps) {
                   <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 }
               >
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
                 </svg>
               </Show>
@@ -169,7 +169,7 @@ export default function Sidebar(props: SidebarProps) {
 
         <SectionLabel label="Albums" />
         <button class="w-full flex items-center gap-2 px-3 py-2 text-sm text-kodak-warm-gray hover:text-kodak-yellow-dark transition-colors rounded-lg">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4" />
           </svg>
           <span>New Album</span>
@@ -187,7 +187,7 @@ export default function Sidebar(props: SidebarProps) {
                 : "text-kodak-warm-gray/50 cursor-not-allowed"
             } ${props.isImporting ? "opacity-50 cursor-wait" : ""}`}
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
             </svg>
             <span>{props.isImporting ? "Importing..." : props.cameraConnected ? "Import from Camera" : "No Camera"}</span>
@@ -200,7 +200,7 @@ export default function Sidebar(props: SidebarProps) {
             disabled={props.isImporting}
             class="w-full flex items-center gap-2 px-3 py-2 text-sm text-kodak-charcoal/70 hover:bg-kodak-cream-dark/60 hover:text-kodak-charcoal rounded-lg transition-colors"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
             </svg>
             <span>Add Folder</span>
