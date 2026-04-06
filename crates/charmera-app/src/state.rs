@@ -648,6 +648,7 @@ impl AppState {
                     }
                 },
             )
+            .filter(|p| p.current_name != p.proposed_name)
             .collect();
         Ok(proposals)
     }

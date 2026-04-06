@@ -1,0 +1,14 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for the main window",
+  "windows": ["*"],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "dialog:allow-save",
+    "dialog:allow-open",
+    "fs:default",
+    "fs:allow-write-text-file",
+    "fs:allow-read-text-file"
+  ]
+}
