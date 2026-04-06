@@ -90,7 +90,7 @@ export default function SettingsView() {
 
         {/* File Naming Pattern */}
         <section class="mb-8">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-kodak-warm-gray mb-3 flex items-center gap-2">
+          <h2 class="text-xs font-bold uppercase tracking-widest text-kodak-warm-gray mb-3 flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
@@ -161,7 +161,7 @@ export default function SettingsView() {
 
         {/* Export */}
         <section class="mb-8">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-kodak-warm-gray mb-3 flex items-center gap-2">
+          <h2 class="text-xs font-bold uppercase tracking-widest text-kodak-warm-gray mb-3 flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
@@ -226,7 +226,7 @@ export default function SettingsView() {
 
         {/* AI Status */}
         <section class="mb-8">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-kodak-warm-gray mb-3 flex items-center gap-2">
+          <h2 class="text-xs font-bold uppercase tracking-widest text-kodak-warm-gray mb-3 flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12" />
             </svg>
@@ -278,7 +278,7 @@ export default function SettingsView() {
 
         {/* About */}
         <section class="mb-8">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-kodak-warm-gray mb-3 flex items-center gap-2">
+          <h2 class="text-xs font-bold uppercase tracking-widest text-kodak-warm-gray mb-3 flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>

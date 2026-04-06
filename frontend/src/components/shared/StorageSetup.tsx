@@ -174,7 +174,7 @@ export default function StorageSetup(props: StorageSetupProps) {
 
   return (
     <section class="mb-8">
-      <h2 class="text-sm font-bold uppercase tracking-wider text-kodak-warm-gray mb-3 flex items-center gap-2">
+      <h2 class="text-xs font-bold uppercase tracking-widest text-kodak-warm-gray mb-3 flex items-center gap-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
         </svg>
