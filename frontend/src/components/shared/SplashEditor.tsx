@@ -83,7 +83,7 @@ export default function SplashEditor() {
         {/* Preview */}
         <Show when={previewSrc()}>
           <div class="mb-6">
-            <h2 class="text-sm font-bold uppercase tracking-wider text-kodak-warm-gray mb-3">
+            <h2 class="text-xs font-bold uppercase tracking-widest text-kodak-warm-gray mb-3">
               Preview (960 x 720)
             </h2>
             <div class="bg-kodak-charcoal rounded-xl p-4 inline-block">

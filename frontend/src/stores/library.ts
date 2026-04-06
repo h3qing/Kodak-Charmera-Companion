@@ -13,6 +13,7 @@ import {
   getNamingPattern,
   getNasConfig,
   moveToNas,
+  getAppVersion,
   type PhotoSummary,
   type AiStatus,
   type RenameProposal,
@@ -34,6 +35,7 @@ const [cameraJustConnected, setCameraJustConnected] = createSignal(false);
 const [cameraFileCount, setCameraFileCount] = createSignal(0);
 const [namingPattern, setNamingPatternSignal] = createSignal("b {MM}-{DD}-{YYYY} {content}");
 const [recentPhotos, setRecentPhotos] = createSignal<PhotoSummary[]>([]);
+const [appVersion, setAppVersion] = createSignal("");
 
 const [nasConfig, setNasConfigSignal] = createSignal<NasConfig | null>(null);
 const [showNasMoveDialog, setShowNasMoveDialog] = createSignal(false);
@@ -154,6 +156,8 @@ export function useLibrary() {
     nasPhotoIds,
     movePhotosToNas,
     dismissNasDialog,
+    triggerRenameDialog,
+    appVersion,
   };
 }
 
@@ -348,6 +352,21 @@ function dismissNasDialog() {
   setNasPhotoIds([]);
 }
 
+async function triggerRenameDialog(): Promise<{ found: boolean; count: number }> {
+  try {
+    const proposals = await getRenameProposals();
+    if (proposals.length > 0) {
+      setRenameProposals(proposals);
+      setShowRenameDialog(true);
+      return { found: true, count: proposals.length };
+    }
+    return { found: false, count: 0 };
+  } catch (e) {
+    console.error("Failed to get rename proposals:", e);
+    return { found: false, count: 0 };
+  }
+}
+
 // Initialize
 checkCamera();
 refreshPhotos();
@@ -355,3 +374,4 @@ refreshRecentPhotos();
 checkAiStatus().then(setAiStatus).catch(() => setAiStatus(null));
 getNamingPattern().then(setNamingPatternSignal).catch(() => {});
 getNasConfig().then(setNasConfigSignal).catch(() => setNasConfigSignal(null));
+getAppVersion().then(setAppVersion).catch(() => setAppVersion(""));

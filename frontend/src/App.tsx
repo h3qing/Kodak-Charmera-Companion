@@ -33,6 +33,7 @@ export default function App() {
   // Listen for Tauri file drop events
   let dragCounter = 0;
   onMount(async () => {
+    if (!(window as any).__TAURI__) return;
     try {
       const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
       const appWindow = getCurrentWebviewWindow();
@@ -138,7 +139,7 @@ export default function App() {
                   aria-label="Search photos by description or tags"
                   value={searchQuery()}
                   onInput={(e) => handleSearch(e.currentTarget.value)}
-                  class="w-full pl-10 pr-4 py-1.5 text-sm bg-white/60 border border-kodak-cream-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-kodak-yellow/40 focus:border-kodak-yellow placeholder:text-kodak-warm-gray"
+                  class="w-full pl-10 pr-4 py-2 text-sm bg-white/60 border border-kodak-cream-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-kodak-yellow/40 focus:border-kodak-yellow placeholder:text-kodak-warm-gray"
                 />
               </div>
             </div>
@@ -274,7 +275,7 @@ export default function App() {
             <span class="mx-2">|</span>
             <span>{library.labelStatus()}</span>
           </Show>
-          <span class="ml-auto text-kodak-cream/30">v0.6.0</span>
+          <span class="ml-auto text-kodak-cream/50">{library.appVersion() ? `v${library.appVersion()}` : ""}</span>
         </footer>
       </main>
 

@@ -66,7 +66,7 @@ refactor: extract thumbnail cache logic
 ## Testing
 
 ```bash
-cargo test -p charmera-core    # 16 unit tests
+cargo test -p charmera-core    # 41 unit tests
 cargo check --workspace        # Full type check
 cargo fmt --all -- --check     # Format check
 cd frontend && bun run build   # Frontend build
