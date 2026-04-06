@@ -84,7 +84,7 @@ function NavButton(props: { item: NavItem; active: boolean; onClick: () => void 
 
 function SectionLabel(props: { label: string }) {
   return (
-    <div class="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-kodak-warm-gray">
+    <div class="px-3 pt-4 pb-1 text-[11px] font-bold uppercase tracking-wider text-kodak-warm-gray">
       {props.label}
     </div>
   );
