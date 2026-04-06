@@ -33,6 +33,7 @@ export default function App() {
   // Listen for Tauri file drop events
   let dragCounter = 0;
   onMount(async () => {
+    if (!(window as any).__TAURI__) return;
     try {
       const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
       const appWindow = getCurrentWebviewWindow();
