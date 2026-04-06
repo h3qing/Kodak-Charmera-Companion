@@ -79,6 +79,13 @@ html, body, #root {
   background: var(--color-kodak-yellow-dark);
 }
 
+/* Keyboard focus ring for accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-kodak-yellow);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 /* Prevent text selection on UI elements */
 .no-select {
   -webkit-user-select: none;
