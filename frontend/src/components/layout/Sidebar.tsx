@@ -62,7 +62,7 @@ function NavButton(props: { item: NavItem; active: boolean; onClick: () => void 
   return (
     <button
       onClick={props.onClick}
-      class={`w-full flex items-center gap-2.5 px-3 py-1.5 text-sm rounded-lg transition-colors relative ${
+      class={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors relative ${
         props.active
           ? "bg-kodak-yellow/15 text-kodak-yellow-dark font-semibold"
           : "text-kodak-charcoal/70 hover:bg-kodak-cream-dark/60 hover:text-kodak-charcoal"
@@ -168,7 +168,7 @@ export default function Sidebar(props: SidebarProps) {
         </Show>
 
         <SectionLabel label="Albums" />
-        <button class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-kodak-warm-gray hover:text-kodak-yellow-dark transition-colors rounded-lg">
+        <button class="w-full flex items-center gap-2 px-3 py-2 text-sm text-kodak-warm-gray hover:text-kodak-yellow-dark transition-colors rounded-lg">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4" />
           </svg>
@@ -181,7 +181,7 @@ export default function Sidebar(props: SidebarProps) {
           <button
             onClick={props.onImportCamera}
             disabled={props.isImporting}
-            class={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+            class={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
               props.cameraConnected
                 ? "text-kodak-charcoal/80 hover:bg-kodak-cream-dark/60 hover:text-kodak-charcoal"
                 : "text-kodak-warm-gray/50 cursor-not-allowed"
@@ -198,7 +198,7 @@ export default function Sidebar(props: SidebarProps) {
           <button
             onClick={props.onImportFolder}
             disabled={props.isImporting}
-            class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-kodak-charcoal/70 hover:bg-kodak-cream-dark/60 hover:text-kodak-charcoal rounded-lg transition-colors"
+            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-kodak-charcoal/70 hover:bg-kodak-cream-dark/60 hover:text-kodak-charcoal rounded-lg transition-colors"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
