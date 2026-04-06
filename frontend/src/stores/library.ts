@@ -13,6 +13,7 @@ import {
   getNamingPattern,
   getNasConfig,
   moveToNas,
+  getAppVersion,
   type PhotoSummary,
   type AiStatus,
   type RenameProposal,
@@ -34,6 +35,7 @@ const [cameraJustConnected, setCameraJustConnected] = createSignal(false);
 const [cameraFileCount, setCameraFileCount] = createSignal(0);
 const [namingPattern, setNamingPatternSignal] = createSignal("b {MM}-{DD}-{YYYY} {content}");
 const [recentPhotos, setRecentPhotos] = createSignal<PhotoSummary[]>([]);
+const [appVersion, setAppVersion] = createSignal("");
 
 const [nasConfig, setNasConfigSignal] = createSignal<NasConfig | null>(null);
 const [showNasMoveDialog, setShowNasMoveDialog] = createSignal(false);
@@ -155,6 +157,7 @@ export function useLibrary() {
     movePhotosToNas,
     dismissNasDialog,
     triggerRenameDialog,
+    appVersion,
   };
 }
 
@@ -371,3 +374,4 @@ refreshRecentPhotos();
 checkAiStatus().then(setAiStatus).catch(() => setAiStatus(null));
 getNamingPattern().then(setNamingPatternSignal).catch(() => {});
 getNasConfig().then(setNasConfigSignal).catch(() => setNasConfigSignal(null));
+getAppVersion().then(setAppVersion).catch(() => setAppVersion(""));

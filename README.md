@@ -15,12 +15,8 @@
   <a href="https://www.solidjs.com/"><img src="https://img.shields.io/badge/Solid.js-2C4F7C?logo=solid&logoColor=white" alt="Solid.js" /></a>
   <a href="https://ollama.com/"><img src="https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white" alt="Ollama" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" /></a>
-  <img src="https://img.shields.io/badge/tests-41_passing-brightgreen" alt="40 tests" />
+  <img src="https://img.shields.io/badge/tests-41_passing-brightgreen" alt="41 tests" />
   <img src="https://img.shields.io/badge/v0.6.0-latest-blue" alt="v0.6.0" />
-</p>
-
-<p align="center">
-  <em>Import, label, rename, and enhance photos from your keychain camera — all locally, no cloud required.</em>
 </p>
 
 ---
@@ -83,7 +79,7 @@ Saved to dog-vintage.jpg
 Plug in your camera and a popup appears. Click "Import" and photos are automatically analyzed by a local vision model. Supports multiple Ollama models — **moondream** (fast, 1B), **llava** (better quality, 7B), **bakllava**, and more. The app auto-selects the best available model. You can also **drag and drop** any folder onto the app to import.
 
 ### Smart File Renaming
-Configure your naming pattern: `b {MM}-{DD}-{YYYY} {content}` transforms `PICT0042.jpg` into `b 03-30-2026 sunset at the beach.jpg`. Files are renamed directly on the SD card.
+Configure your naming pattern: `b {MM}-{DD}-{YYYY} {content}` transforms `PICT0042.jpg` into `b 03-30-2026 sunset at the beach.jpg`. Renaming happens automatically after AI labeling, or manually via the **Apply to Library** button in Settings.
 
 ### Browse & Search
 Search photos by AI-generated descriptions and tags. Click a tag to filter. Full-text search across your entire library.
@@ -108,7 +104,8 @@ Find identical photos by file hash. Keep the original, hide the duplicates (file
 - AI status monitoring
 - Boot splash screen editor for your camera
 
-### Keyboard Shortcuts
+<details>
+<summary><strong>Keyboard Shortcuts</strong></summary>
 
 | Shortcut | Action |
 |----------|--------|
@@ -124,7 +121,10 @@ Find identical photos by file hash. Keep the original, hide the duplicates (file
 | `C` | Compare (before/after effects) |
 | `Esc` | Back to grid |
 
-## Why Charmera?
+</details>
+
+<details>
+<summary><strong>Why Charmera?</strong> — comparison with Google Photos, Apple Photos, digiKam</summary>
 
 | Feature | Charmera | Google Photos | Apple Photos | digiKam |
 |---------|----------|--------------|-------------|---------|
@@ -137,7 +137,10 @@ Find identical photos by file hash. Keep the original, hide the duplicates (file
 | Photo effects | 10 + 4 frames | Filters | Filters | Limited |
 | Open source | MIT | No | No | GPL |
 
-## Architecture
+</details>
+
+<details>
+<summary><strong>Architecture</strong></summary>
 
 ```
 Tauri 2 Desktop App
@@ -159,6 +162,8 @@ Tauri 2 Desktop App
     ├── charmera-app   → Tauri commands (25 IPC endpoints)
     └── charmera-cli   → Agent-friendly CLI with --json
 ```
+
+</details>
 
 ## Quick Start
 
@@ -244,7 +249,8 @@ charmera effects photo.jpg --effects vintage,grain --frame polaroid --output edi
 6. **Smart Rename** — applies naming pattern, renames directly on SD card
 7. **Browse** — search by description, filter by tags, multi-select & export
 
-## Compatible Cameras
+<details>
+<summary><strong>Compatible Cameras</strong></summary>
 
 Built for the **KODAK CHARMERA** (Generalplus CBB3 chipset), but works with any camera that mounts as USB mass storage with JPEG photos in a DCIM folder.
 
@@ -256,6 +262,8 @@ Built for the **KODAK CHARMERA** (Generalplus CBB3 chipset), but works with any 
 | Connection | USB mass storage |
 
 For firmware hacking details, see [docs/hardware-guide.md](docs/hardware-guide.md).
+
+</details>
 
 ## Design
 
