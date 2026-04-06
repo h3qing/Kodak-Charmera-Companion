@@ -188,15 +188,28 @@ pub fn apply_naming_pattern(
         )
     };
 
-    let content = sanitize_label(
-        &description
-            .split('.')
-            .next()
-            .unwrap_or(description)
-            .chars()
-            .take(40)
-            .collect::<String>(),
-    );
+    // Take the first clause (before comma or period), strip articles,
+    // and truncate at word boundary for clean filenames like "brown dog on couch"
+    let first_clause = description
+        .split(['.', ','])
+        .next()
+        .unwrap_or(description)
+        .trim();
+    let trimmed = first_clause
+        .strip_prefix("A ")
+        .or_else(|| first_clause.strip_prefix("An "))
+        .or_else(|| first_clause.strip_prefix("The "))
+        .unwrap_or(first_clause);
+    // Truncate at word boundary within 30 chars
+    let truncated = if trimmed.len() <= 30 {
+        trimmed.to_string()
+    } else {
+        let cut = &trimmed[..30];
+        cut.rfind(' ')
+            .map(|i| cut[..i].to_string())
+            .unwrap_or_else(|| cut.to_string())
+    };
+    let content = sanitize_label(&truncated);
 
     pattern
         .replace("{MM}", &mm)
@@ -288,7 +301,7 @@ mod tests {
             1,
             "PICT0042",
         );
-        assert_eq!(result, "b 03-30-2026 A brown dog on the couch");
+        assert_eq!(result, "b 03-30-2026 brown dog on the couch");
     }
 
     #[test]
