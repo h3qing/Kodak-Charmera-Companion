@@ -2,10 +2,13 @@ import { createSignal, onMount, Show } from "solid-js";
 import type { NasConfig } from "../../lib/tauri";
 import { showToast } from "./Toast";
 import StorageSetup from "./StorageSetup";
+import { useLibrary } from "../../stores/library";
 
 export default function SettingsView() {
+  const library = useLibrary();
   const [namingPattern, setNamingPatternLocal] = createSignal("b {MM}-{DD}-{YYYY} {content}");
   const [appVersion, setAppVersion] = createSignal("");
+  const [applyingPattern, setApplyingPattern] = createSignal(false);
   const [aiAvailable, setAiAvailable] = createSignal(false);
   const [aiModel, setAiModel] = createSignal("");
   const [aiModels, setAiModels] = createSignal<string[]>([]);
@@ -144,13 +147,28 @@ export default function SettingsView() {
               <p class="font-mono text-sm text-kodak-charcoal mt-0.5">{patternPreview()}</p>
             </div>
 
-            {/* Save button */}
+            {/* Save + Apply buttons */}
             <div class="flex items-center gap-2">
               <button
                 onClick={handlePatternSave}
-                class="px-4 py-2 bg-kodak-yellow hover:bg-kodak-yellow-dark text-white text-sm font-semibold rounded-lg transition-colors"
+                class="px-4 py-2 bg-kodak-yellow hover:bg-kodak-yellow-dark text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer"
               >
                 Save Pattern
+              </button>
+              <button
+                onClick={async () => {
+                  setApplyingPattern(true);
+                  await handlePatternSave();
+                  const result = await library.triggerRenameDialog();
+                  setApplyingPattern(false);
+                  if (!result.found) {
+                    showToast("No photos to rename. Import and label photos first.", "info");
+                  }
+                }}
+                disabled={applyingPattern()}
+                class="px-4 py-2 bg-kodak-charcoal hover:bg-kodak-charcoal-light text-kodak-yellow text-sm font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {applyingPattern() ? "Loading..." : "Apply to Library"}
               </button>
               <Show when={saved()}>
                 <span class="text-xs text-green-600 font-medium">Saved!</span>

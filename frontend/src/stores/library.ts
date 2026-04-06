@@ -154,6 +154,7 @@ export function useLibrary() {
     nasPhotoIds,
     movePhotosToNas,
     dismissNasDialog,
+    triggerRenameDialog,
   };
 }
 
@@ -346,6 +347,21 @@ async function movePhotosToNas(keepLocal: boolean) {
 function dismissNasDialog() {
   setShowNasMoveDialog(false);
   setNasPhotoIds([]);
+}
+
+async function triggerRenameDialog(): Promise<{ found: boolean; count: number }> {
+  try {
+    const proposals = await getRenameProposals();
+    if (proposals.length > 0) {
+      setRenameProposals(proposals);
+      setShowRenameDialog(true);
+      return { found: true, count: proposals.length };
+    }
+    return { found: false, count: 0 };
+  } catch (e) {
+    console.error("Failed to get rename proposals:", e);
+    return { found: false, count: 0 };
+  }
 }
 
 // Initialize
