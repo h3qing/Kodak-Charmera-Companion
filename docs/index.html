@@ -69,10 +69,17 @@
     .reveal-delay-2 { transition-delay: 0.2s; }
     .reveal-delay-3 { transition-delay: 0.3s; }
 
-    /* Rainbow stripe */
+    /* Kodak rainbow stripe — authentic 1987 color bands */
     .stripe {
-      height: 4px;
-      background: linear-gradient(to right, var(--red), var(--orange), #8B4513, var(--charcoal), var(--blue), var(--purple));
+      height: 10px;
+      background: linear-gradient(to right,
+        var(--red) 0%, var(--red) 20%,
+        var(--orange) 20%, var(--orange) 40%,
+        var(--yellow-dark) 40%, var(--yellow-dark) 55%,
+        #2E8B57 55%, #2E8B57  70%,
+        var(--blue) 70%, var(--blue) 85%,
+        var(--purple) 85%, var(--purple) 100%
+      );
     }
 
     /* ===== HERO ===== */
