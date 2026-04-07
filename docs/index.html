@@ -280,9 +280,22 @@
     }
 
     .feature-card .icon {
-      font-size: 1.5rem;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       margin-bottom: 0.75rem;
+      font-size: 1rem;
+      font-weight: 800;
+      font-family: 'Nunito', sans-serif;
+      color: var(--cream);
     }
+    .feature-card .icon.icon-red { background: var(--red); }
+    .feature-card .icon.icon-blue { background: var(--blue); }
+    .feature-card .icon.icon-orange { background: var(--orange); }
+    .feature-card .icon.icon-charcoal { background: var(--charcoal); }
     .feature-card h3 {
       font-family: 'Nunito', sans-serif;
       font-weight: 700;
@@ -426,35 +439,35 @@
 
   <!-- FEATURES -->
   <section class="features">
-    <h2 class="reveal">Everything in one tool</h2>
+    <h2 class="reveal">What it does</h2>
     <div class="feature-grid">
       <div class="feature-card reveal reveal-delay-1">
-        <div class="icon">🧠</div>
+        <div class="icon icon-red">AI</div>
         <h3>Local AI Labeling</h3>
         <p>Ollama vision models describe every photo. Runs on your machine, never uploads.</p>
       </div>
       <div class="feature-card reveal reveal-delay-2">
-        <div class="icon">✏️</div>
+        <div class="icon icon-blue">Aa</div>
         <h3>Smart Rename</h3>
         <p>PICT0042.jpg becomes "sunset at the beach.jpg" with customizable patterns.</p>
       </div>
       <div class="feature-card reveal reveal-delay-3">
-        <div class="icon">🎞️</div>
+        <div class="icon icon-orange">fx</div>
         <h3>10 Effects + 4 Frames</h3>
         <p>Vintage, noir, grain, polaroid. Before/after comparison. Batch export.</p>
       </div>
       <div class="feature-card reveal reveal-delay-1">
-        <div class="icon">📁</div>
+        <div class="icon icon-charcoal">/</div>
         <h3>Any Photo Folder</h3>
         <p>Drag-and-drop any folder. JPEG, PNG, BMP, WebP. Demo mode included.</p>
       </div>
       <div class="feature-card reveal reveal-delay-2">
-        <div class="icon">⌨️</div>
+        <div class="icon icon-red">&gt;_</div>
         <h3>11 CLI Commands</h3>
-        <p>batch-label, rename, info, detect, effects — all with --json for automation.</p>
+        <p>batch-label, rename, info, detect, effects, all with --json for automation.</p>
       </div>
       <div class="feature-card reveal reveal-delay-3">
-        <div class="icon">🔒</div>
+        <div class="icon icon-charcoal">&bull;</div>
         <h3>100% Private</h3>
         <p>Rust backend, SQLite, local AI. Your photos never leave your machine.</p>
       </div>
