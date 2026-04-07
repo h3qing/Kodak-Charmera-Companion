@@ -96,14 +96,13 @@
       overflow: hidden;
     }
 
-    /* Floating film frames background */
+    /* Vintage vignette on hero */
     .hero::before {
       content: "";
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(circle at 20% 80%, rgba(0,0,0,0.03) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(0,0,0,0.03) 0%, transparent 50%);
+        radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.08) 100%);
       pointer-events: none;
     }
 
@@ -298,9 +297,9 @@
 
     .feature-card {
       padding: 1.5rem;
-      border-radius: 16px;
+      border-radius: 12px;
       background: white;
-      border: 1px solid #eee;
+      border: 1px solid #e8e0d6;
       transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
       cursor: default;
     }
