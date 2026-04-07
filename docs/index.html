@@ -340,26 +340,36 @@
 
     /* ===== TECH ===== */
     .tech {
-      padding: 4rem 2rem;
+      padding: 3rem 2rem;
       text-align: center;
+    }
+
+    .tech-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      opacity: 0.4;
+      margin-bottom: 1rem;
+      font-weight: 500;
     }
 
     .tech-pills {
       display: flex;
-      gap: 0.6rem;
+      gap: 0.5rem;
       justify-content: center;
       flex-wrap: wrap;
-      margin-top: 1.5rem;
     }
     .tech-pill {
-      padding: 0.5rem 1.2rem;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.08);
-      font-size: 0.85rem;
+      padding: 0.4rem 1rem;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      background: transparent;
+      font-size: 0.8rem;
       font-weight: 500;
-      transition: background 0.2s;
+      font-family: 'JetBrains Mono', monospace;
+      transition: border-color 0.2s ease-out;
     }
-    .tech-pill:hover { background: rgba(255,255,255,0.15); }
+    .tech-pill:hover { border-color: var(--yellow); color: var(--yellow); }
 
     /* ===== CTA ===== */
     .cta {
@@ -547,7 +557,7 @@
 
   <!-- TECH -->
   <section class="tech reveal">
-    <p style="opacity:0.5; font-size:0.85rem; margin-bottom:0.5rem;">BUILT WITH</p>
+    <p class="tech-label">Built with</p>
     <div class="tech-pills">
       <span class="tech-pill">Rust</span>
       <span class="tech-pill">Tauri 2</span>
