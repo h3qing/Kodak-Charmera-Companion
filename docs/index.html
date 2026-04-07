@@ -42,6 +42,19 @@
       overflow-x: hidden;
     }
 
+    /* Film grain overlay */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 256px 256px;
+    }
+
     /* Scroll-triggered animations */
     .reveal {
       opacity: 0;
@@ -56,10 +69,17 @@
     .reveal-delay-2 { transition-delay: 0.2s; }
     .reveal-delay-3 { transition-delay: 0.3s; }
 
-    /* Rainbow stripe */
+    /* Kodak rainbow stripe — authentic 1987 color bands */
     .stripe {
-      height: 4px;
-      background: linear-gradient(to right, var(--red), var(--orange), #8B4513, var(--charcoal), var(--blue), var(--purple));
+      height: 10px;
+      background: linear-gradient(to right,
+        var(--red) 0%, var(--red) 20%,
+        var(--orange) 20%, var(--orange) 40%,
+        var(--yellow-dark) 40%, var(--yellow-dark) 55%,
+        #2E8B57 55%, #2E8B57  70%,
+        var(--blue) 70%, var(--blue) 85%,
+        var(--purple) 85%, var(--purple) 100%
+      );
     }
 
     /* ===== HERO ===== */
@@ -76,22 +96,21 @@
       overflow: hidden;
     }
 
-    /* Floating film frames background */
+    /* Vintage vignette on hero */
     .hero::before {
       content: "";
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(circle at 20% 80%, rgba(0,0,0,0.03) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(0,0,0,0.03) 0%, transparent 50%);
+        radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.08) 100%);
       pointer-events: none;
     }
 
     .hero-icon {
-      width: 100px;
-      height: 100px;
-      border-radius: 24px;
-      margin-bottom: 1.5rem;
+      width: 120px;
+      height: 120px;
+      border-radius: 28px;
+      margin-bottom: 1rem;
       animation: float 3s ease-in-out infinite;
       box-shadow: 0 20px 60px rgba(0,0,0,0.15);
     }
@@ -115,7 +134,7 @@
     .hero .subtitle {
       font-size: 1.1rem;
       color: var(--charcoal);
-      opacity: 0.65;
+      opacity: 0.8;
       max-width: 500px;
       line-height: 1.6;
       margin-bottom: 2rem;
@@ -137,7 +156,7 @@
       font-weight: 700;
       font-size: 0.95rem;
       text-decoration: none;
-      transition: all 0.2s;
+      transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out;
       cursor: pointer;
       border: none;
     }
@@ -154,6 +173,16 @@
       border: 2px solid rgba(0,0,0,0.15);
     }
     .btn-ghost:hover { border-color: rgba(0,0,0,0.4); }
+
+    .hero-tagline {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--charcoal);
+      opacity: 0.5;
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
 
     .hero-hint {
       margin-top: 1.5rem;
@@ -268,21 +297,34 @@
 
     .feature-card {
       padding: 1.5rem;
-      border-radius: 16px;
+      border-radius: 12px;
       background: white;
-      border: 1px solid #eee;
-      transition: all 0.3s ease;
+      border: 1px solid #e8e0d6;
+      transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
       cursor: default;
     }
     .feature-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
     }
 
     .feature-card .icon {
-      font-size: 1.5rem;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       margin-bottom: 0.75rem;
+      font-size: 1rem;
+      font-weight: 800;
+      font-family: 'Nunito', sans-serif;
+      color: var(--cream);
     }
+    .feature-card .icon.icon-red { background: var(--red); }
+    .feature-card .icon.icon-blue { background: var(--blue); }
+    .feature-card .icon.icon-orange { background: var(--orange); }
+    .feature-card .icon.icon-charcoal { background: var(--charcoal); }
     .feature-card h3 {
       font-family: 'Nunito', sans-serif;
       font-weight: 700;
@@ -297,43 +339,61 @@
 
     /* ===== TECH ===== */
     .tech {
-      padding: 4rem 2rem;
+      padding: 3rem 2rem;
       text-align: center;
+    }
+
+    .tech-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      opacity: 0.4;
+      margin-bottom: 1rem;
+      font-weight: 500;
     }
 
     .tech-pills {
       display: flex;
-      gap: 0.6rem;
+      gap: 0.5rem;
       justify-content: center;
       flex-wrap: wrap;
-      margin-top: 1.5rem;
     }
     .tech-pill {
-      padding: 0.5rem 1.2rem;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.08);
-      font-size: 0.85rem;
+      padding: 0.4rem 1rem;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      background: transparent;
+      font-size: 0.8rem;
       font-weight: 500;
-      transition: background 0.2s;
+      font-family: 'JetBrains Mono', monospace;
+      transition: border-color 0.2s ease-out;
     }
-    .tech-pill:hover { background: rgba(255,255,255,0.15); }
+    .tech-pill:hover { border-color: var(--yellow); color: var(--yellow); }
 
     /* ===== CTA ===== */
     .cta {
       padding: 5rem 2rem;
       background: var(--yellow);
       text-align: center;
+      position: relative;
+    }
+    .cta::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.04) 0%, transparent 30%);
+      pointer-events: none;
     }
     .cta h2 {
       font-family: 'Nunito', sans-serif;
       font-weight: 900;
-      font-size: 2rem;
+      font-size: 2.2rem;
       color: var(--charcoal);
       margin-bottom: 0.5rem;
     }
     .cta p {
       color: var(--charcoal);
-      opacity: 0.5;
+      opacity: 0.6;
       margin-bottom: 2rem;
       font-size: 0.95rem;
     }
@@ -364,7 +424,39 @@
       font-size: 0.75rem;
       color: rgba(255,255,255,0.3);
     }
-    footer a { color: var(--yellow); text-decoration: none; }
+    footer a {
+      color: var(--yellow);
+      text-decoration: none;
+      display: inline-block;
+      padding: 0.5rem 0;
+      min-height: 44px;
+      line-height: 44px;
+    }
+
+    /* ===== FOCUS STYLES ===== */
+    .btn:focus-visible {
+      outline: 3px solid var(--red);
+      outline-offset: 3px;
+    }
+    .install-cmd:focus-visible {
+      outline: 3px solid var(--red);
+      outline-offset: 3px;
+    }
+    footer a:focus-visible {
+      outline: 2px solid var(--yellow);
+      outline-offset: 2px;
+    }
+
+    /* ===== REDUCED MOTION ===== */
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { transition: none; opacity: 1; transform: none; }
+      .hero-icon { animation: none; }
+      .scroll-arrow { animation: none; }
+      .type-line { animation: none; opacity: 1; }
+      .btn:hover { transform: none; }
+      .feature-card:hover { transform: none; }
+      .screenshot-section img:hover { transform: none; }
+    }
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 640px) {
@@ -379,6 +471,7 @@
   <!-- HERO -->
   <section class="hero">
     <img src="icon-64.png" alt="Charmera" class="hero-icon" />
+    <p class="hero-tagline">Inspired by the 1987 Kodak Charmera</p>
     <h1>
       Your photos deserve<br/><span class="accent">better names</span>
     </h1>
@@ -426,35 +519,35 @@
 
   <!-- FEATURES -->
   <section class="features">
-    <h2 class="reveal">Everything in one tool</h2>
+    <h2 class="reveal">What it does</h2>
     <div class="feature-grid">
       <div class="feature-card reveal reveal-delay-1">
-        <div class="icon">🧠</div>
+        <div class="icon icon-red">AI</div>
         <h3>Local AI Labeling</h3>
         <p>Ollama vision models describe every photo. Runs on your machine, never uploads.</p>
       </div>
       <div class="feature-card reveal reveal-delay-2">
-        <div class="icon">✏️</div>
+        <div class="icon icon-blue">Aa</div>
         <h3>Smart Rename</h3>
         <p>PICT0042.jpg becomes "sunset at the beach.jpg" with customizable patterns.</p>
       </div>
       <div class="feature-card reveal reveal-delay-3">
-        <div class="icon">🎞️</div>
+        <div class="icon icon-orange">fx</div>
         <h3>10 Effects + 4 Frames</h3>
         <p>Vintage, noir, grain, polaroid. Before/after comparison. Batch export.</p>
       </div>
       <div class="feature-card reveal reveal-delay-1">
-        <div class="icon">📁</div>
+        <div class="icon icon-charcoal">/</div>
         <h3>Any Photo Folder</h3>
         <p>Drag-and-drop any folder. JPEG, PNG, BMP, WebP. Demo mode included.</p>
       </div>
       <div class="feature-card reveal reveal-delay-2">
-        <div class="icon">⌨️</div>
+        <div class="icon icon-red">&gt;_</div>
         <h3>11 CLI Commands</h3>
-        <p>batch-label, rename, info, detect, effects — all with --json for automation.</p>
+        <p>batch-label, rename, info, detect, effects, all with --json for automation.</p>
       </div>
       <div class="feature-card reveal reveal-delay-3">
-        <div class="icon">🔒</div>
+        <div class="icon icon-charcoal">&bull;</div>
         <h3>100% Private</h3>
         <p>Rust backend, SQLite, local AI. Your photos never leave your machine.</p>
       </div>
@@ -463,7 +556,7 @@
 
   <!-- TECH -->
   <section class="tech reveal">
-    <p style="opacity:0.5; font-size:0.85rem; margin-bottom:0.5rem;">BUILT WITH</p>
+    <p class="tech-label">Built with</p>
     <div class="tech-pills">
       <span class="tech-pill">Rust</span>
       <span class="tech-pill">Tauri 2</span>
@@ -488,7 +581,7 @@
         View Source
       </a>
     </div>
-    <div class="install-cmd reveal" onclick="copyInstall(this)">
+    <div class="install-cmd reveal" role="button" tabindex="0" onclick="copyInstall(this)" onkeydown="if(event.key==='Enter')copyInstall(this)">
       <span class="cmd">curl -fsSL https://raw.githubusercontent.com/h3qing/Kodak-Charmera-Companion/main/scripts/install.sh | bash</span>
       <span class="copied"> — copied!</span>
     </div>
