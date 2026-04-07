@@ -399,6 +399,17 @@
     }
     footer a { color: var(--yellow); text-decoration: none; }
 
+    /* ===== REDUCED MOTION ===== */
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { transition: none; opacity: 1; transform: none; }
+      .hero-icon { animation: none; }
+      .scroll-arrow { animation: none; }
+      .type-line { animation: none; opacity: 1; }
+      .btn:hover { transform: none; }
+      .feature-card:hover { transform: none; }
+      .screenshot-section img:hover { transform: none; }
+    }
+
     /* ===== RESPONSIVE ===== */
     @media (max-width: 640px) {
       .hero h1 { font-size: 2.2rem; }
