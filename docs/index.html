@@ -581,7 +581,7 @@
         View Source
       </a>
     </div>
-    <div class="install-cmd reveal" onclick="copyInstall(this)">
+    <div class="install-cmd reveal" role="button" tabindex="0" onclick="copyInstall(this)" onkeydown="if(event.key==='Enter')copyInstall(this)">
       <span class="cmd">curl -fsSL https://raw.githubusercontent.com/h3qing/Kodak-Charmera-Companion/main/scripts/install.sh | bash</span>
       <span class="copied"> — copied!</span>
     </div>
