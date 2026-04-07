@@ -406,6 +406,20 @@
       line-height: 44px;
     }
 
+    /* ===== FOCUS STYLES ===== */
+    .btn:focus-visible {
+      outline: 3px solid var(--red);
+      outline-offset: 3px;
+    }
+    .install-cmd:focus-visible {
+      outline: 3px solid var(--red);
+      outline-offset: 3px;
+    }
+    footer a:focus-visible {
+      outline: 2px solid var(--yellow);
+      outline-offset: 2px;
+    }
+
     /* ===== REDUCED MOTION ===== */
     @media (prefers-reduced-motion: reduce) {
       .reveal { transition: none; opacity: 1; transform: none; }
