@@ -449,24 +449,66 @@
     }
     .tech-pill:hover { border-color: var(--yellow); color: var(--yellow); }
 
-    /* ===== CTA ===== */
+    /* ===== CTA — vintage product box ===== */
     .cta {
       padding: 5rem 2rem;
-      background: var(--yellow);
+      background: var(--charcoal);
       text-align: center;
       position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    .cta::before {
+
+    .cta-box {
+      max-width: 480px;
+      width: 100%;
+      background: var(--yellow);
+      border-radius: 4px;
+      padding: 3rem 2.5rem 2.5rem;
+      position: relative;
+      box-shadow:
+        0 0 0 3px var(--charcoal),
+        0 0 0 5px var(--yellow-dark),
+        0 20px 60px rgba(0,0,0,0.4);
+    }
+
+    /* Corner crop marks */
+    .cta-box::before,
+    .cta-box::after {
       content: "";
       position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(0,0,0,0.04) 0%, transparent 30%);
-      pointer-events: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(0,0,0,0.12);
     }
+    .cta-box::before {
+      top: 12px;
+      left: 12px;
+      border-right: none;
+      border-bottom: none;
+    }
+    .cta-box::after {
+      bottom: 12px;
+      right: 12px;
+      border-left: none;
+      border-top: none;
+    }
+
+    .cta-edition {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--charcoal);
+      opacity: 0.4;
+      margin-bottom: 1rem;
+    }
+
     .cta h2 {
       font-family: 'Righteous', cursive;
       font-weight: 400;
-      font-size: 2.2rem;
+      font-size: 2rem;
       color: var(--charcoal);
       margin-bottom: 0.5rem;
       letter-spacing: 0.05em;
@@ -474,23 +516,26 @@
     }
     .cta p {
       color: var(--charcoal);
-      opacity: 0.6;
+      opacity: 0.55;
       margin-bottom: 2rem;
-      font-size: 0.95rem;
+      font-size: 0.85rem;
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
     }
     .cta .install-cmd {
       display: inline-block;
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       background: rgba(0,0,0,0.08);
       padding: 0.6rem 1.2rem;
-      border-radius: 10px;
+      border-radius: 2px;
       color: var(--charcoal);
       margin-top: 1.5rem;
       cursor: pointer;
       transition: background 0.2s;
+      border: 1px solid rgba(0,0,0,0.1);
     }
-    .cta .install-cmd:hover { background: rgba(0,0,0,0.12); }
+    .cta .install-cmd:hover { background: rgba(0,0,0,0.14); }
     .cta .install-cmd .copied {
       display: none;
       color: var(--red);
@@ -653,19 +698,22 @@
 
   <!-- CTA -->
   <section class="cta">
-    <h2 class="reveal">Try it now</h2>
-    <p class="reveal">Free. Open source. No camera required.</p>
-    <div class="hero-buttons reveal">
-      <a href="https://github.com/h3qing/Kodak-Charmera-Companion/releases" class="btn btn-dark">
-        Download
-      </a>
-      <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="btn btn-ghost" style="color:var(--charcoal);">
-        View Source
-      </a>
-    </div>
-    <div class="install-cmd reveal" role="button" tabindex="0" onclick="copyInstall(this)" onkeydown="if(event.key==='Enter')copyInstall(this)">
-      <span class="cmd">curl -fsSL https://raw.githubusercontent.com/h3qing/Kodak-Charmera-Companion/main/scripts/install.sh | bash</span>
-      <span class="copied"> — copied!</span>
+    <div class="cta-box reveal">
+      <p class="cta-edition">Open Source Edition &middot; v0.6.0</p>
+      <h2>Open the box</h2>
+      <p>Free forever. Your photos stay yours.</p>
+      <div class="hero-buttons">
+        <a href="https://github.com/h3qing/Kodak-Charmera-Companion/releases" class="btn btn-dark">
+          Download
+        </a>
+        <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="btn btn-ghost" style="color:var(--charcoal);">
+          View Source
+        </a>
+      </div>
+      <div class="install-cmd" role="button" tabindex="0" onclick="copyInstall(this)" onkeydown="if(event.key==='Enter')copyInstall(this)">
+        <span class="cmd">curl -fsSL https://raw.githubusercontent.com/h3qing/Kodak-Charmera-Companion/main/scripts/install.sh | bash</span>
+        <span class="copied"> -- copied!</span>
+      </div>
     </div>
   </section>
 
