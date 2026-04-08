@@ -18,7 +18,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Nunito:wght@700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Righteous&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet" />
 
   <style>
     :root {
@@ -36,7 +36,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'DM Sans', system-ui, sans-serif;
+      font-family: 'IBM Plex Sans', system-ui, sans-serif;
       background: var(--charcoal);
       color: white;
       overflow-x: hidden;
@@ -121,21 +121,25 @@
     }
 
     .hero h1 {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 900;
-      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-family: 'Righteous', cursive;
+      font-weight: 400;
+      font-size: clamp(2.8rem, 7vw, 4.5rem);
       color: var(--charcoal);
       line-height: 1.05;
       margin-bottom: 1rem;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
     }
 
     .hero h1 .accent { color: var(--red); }
 
     .hero .subtitle {
-      font-size: 1.1rem;
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 1.15rem;
       color: var(--charcoal);
-      opacity: 0.8;
-      max-width: 500px;
+      opacity: 0.75;
+      max-width: 480px;
       line-height: 1.6;
       margin-bottom: 2rem;
     }
@@ -152,9 +156,12 @@
       align-items: center;
       gap: 0.5rem;
       padding: 0.8rem 1.8rem;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 0.95rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      font-family: 'IBM Plex Sans', sans-serif;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
       text-decoration: none;
       transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out;
       cursor: pointer;
@@ -234,7 +241,7 @@
 
     .terminal-body {
       padding: 1.5rem;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'IBM Plex Mono', monospace;
       font-size: 0.82rem;
       line-height: 1.8;
       color: #c9d1d9;
@@ -280,11 +287,13 @@
     }
 
     .features h2 {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 800;
-      font-size: 2rem;
+      font-family: 'Righteous', cursive;
+      font-weight: 400;
+      font-size: 1.6rem;
       text-align: center;
       margin-bottom: 3rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
     }
 
     .feature-grid {
@@ -317,8 +326,8 @@
       justify-content: center;
       margin-bottom: 0.75rem;
       font-size: 1rem;
-      font-weight: 800;
-      font-family: 'Nunito', sans-serif;
+      font-weight: 600;
+      font-family: 'IBM Plex Mono', monospace;
       color: var(--cream);
     }
     .feature-card .icon.icon-red { background: var(--red); }
@@ -326,10 +335,11 @@
     .feature-card .icon.icon-orange { background: var(--orange); }
     .feature-card .icon.icon-charcoal { background: var(--charcoal); }
     .feature-card h3 {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 700;
-      font-size: 1rem;
+      font-family: 'Righteous', cursive;
+      font-weight: 400;
+      font-size: 0.95rem;
       margin-bottom: 0.4rem;
+      letter-spacing: 0.03em;
     }
     .feature-card p {
       font-size: 0.85rem;
@@ -365,7 +375,7 @@
       background: transparent;
       font-size: 0.8rem;
       font-weight: 500;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'IBM Plex Mono', monospace;
       transition: border-color 0.2s ease-out;
     }
     .tech-pill:hover { border-color: var(--yellow); color: var(--yellow); }
@@ -385,11 +395,13 @@
       pointer-events: none;
     }
     .cta h2 {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 900;
+      font-family: 'Righteous', cursive;
+      font-weight: 400;
       font-size: 2.2rem;
       color: var(--charcoal);
       margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
     }
     .cta p {
       color: var(--charcoal);
@@ -399,7 +411,7 @@
     }
     .cta .install-cmd {
       display: inline-block;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'IBM Plex Mono', monospace;
       font-size: 0.85rem;
       background: rgba(0,0,0,0.08);
       padding: 0.6rem 1.2rem;
@@ -413,7 +425,7 @@
     .cta .install-cmd .copied {
       display: none;
       color: var(--red);
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'IBM Plex Sans', sans-serif;
       font-weight: 600;
     }
 
