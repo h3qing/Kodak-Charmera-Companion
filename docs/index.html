@@ -18,7 +18,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Righteous&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
 
   <style>
     :root {
@@ -36,54 +36,38 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'IBM Plex Sans', system-ui, sans-serif;
-      background: var(--charcoal);
-      color: white;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--yellow);
+      color: var(--charcoal);
       overflow-x: hidden;
     }
 
-    /* Film grain overlay — heavier for authentic texture */
+    /* Film grain */
     body::after {
       content: "";
       position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: 9999;
-      opacity: 0.05;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
       background-repeat: repeat;
       background-size: 256px 256px;
-      mix-blend-mode: overlay;
     }
 
-    /* Scroll-triggered animations */
-    .reveal {
-      opacity: 0;
-      transform: translateY(30px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-    }
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .reveal-delay-1 { transition-delay: 0.1s; }
-    .reveal-delay-2 { transition-delay: 0.2s; }
-    .reveal-delay-3 { transition-delay: 0.3s; }
-
-    /* Kodak rainbow stripe — authentic 1987 color bands */
+    /* Rainbow stripe */
     .stripe {
-      height: 10px;
+      height: 8px;
       background: linear-gradient(to right,
         var(--red) 0%, var(--red) 20%,
         var(--orange) 20%, var(--orange) 40%,
-        var(--yellow-dark) 40%, var(--yellow-dark) 55%,
-        #2E8B57 55%, #2E8B57  70%,
-        var(--blue) 70%, var(--blue) 85%,
-        var(--purple) 85%, var(--purple) 100%
+        #1C1C1C 40%, #1C1C1C 55%,
+        var(--blue) 55%, var(--blue) 75%,
+        var(--purple) 75%, var(--purple) 100%
       );
     }
 
-    /* ===== HERO ===== */
+    /* ===== HERO — the film box front ===== */
     .hero {
       min-height: 100vh;
       display: flex;
@@ -91,229 +75,154 @@
       justify-content: center;
       align-items: center;
       text-align: center;
-      background: var(--yellow);
-      padding: 2rem;
+      padding: 3rem 2rem;
       position: relative;
-      overflow: hidden;
-    }
-
-    /* Bold rainbow band across hero */
-    .hero-band {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 6px;
-      background: linear-gradient(to right,
-        var(--red) 0%, var(--red) 20%,
-        var(--orange) 20%, var(--orange) 40%,
-        var(--yellow-dark) 40%, var(--yellow-dark) 55%,
-        #2E8B57 55%, #2E8B57 70%,
-        var(--blue) 70%, var(--blue) 85%,
-        var(--purple) 85%, var(--purple) 100%
-      );
-      z-index: 2;
-    }
-
-    /* Vintage vignette on hero — heavier */
-    .hero::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.12) 100%);
-      pointer-events: none;
-    }
-
-    /* Decorative circle — film canister motif */
-    .hero::after {
-      content: "";
-      position: absolute;
-      top: -120px;
-      right: -120px;
-      width: 350px;
-      height: 350px;
-      border-radius: 50%;
-      border: 40px solid rgba(0,0,0,0.03);
-      pointer-events: none;
     }
 
     .hero-icon {
       width: 100px;
       height: 100px;
-      border-radius: 16px;
-      margin-bottom: 1.2rem;
-      animation: float 3s ease-in-out infinite;
-      box-shadow:
-        0 8px 30px rgba(0,0,0,0.15),
-        0 0 0 3px rgba(0,0,0,0.08);
+      border-radius: 20px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
     }
 
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
+    .hero-brand {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 0.7rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 0.75rem;
     }
 
     .hero h1 {
-      font-family: 'Righteous', cursive;
-      font-weight: 400;
-      font-size: clamp(2.8rem, 7vw, 4.5rem);
-      color: var(--charcoal);
-      line-height: 1.05;
-      margin-bottom: 1rem;
-      letter-spacing: -0.01em;
-      text-transform: uppercase;
-    }
-
-    .hero h1 .accent {
-      color: var(--red);
-      text-decoration: underline;
-      text-decoration-thickness: 4px;
-      text-underline-offset: 6px;
-      text-decoration-color: rgba(196,30,58,0.4);
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: clamp(2.2rem, 5.5vw, 3.5rem);
+      line-height: 1.1;
+      margin-bottom: 1.2rem;
     }
 
     .hero .subtitle {
-      font-family: 'Playfair Display', serif;
-      font-style: italic;
-      font-size: 1.15rem;
-      color: var(--charcoal);
-      opacity: 0.75;
-      max-width: 480px;
+      font-size: 1.05rem;
+      opacity: 0.7;
+      max-width: 420px;
       line-height: 1.6;
       margin-bottom: 2rem;
     }
 
     .hero-buttons {
       display: flex;
-      gap: 0.75rem;
+      gap: 0.6rem;
       flex-wrap: wrap;
       justify-content: center;
+      margin-bottom: 1.5rem;
     }
 
     .btn {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.8rem 1.8rem;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      font-family: 'IBM Plex Sans', sans-serif;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
+      padding: 0.75rem 1.6rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
       text-decoration: none;
-      transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out;
       cursor: pointer;
       border: none;
+      transition: transform 0.15s ease-out;
     }
-    .btn:hover { transform: translateY(-2px); }
+    .btn:hover { transform: translateY(-1px); }
 
     .btn-dark {
       background: var(--charcoal);
       color: var(--yellow);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
-    .btn-ghost {
+    .btn-outline {
       background: transparent;
       color: var(--charcoal);
       border: 2px solid rgba(0,0,0,0.15);
     }
-    .btn-ghost:hover { border-color: rgba(0,0,0,0.4); }
 
-    .hero-tagline {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.6rem;
-      letter-spacing: 0.25em;
-      text-transform: uppercase;
-      color: var(--charcoal);
-      opacity: 0.4;
-      margin-bottom: 1.5rem;
-      font-weight: 500;
-      padding: 0.3rem 0.8rem;
-      border: 1px solid rgba(0,0,0,0.1);
-      border-radius: 2px;
-    }
-
-    .hero-hint {
-      margin-top: 1.5rem;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--charcoal);
+    .hero-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
       opacity: 0.35;
-      letter-spacing: 0.05em;
     }
 
-    .scroll-arrow {
-      position: absolute;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%);
-      animation: bounce 2s infinite;
-      opacity: 0.3;
-    }
-    @keyframes bounce {
-      0%, 100% { transform: translateX(-50%) translateY(0); }
-      50% { transform: translateX(-50%) translateY(8px); }
+    /* ===== WHAT IT DOES — compact list on dark ===== */
+    .features {
+      background: var(--charcoal);
+      color: var(--cream);
+      padding: 3.5rem 2rem;
     }
 
-    /* ===== DARKROOM DEMO ===== */
-    .demo {
-      padding: 4rem 2rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
+    .features-inner {
+      max-width: 600px;
+      margin: 0 auto;
     }
 
-    .demo-label {
-      font-family: 'Righteous', cursive;
-      font-size: 0.7rem;
-      letter-spacing: 0.25em;
+    .features h2 {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
       text-transform: uppercase;
       color: var(--yellow);
-      opacity: 0.7;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .feature-item {
+      display: flex;
+      gap: 1rem;
+      align-items: baseline;
+      padding: 0.9rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .feature-item:first-child {
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .feature-label {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      min-width: 140px;
+    }
+
+    .feature-desc {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.45);
+      line-height: 1.5;
+    }
+
+    /* ===== DEMO — minimal terminal ===== */
+    .demo {
+      background: var(--charcoal);
+      padding: 0 2rem 3.5rem;
+      display: flex;
+      justify-content: center;
     }
 
     .terminal {
-      background: #110e0a;
-      border-radius: 4px;
-      max-width: 640px;
+      background: #0a0a0a;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      max-width: 600px;
       width: 100%;
       overflow: hidden;
-      box-shadow:
-        0 0 0 1px rgba(252,194,0,0.15),
-        0 20px 80px rgba(0,0,0,0.6);
-      position: relative;
-    }
-
-    /* Amber safe-light glow at top */
-    .terminal::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 80px;
-      background: linear-gradient(180deg, rgba(252,194,0,0.06) 0%, transparent 100%);
-      pointer-events: none;
     }
 
     .terminal-bar {
       display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      background: rgba(252,194,0,0.08);
-      border-bottom: 1px solid rgba(252,194,0,0.1);
-    }
-    .terminal-bar::after {
-      content: "CHARMERA PROCESSING LAB";
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.6rem;
-      letter-spacing: 0.15em;
-      color: rgba(252,194,0,0.4);
-      margin-left: auto;
+      gap: 6px;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .terminal-dot {
       width: 8px;
@@ -322,197 +231,28 @@
     }
 
     .terminal-body {
-      padding: 1.5rem;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.8rem;
+      padding: 1.2rem 1.4rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
       line-height: 1.9;
-      color: #d4a050;
+      color: rgba(255,255,255,0.5);
     }
-    .terminal-body .prompt { color: var(--yellow); }
-    .terminal-body .success { color: #c0a050; }
+    .terminal-body .prompt { color: rgba(255,255,255,0.7); }
+    .terminal-body .success { color: var(--yellow); }
     .terminal-body .highlight { color: var(--yellow); font-weight: 500; }
-    .terminal-body .dim { opacity: 0.35; }
+    .terminal-body .dim { opacity: 0.3; }
 
-    /* Typing animation */
     .type-line {
       opacity: 0;
       animation: typeFade 0.3s ease forwards;
     }
+    @keyframes typeFade { to { opacity: 1; } }
 
-    @keyframes typeFade {
-      to { opacity: 1; }
-    }
-
-    /* ===== SCREENSHOT — polaroid print ===== */
-    .screenshot-section {
-      padding: 0 2rem 4rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0;
-    }
-
-    .screenshot-frame {
-      max-width: 860px;
-      width: 100%;
-      background: var(--cream);
-      padding: 12px 12px 40px 12px;
-      border-radius: 2px;
-      box-shadow:
-        0 2px 8px rgba(0,0,0,0.3),
-        0 20px 60px rgba(0,0,0,0.3);
-      transform: rotate(-0.5deg);
-      transition: transform 0.4s ease;
-    }
-    .screenshot-frame:hover {
-      transform: rotate(0deg) scale(1.01);
-    }
-
-    .screenshot-frame img {
-      width: 100%;
-      display: block;
-      border-radius: 1px;
-    }
-
-    .screenshot-caption {
-      font-family: 'Playfair Display', serif;
-      font-style: italic;
-      font-size: 0.75rem;
-      color: var(--warm-gray);
-      text-align: center;
-      margin-top: 10px;
-    }
-
-    /* ===== FEATURES — film-strip layout ===== */
-    .features {
-      padding: 4rem 0;
-      background: var(--charcoal);
-      color: var(--cream);
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Film-strip sprocket holes */
-    .features::before,
-    .features::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 32px;
-      background:
-        repeating-linear-gradient(
-          to bottom,
-          transparent 0px,
-          transparent 14px,
-          rgba(255,255,255,0.06) 14px,
-          rgba(255,255,255,0.06) 26px,
-          transparent 26px,
-          transparent 40px
-        );
-      z-index: 1;
-    }
-    .features::before { left: 0; }
-    .features::after { right: 0; }
-
-    .features h2 {
-      font-family: 'Righteous', cursive;
-      font-weight: 400;
-      font-size: 1.4rem;
-      text-align: center;
-      margin-bottom: 2.5rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--yellow);
-      position: relative;
-      padding-bottom: 1rem;
-    }
-    .features h2::after {
-      content: "\2022 \2022 \2022";
-      display: block;
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 0.5rem;
-      letter-spacing: 0.6em;
-      color: rgba(255,255,255,0.15);
-    }
-
-    .feature-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 0 3rem;
-    }
-
-    .feature-card {
-      display: grid;
-      grid-template-columns: 56px 1fr;
-      gap: 1rem;
-      align-items: start;
-      padding: 1.4rem 0;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      cursor: default;
-      transition: background 0.2s ease;
-    }
-    .feature-card:first-child {
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-    .feature-card:hover {
-      background: rgba(255,255,255,0.03);
-    }
-
-    .feature-card .icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.85rem;
-      font-weight: 600;
-      font-family: 'IBM Plex Mono', monospace;
-      color: var(--charcoal);
-      margin-top: 2px;
-    }
-    .feature-card .icon.icon-red { background: var(--red); color: var(--cream); }
-    .feature-card .icon.icon-blue { background: var(--blue); color: var(--cream); }
-    .feature-card .icon.icon-orange { background: var(--orange); color: var(--cream); }
-    .feature-card .icon.icon-charcoal { background: var(--yellow); color: var(--charcoal); }
-    .feature-card h3 {
-      font-family: 'Righteous', cursive;
-      font-weight: 400;
-      font-size: 0.95rem;
-      margin-bottom: 0.25rem;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: white;
-    }
-    .feature-card p {
-      font-size: 0.82rem;
-      color: rgba(255,255,255,0.5);
-      line-height: 1.5;
-    }
-
-    /* ===== TECH — specifications label ===== */
+    /* ===== TECH — inline specs ===== */
     .tech {
-      padding: 2.5rem 2rem;
+      background: var(--charcoal);
+      padding: 0 2rem 3rem;
       text-align: center;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .tech-label {
-      font-family: 'Righteous', cursive;
-      font-size: 0.6rem;
-      letter-spacing: 0.25em;
-      text-transform: uppercase;
-      color: var(--yellow);
-      opacity: 0.6;
-      margin-bottom: 1rem;
     }
 
     .tech-pills {
@@ -522,270 +262,155 @@
       flex-wrap: wrap;
     }
     .tech-pill {
-      padding: 0.35rem 0.8rem;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 2px;
-      background: rgba(255,255,255,0.03);
-      font-size: 0.7rem;
-      font-weight: 500;
-      font-family: 'IBM Plex Mono', monospace;
+      padding: 0.3rem 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
       letter-spacing: 0.05em;
-      transition: border-color 0.2s ease-out, color 0.2s ease-out;
+      color: rgba(255,255,255,0.25);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 3px;
     }
-    .tech-pill:hover { border-color: var(--yellow); color: var(--yellow); }
 
-    /* ===== CTA — vintage product box ===== */
+    /* ===== CTA — yellow box ===== */
     .cta {
-      padding: 5rem 2rem;
-      background: var(--charcoal);
+      padding: 3.5rem 2rem;
       text-align: center;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .cta-box {
-      max-width: 480px;
-      width: 100%;
-      background: var(--yellow);
-      border-radius: 4px;
-      padding: 3rem 2.5rem 2.5rem;
-      position: relative;
-      box-shadow:
-        0 0 0 3px var(--charcoal),
-        0 0 0 5px var(--yellow-dark),
-        0 20px 60px rgba(0,0,0,0.4);
-    }
-
-    /* Corner crop marks */
-    .cta-box::before,
-    .cta-box::after {
-      content: "";
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border: 2px solid rgba(0,0,0,0.12);
-    }
-    .cta-box::before {
-      top: 12px;
-      left: 12px;
-      border-right: none;
-      border-bottom: none;
-    }
-    .cta-box::after {
-      bottom: 12px;
-      right: 12px;
-      border-left: none;
-      border-top: none;
-    }
-
-    .cta-edition {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.55rem;
-      letter-spacing: 0.3em;
-      text-transform: uppercase;
-      color: var(--charcoal);
-      opacity: 0.4;
-      margin-bottom: 1rem;
     }
 
     .cta h2 {
-      font-family: 'Righteous', cursive;
-      font-weight: 400;
-      font-size: 2rem;
-      color: var(--charcoal);
-      margin-bottom: 0.5rem;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 1.8rem;
+      margin-bottom: 0.4rem;
     }
     .cta p {
-      color: var(--charcoal);
       opacity: 0.55;
-      margin-bottom: 2rem;
-      font-size: 0.85rem;
-      font-family: 'Playfair Display', serif;
-      font-style: italic;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
     }
-    .cta .install-cmd {
+
+    .install-cmd {
       display: inline-block;
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.75rem;
-      background: rgba(0,0,0,0.08);
-      padding: 0.6rem 1.2rem;
-      border-radius: 2px;
-      color: var(--charcoal);
-      margin-top: 1.5rem;
+      background: rgba(0,0,0,0.07);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      margin-top: 1rem;
       cursor: pointer;
-      transition: background 0.2s;
-      border: 1px solid rgba(0,0,0,0.1);
     }
-    .cta .install-cmd:hover { background: rgba(0,0,0,0.14); }
-    .cta .install-cmd .copied {
+    .install-cmd:hover { background: rgba(0,0,0,0.1); }
+    .install-cmd .copied {
       display: none;
       color: var(--red);
-      font-family: 'IBM Plex Sans', sans-serif;
       font-weight: 600;
     }
 
     /* ===== FOOTER ===== */
     footer {
-      padding: 2.5rem 2rem 2rem;
+      background: var(--charcoal);
+      padding: 1.5rem 2rem;
       text-align: center;
-      font-size: 0.65rem;
+      font-size: 0.7rem;
       color: rgba(255,255,255,0.25);
-      font-family: 'IBM Plex Mono', monospace;
-      letter-spacing: 0.05em;
     }
-    footer a {
-      color: var(--yellow);
-      text-decoration: none;
-      display: inline-block;
-      padding: 0.5rem 0;
-      min-height: 44px;
-      line-height: 44px;
-      font-family: 'Righteous', cursive;
-      letter-spacing: 0.08em;
-    }
+    footer a { color: var(--yellow); text-decoration: none; }
 
-    /* ===== FOCUS STYLES ===== */
-    .btn:focus-visible {
+    /* ===== FOCUS + MOTION ===== */
+    .btn:focus-visible, .install-cmd:focus-visible {
       outline: 3px solid var(--red);
       outline-offset: 3px;
     }
-    .install-cmd:focus-visible {
-      outline: 3px solid var(--red);
-      outline-offset: 3px;
-    }
-    footer a:focus-visible {
-      outline: 2px solid var(--yellow);
-      outline-offset: 2px;
-    }
-
-    /* ===== REDUCED MOTION ===== */
     @media (prefers-reduced-motion: reduce) {
-      .reveal { transition: none; opacity: 1; transform: none; }
-      .hero-icon { animation: none; }
-      .scroll-arrow { animation: none; }
       .type-line { animation: none; opacity: 1; }
       .btn:hover { transform: none; }
-      .feature-card:hover { transform: none; }
-      .screenshot-frame:hover { transform: none; }
     }
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 640px) {
       .hero h1 { font-size: 2rem; }
-      .terminal-body { font-size: 0.68rem; }
+      .feature-item { flex-direction: column; gap: 0.25rem; }
+      .feature-label { min-width: auto; }
       .hero-buttons { flex-direction: column; align-items: center; }
-      .feature-grid { padding: 0 1.5rem; }
-      .features::before, .features::after { display: none; }
-      .cta-box { padding: 2rem 1.5rem 2rem; }
-      .screenshot-frame { padding: 8px 8px 28px 8px; }
     }
   </style>
 </head>
 <body>
 
+  <!-- Rainbow stripe at top like a Kodak box lid -->
+  <div class="stripe"></div>
+
   <!-- HERO -->
   <section class="hero">
-    <div class="hero-band"></div>
     <img src="icon-64.png" alt="Charmera" class="hero-icon" />
-    <p class="hero-tagline">Est. 1987 &middot; Kodak Charmera Series</p>
-    <h1>
-      Your photos deserve<br/><span class="accent">better names</span>
-    </h1>
+    <p class="hero-brand">Kodak Charmera &middot; est. 1987</p>
+    <h1>Your photos deserve<br/>better names</h1>
     <p class="subtitle">
-      Plug in your camera. AI describes every photo and renames the files — all on your machine, nothing uploaded.
+      Plug in your camera. AI describes every photo and renames the files, all on your machine.
     </p>
     <div class="hero-buttons">
       <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="btn btn-dark">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-        Star on GitHub
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
       </a>
-      <a href="https://github.com/h3qing/Kodak-Charmera-Companion#quick-start" class="btn btn-ghost">
+      <a href="https://github.com/h3qing/Kodak-Charmera-Companion#quick-start" class="btn btn-outline">
         Get Started
       </a>
     </div>
-    <p class="hero-hint">v0.6.0 &middot; Rust + Tauri 2 &middot; MIT License</p>
-
-    <div class="scroll-arrow">
-      <svg width="24" height="24" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-      </svg>
-    </div>
+    <p class="hero-meta">v0.6.0 &middot; Rust &middot; Tauri 2 &middot; MIT</p>
   </section>
 
   <div class="stripe"></div>
 
-  <!-- DARKROOM DEMO -->
-  <section class="demo">
-    <span class="demo-label">The Darkroom</span>
-    <div class="terminal reveal">
-      <div class="terminal-bar">
-        <div class="terminal-dot" style="background:var(--red)"></div>
-        <div class="terminal-dot" style="background:var(--yellow)"></div>
-        <div class="terminal-dot" style="background:#6b5b3e"></div>
-      </div>
-      <div class="terminal-body" id="terminal">
-        <!-- Lines injected by JS typing animation -->
-      </div>
-    </div>
-  </section>
-
-  <!-- SCREENSHOT -->
-  <section class="screenshot-section reveal">
-    <div class="screenshot-frame">
-      <img src="screenshot.png" alt="Charmera Companion app" />
-      <p class="screenshot-caption">The companion app &mdash; drag, label, rename</p>
-    </div>
-  </section>
-
   <!-- FEATURES -->
   <section class="features">
-    <h2 class="reveal">What it does</h2>
-    <div class="feature-grid">
-      <div class="feature-card reveal reveal-delay-1">
-        <div class="icon icon-red">AI</div>
-        <h3>Local AI Labeling</h3>
-        <p>Ollama vision models describe every photo. Runs on your machine, never uploads.</p>
+    <div class="features-inner">
+      <h2>What it does</h2>
+      <div class="feature-item">
+        <span class="feature-label">AI Labeling</span>
+        <span class="feature-desc">Local Ollama vision models describe every photo. Nothing leaves your machine.</span>
       </div>
-      <div class="feature-card reveal reveal-delay-2">
-        <div class="icon icon-blue">Aa</div>
-        <h3>Smart Rename</h3>
-        <p>PICT0042.jpg becomes "sunset at the beach.jpg" with customizable patterns.</p>
+      <div class="feature-item">
+        <span class="feature-label">Smart Rename</span>
+        <span class="feature-desc">PICT0042.jpg becomes "sunset at the beach.jpg" with your naming pattern.</span>
       </div>
-      <div class="feature-card reveal reveal-delay-3">
-        <div class="icon icon-orange">fx</div>
-        <h3>10 Effects + 4 Frames</h3>
-        <p>Vintage, noir, grain, polaroid. Before/after comparison. Batch export.</p>
+      <div class="feature-item">
+        <span class="feature-label">Effects + Frames</span>
+        <span class="feature-desc">10 effects, 4 frames. Vintage, noir, grain, polaroid. Batch export.</span>
       </div>
-      <div class="feature-card reveal reveal-delay-1">
-        <div class="icon icon-charcoal">/</div>
-        <h3>Any Photo Folder</h3>
-        <p>Drag-and-drop any folder. JPEG, PNG, BMP, WebP. Demo mode included.</p>
+      <div class="feature-item">
+        <span class="feature-label">Any Folder</span>
+        <span class="feature-desc">Drag and drop. JPEG, PNG, BMP, WebP. Works without a camera.</span>
       </div>
-      <div class="feature-card reveal reveal-delay-2">
-        <div class="icon icon-red">&gt;_</div>
-        <h3>11 CLI Commands</h3>
-        <p>batch-label, rename, info, detect, effects, all with --json for automation.</p>
+      <div class="feature-item">
+        <span class="feature-label">CLI</span>
+        <span class="feature-desc">11 commands with --json output. Built for automation and AI agents.</span>
       </div>
-      <div class="feature-card reveal reveal-delay-3">
-        <div class="icon icon-charcoal">&bull;</div>
-        <h3>100% Private</h3>
-        <p>Rust backend, SQLite, local AI. Your photos never leave your machine.</p>
+      <div class="feature-item">
+        <span class="feature-label">100% Private</span>
+        <span class="feature-desc">Rust backend, SQLite, local AI. No cloud, no accounts, no tracking.</span>
       </div>
+    </div>
+  </section>
+
+  <!-- DEMO -->
+  <section class="demo">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot" style="background:#ff5f57"></div>
+        <div class="terminal-dot" style="background:#ffbd2e"></div>
+        <div class="terminal-dot" style="background:#27c93f"></div>
+      </div>
+      <div class="terminal-body" id="terminal"></div>
     </div>
   </section>
 
   <!-- TECH -->
-  <section class="tech reveal">
-    <p class="tech-label">Built with</p>
+  <section class="tech">
     <div class="tech-pills">
       <span class="tech-pill">Rust</span>
       <span class="tech-pill">Tauri 2</span>
       <span class="tech-pill">Solid.js</span>
-      <span class="tech-pill">Tailwind CSS</span>
       <span class="tech-pill">Ollama</span>
       <span class="tech-pill">SQLite</span>
     </div>
@@ -795,100 +420,63 @@
 
   <!-- CTA -->
   <section class="cta">
-    <div class="cta-box reveal">
-      <p class="cta-edition">Open Source Edition &middot; v0.6.0</p>
-      <h2>Open the box</h2>
-      <p>Free forever. Your photos stay yours.</p>
-      <div class="hero-buttons">
-        <a href="https://github.com/h3qing/Kodak-Charmera-Companion/releases" class="btn btn-dark">
-          Download
-        </a>
-        <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="btn btn-ghost" style="color:var(--charcoal);">
-          View Source
-        </a>
-      </div>
-      <div class="install-cmd" role="button" tabindex="0" onclick="copyInstall(this)" onkeydown="if(event.key==='Enter')copyInstall(this)">
-        <span class="cmd">curl -fsSL https://raw.githubusercontent.com/h3qing/Kodak-Charmera-Companion/main/scripts/install.sh | bash</span>
-        <span class="copied"> -- copied!</span>
-      </div>
+    <h2>Try it now</h2>
+    <p>Free, open source, no camera required.</p>
+    <div class="hero-buttons">
+      <a href="https://github.com/h3qing/Kodak-Charmera-Companion/releases" class="btn btn-dark">Download</a>
+      <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="btn btn-outline">Source</a>
+    </div>
+    <div class="install-cmd" role="button" tabindex="0" onclick="copyInstall(this)" onkeydown="if(event.key==='Enter')copyInstall(this)">
+      <span class="cmd">brew tap h3qing/tap && brew install charmera</span>
+      <span class="copied"> — copied!</span>
     </div>
   </section>
 
-  <!-- FOOTER -->
   <div class="stripe"></div>
+
+  <!-- FOOTER -->
   <footer>
-    <p><a href="https://github.com/h3qing/Kodak-Charmera-Companion">Charmera Companion</a></p>
-    <p style="margin-top:0.5rem;">MIT License &middot; Made with care for your photographs</p>
-    <p style="margin-top:0.3rem; opacity:0.5;">Not affiliated with Kodak. Trademarks belong to their respective owners.</p>
+    <a href="https://github.com/h3qing/Kodak-Charmera-Companion">Charmera Companion</a> &middot; MIT License
+    <p style="margin-top:0.3rem;">Not affiliated with Kodak. Trademarks belong to their respective owners.</p>
   </footer>
 
   <script>
-    // ===== Scroll reveal =====
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-        }
-      });
-    }, { threshold: 0.1 });
-
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-    // ===== Terminal typing animation =====
+    // Terminal typing
     const lines = [
       { text: '$ charmera batch-label ./vacation/ --rename', class: 'prompt' },
       { text: '[1/36] PICT0001.jpg...', class: 'dim' },
-      { text: 'PICT0001.jpg: A brown dog on the couch', class: '' },
       { text: '  → b 03-30-2026 brown dog on the couch.jpg', class: 'success' },
-      { text: 'PICT0002.jpg: Sunset over the ocean', class: '' },
       { text: '  → b 03-30-2026 sunset over the ocean.jpg', class: 'success' },
       { text: '', class: '' },
-      { text: 'Labeled 36/36 photos, renamed 36', class: 'highlight' },
+      { text: 'Labeled 36 photos, renamed 36 ✓', class: 'highlight' },
     ];
 
     const terminal = document.getElementById('terminal');
-    let lineIndex = 0;
-    let started = false;
+    let lineIndex = 0, started = false;
 
-    const terminalObserver = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && !started) {
-        started = true;
-        typeLine();
-      }
+    const obs = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !started) { started = true; typeLine(); }
     }, { threshold: 0.3 });
-
-    terminalObserver.observe(terminal);
+    obs.observe(terminal);
 
     function typeLine() {
       if (lineIndex >= lines.length) return;
       const line = lines[lineIndex];
       const el = document.createElement('div');
       el.className = `type-line ${line.class}`;
-      el.style.animationDelay = `${lineIndex * 0.15}s`;
+      el.style.animationDelay = `${lineIndex * 0.12}s`;
       el.textContent = line.text || '\u00A0';
       terminal.appendChild(el);
       lineIndex++;
-      setTimeout(typeLine, 400);
+      setTimeout(typeLine, 350);
     }
 
-    // ===== Copy install command =====
     function copyInstall(el) {
-      const cmd = el.querySelector('.cmd').textContent;
-      navigator.clipboard.writeText(cmd).then(() => {
+      navigator.clipboard.writeText(el.querySelector('.cmd').textContent).then(() => {
         el.querySelector('.copied').style.display = 'inline';
-        setTimeout(() => {
-          el.querySelector('.copied').style.display = 'none';
-        }, 2000);
+        setTimeout(() => el.querySelector('.copied').style.display = 'none', 2000);
       });
     }
-
-    // ===== Parallax on hero icon =====
-    const heroIcon = document.querySelector('.hero-icon');
-    window.addEventListener('mousemove', (e) => {
-      const x = (e.clientX / window.innerWidth - 0.5) * 20;
-      const y = (e.clientY / window.innerHeight - 0.5) * 20;
-      heroIcon.style.transform = `translate(${x}px, ${y}px)`;
-    });
   </script>
 
 </body>
