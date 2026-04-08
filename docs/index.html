@@ -42,17 +42,18 @@
       overflow-x: hidden;
     }
 
-    /* Film grain overlay */
+    /* Film grain overlay — heavier for authentic texture */
     body::after {
       content: "";
       position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: 9999;
-      opacity: 0.035;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.05;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
       background-repeat: repeat;
       background-size: 256px 256px;
+      mix-blend-mode: overlay;
     }
 
     /* Scroll-triggered animations */
@@ -164,7 +165,13 @@
       text-transform: uppercase;
     }
 
-    .hero h1 .accent { color: var(--red); }
+    .hero h1 .accent {
+      color: var(--red);
+      text-decoration: underline;
+      text-decoration-thickness: 4px;
+      text-underline-offset: 6px;
+      text-decoration-color: rgba(196,30,58,0.4);
+    }
 
     .hero .subtitle {
       font-family: 'Playfair Display', serif;
@@ -417,6 +424,19 @@
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--yellow);
+      position: relative;
+      padding-bottom: 1rem;
+    }
+    .features h2::after {
+      content: "\2022 \2022 \2022";
+      display: block;
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.5rem;
+      letter-spacing: 0.6em;
+      color: rgba(255,255,255,0.15);
     }
 
     .feature-grid {
@@ -655,9 +675,13 @@
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 640px) {
-      .hero h1 { font-size: 2.2rem; }
-      .terminal-body { font-size: 0.72rem; }
+      .hero h1 { font-size: 2rem; }
+      .terminal-body { font-size: 0.68rem; }
       .hero-buttons { flex-direction: column; align-items: center; }
+      .feature-grid { padding: 0 1.5rem; }
+      .features::before, .features::after { display: none; }
+      .cta-box { padding: 2rem 1.5rem 2rem; }
+      .screenshot-frame { padding: 8px 8px 28px 8px; }
     }
   </style>
 </head>
