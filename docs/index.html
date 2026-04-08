@@ -18,7 +18,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Nunito:wght@700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Righteous&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet" />
 
   <style>
     :root {
@@ -36,23 +36,24 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'DM Sans', system-ui, sans-serif;
+      font-family: 'IBM Plex Sans', system-ui, sans-serif;
       background: var(--charcoal);
       color: white;
       overflow-x: hidden;
     }
 
-    /* Film grain overlay */
+    /* Film grain overlay — heavier for authentic texture */
     body::after {
       content: "";
       position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: 9999;
-      opacity: 0.035;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.05;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
       background-repeat: repeat;
       background-size: 256px 256px;
+      mix-blend-mode: overlay;
     }
 
     /* Scroll-triggered animations */
@@ -96,46 +97,89 @@
       overflow: hidden;
     }
 
-    /* Vintage vignette on hero */
+    /* Bold rainbow band across hero */
+    .hero-band {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: linear-gradient(to right,
+        var(--red) 0%, var(--red) 20%,
+        var(--orange) 20%, var(--orange) 40%,
+        var(--yellow-dark) 40%, var(--yellow-dark) 55%,
+        #2E8B57 55%, #2E8B57 70%,
+        var(--blue) 70%, var(--blue) 85%,
+        var(--purple) 85%, var(--purple) 100%
+      );
+      z-index: 2;
+    }
+
+    /* Vintage vignette on hero — heavier */
     .hero::before {
       content: "";
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.08) 100%);
+        radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.12) 100%);
+      pointer-events: none;
+    }
+
+    /* Decorative circle — film canister motif */
+    .hero::after {
+      content: "";
+      position: absolute;
+      top: -120px;
+      right: -120px;
+      width: 350px;
+      height: 350px;
+      border-radius: 50%;
+      border: 40px solid rgba(0,0,0,0.03);
       pointer-events: none;
     }
 
     .hero-icon {
-      width: 120px;
-      height: 120px;
-      border-radius: 28px;
-      margin-bottom: 1rem;
+      width: 100px;
+      height: 100px;
+      border-radius: 16px;
+      margin-bottom: 1.2rem;
       animation: float 3s ease-in-out infinite;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      box-shadow:
+        0 8px 30px rgba(0,0,0,0.15),
+        0 0 0 3px rgba(0,0,0,0.08);
     }
 
     @keyframes float {
       0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
+      50% { transform: translateY(-8px); }
     }
 
     .hero h1 {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 900;
-      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-family: 'Righteous', cursive;
+      font-weight: 400;
+      font-size: clamp(2.8rem, 7vw, 4.5rem);
       color: var(--charcoal);
       line-height: 1.05;
       margin-bottom: 1rem;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
     }
 
-    .hero h1 .accent { color: var(--red); }
+    .hero h1 .accent {
+      color: var(--red);
+      text-decoration: underline;
+      text-decoration-thickness: 4px;
+      text-underline-offset: 6px;
+      text-decoration-color: rgba(196,30,58,0.4);
+    }
 
     .hero .subtitle {
-      font-size: 1.1rem;
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 1.15rem;
       color: var(--charcoal);
-      opacity: 0.8;
-      max-width: 500px;
+      opacity: 0.75;
+      max-width: 480px;
       line-height: 1.6;
       margin-bottom: 2rem;
     }
@@ -152,9 +196,12 @@
       align-items: center;
       gap: 0.5rem;
       padding: 0.8rem 1.8rem;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 0.95rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      font-family: 'IBM Plex Sans', sans-serif;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
       text-decoration: none;
       transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out;
       cursor: pointer;
@@ -175,20 +222,26 @@
     .btn-ghost:hover { border-color: rgba(0,0,0,0.4); }
 
     .hero-tagline {
-      font-size: 0.7rem;
-      letter-spacing: 0.2em;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.25em;
       text-transform: uppercase;
       color: var(--charcoal);
-      opacity: 0.5;
+      opacity: 0.4;
       margin-bottom: 1.5rem;
       font-weight: 500;
+      padding: 0.3rem 0.8rem;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 2px;
     }
 
     .hero-hint {
       margin-top: 1.5rem;
-      font-size: 0.8rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
       color: var(--charcoal);
-      opacity: 0.4;
+      opacity: 0.35;
+      letter-spacing: 0.05em;
     }
 
     .scroll-arrow {
@@ -204,45 +257,81 @@
       50% { transform: translateX(-50%) translateY(8px); }
     }
 
-    /* ===== TERMINAL DEMO ===== */
+    /* ===== DARKROOM DEMO ===== */
     .demo {
       padding: 4rem 2rem;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .demo-label {
+      font-family: 'Righteous', cursive;
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--yellow);
+      opacity: 0.7;
     }
 
     .terminal {
-      background: #0d1117;
-      border-radius: 16px;
-      max-width: 720px;
+      background: #110e0a;
+      border-radius: 4px;
+      max-width: 640px;
       width: 100%;
       overflow: hidden;
-      box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+      box-shadow:
+        0 0 0 1px rgba(252,194,0,0.15),
+        0 20px 80px rgba(0,0,0,0.6);
+      position: relative;
+    }
+
+    /* Amber safe-light glow at top */
+    .terminal::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      background: linear-gradient(180deg, rgba(252,194,0,0.06) 0%, transparent 100%);
+      pointer-events: none;
     }
 
     .terminal-bar {
       display: flex;
+      align-items: center;
       gap: 8px;
-      padding: 14px 16px;
-      background: #161b22;
+      padding: 10px 16px;
+      background: rgba(252,194,0,0.08);
+      border-bottom: 1px solid rgba(252,194,0,0.1);
+    }
+    .terminal-bar::after {
+      content: "CHARMERA PROCESSING LAB";
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      color: rgba(252,194,0,0.4);
+      margin-left: auto;
     }
     .terminal-dot {
-      width: 12px;
-      height: 12px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
     }
 
     .terminal-body {
       padding: 1.5rem;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.82rem;
-      line-height: 1.8;
-      color: #c9d1d9;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.9;
+      color: #d4a050;
     }
-    .terminal-body .prompt { color: #58a6ff; }
-    .terminal-body .success { color: #3fb950; }
-    .terminal-body .highlight { color: var(--yellow); }
-    .terminal-body .dim { opacity: 0.4; }
+    .terminal-body .prompt { color: var(--yellow); }
+    .terminal-body .success { color: #c0a050; }
+    .terminal-body .highlight { color: var(--yellow); font-weight: 500; }
+    .terminal-body .dim { opacity: 0.35; }
 
     /* Typing animation */
     .type-line {
@@ -254,175 +343,299 @@
       to { opacity: 1; }
     }
 
-    /* ===== SCREENSHOT ===== */
+    /* ===== SCREENSHOT — polaroid print ===== */
     .screenshot-section {
       padding: 0 2rem 4rem;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
     }
 
-    .screenshot-section img {
-      max-width: 900px;
+    .screenshot-frame {
+      max-width: 860px;
       width: 100%;
-      border-radius: 16px;
-      box-shadow: 0 20px 80px rgba(0,0,0,0.4);
-      transition: transform 0.3s ease;
+      background: var(--cream);
+      padding: 12px 12px 40px 12px;
+      border-radius: 2px;
+      box-shadow:
+        0 2px 8px rgba(0,0,0,0.3),
+        0 20px 60px rgba(0,0,0,0.3);
+      transform: rotate(-0.5deg);
+      transition: transform 0.4s ease;
     }
-    .screenshot-section img:hover {
-      transform: scale(1.02);
+    .screenshot-frame:hover {
+      transform: rotate(0deg) scale(1.01);
     }
 
-    /* ===== FEATURES ===== */
-    .features {
-      padding: 5rem 2rem;
-      background: var(--cream);
-      color: var(--charcoal);
+    .screenshot-frame img {
+      width: 100%;
+      display: block;
+      border-radius: 1px;
     }
+
+    .screenshot-caption {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 0.75rem;
+      color: var(--warm-gray);
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    /* ===== FEATURES — film-strip layout ===== */
+    .features {
+      padding: 4rem 0;
+      background: var(--charcoal);
+      color: var(--cream);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Film-strip sprocket holes */
+    .features::before,
+    .features::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 32px;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0px,
+          transparent 14px,
+          rgba(255,255,255,0.06) 14px,
+          rgba(255,255,255,0.06) 26px,
+          transparent 26px,
+          transparent 40px
+        );
+      z-index: 1;
+    }
+    .features::before { left: 0; }
+    .features::after { right: 0; }
 
     .features h2 {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 800;
-      font-size: 2rem;
+      font-family: 'Righteous', cursive;
+      font-weight: 400;
+      font-size: 1.4rem;
       text-align: center;
-      margin-bottom: 3rem;
+      margin-bottom: 2.5rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--yellow);
+      position: relative;
+      padding-bottom: 1rem;
+    }
+    .features h2::after {
+      content: "\2022 \2022 \2022";
+      display: block;
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.5rem;
+      letter-spacing: 0.6em;
+      color: rgba(255,255,255,0.15);
     }
 
     .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5rem;
-      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 640px;
       margin: 0 auto;
+      padding: 0 3rem;
     }
 
     .feature-card {
-      padding: 1.5rem;
-      border-radius: 12px;
-      background: white;
-      border: 1px solid #e8e0d6;
-      transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 1rem;
+      align-items: start;
+      padding: 1.4rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
       cursor: default;
+      transition: background 0.2s ease;
+    }
+    .feature-card:first-child {
+      border-top: 1px solid rgba(255,255,255,0.08);
     }
     .feature-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      background: rgba(255,255,255,0.03);
     }
 
     .feature-card .icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
+      width: 44px;
+      height: 44px;
+      border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 0.75rem;
-      font-size: 1rem;
-      font-weight: 800;
-      font-family: 'Nunito', sans-serif;
-      color: var(--cream);
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--charcoal);
+      margin-top: 2px;
     }
-    .feature-card .icon.icon-red { background: var(--red); }
-    .feature-card .icon.icon-blue { background: var(--blue); }
-    .feature-card .icon.icon-orange { background: var(--orange); }
-    .feature-card .icon.icon-charcoal { background: var(--charcoal); }
+    .feature-card .icon.icon-red { background: var(--red); color: var(--cream); }
+    .feature-card .icon.icon-blue { background: var(--blue); color: var(--cream); }
+    .feature-card .icon.icon-orange { background: var(--orange); color: var(--cream); }
+    .feature-card .icon.icon-charcoal { background: var(--yellow); color: var(--charcoal); }
     .feature-card h3 {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 700;
-      font-size: 1rem;
-      margin-bottom: 0.4rem;
+      font-family: 'Righteous', cursive;
+      font-weight: 400;
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: white;
     }
     .feature-card p {
-      font-size: 0.85rem;
-      color: var(--warm-gray);
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.5);
       line-height: 1.5;
     }
 
-    /* ===== TECH ===== */
+    /* ===== TECH — specifications label ===== */
     .tech {
-      padding: 3rem 2rem;
+      padding: 2.5rem 2rem;
       text-align: center;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
 
     .tech-label {
-      font-size: 0.7rem;
-      letter-spacing: 0.2em;
+      font-family: 'Righteous', cursive;
+      font-size: 0.6rem;
+      letter-spacing: 0.25em;
       text-transform: uppercase;
-      opacity: 0.4;
+      color: var(--yellow);
+      opacity: 0.6;
       margin-bottom: 1rem;
-      font-weight: 500;
     }
 
     .tech-pills {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.4rem;
       justify-content: center;
       flex-wrap: wrap;
     }
     .tech-pill {
-      padding: 0.4rem 1rem;
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 4px;
-      background: transparent;
-      font-size: 0.8rem;
+      padding: 0.35rem 0.8rem;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 2px;
+      background: rgba(255,255,255,0.03);
+      font-size: 0.7rem;
       font-weight: 500;
-      font-family: 'JetBrains Mono', monospace;
-      transition: border-color 0.2s ease-out;
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.05em;
+      transition: border-color 0.2s ease-out, color 0.2s ease-out;
     }
     .tech-pill:hover { border-color: var(--yellow); color: var(--yellow); }
 
-    /* ===== CTA ===== */
+    /* ===== CTA — vintage product box ===== */
     .cta {
       padding: 5rem 2rem;
-      background: var(--yellow);
+      background: var(--charcoal);
       text-align: center;
       position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    .cta::before {
+
+    .cta-box {
+      max-width: 480px;
+      width: 100%;
+      background: var(--yellow);
+      border-radius: 4px;
+      padding: 3rem 2.5rem 2.5rem;
+      position: relative;
+      box-shadow:
+        0 0 0 3px var(--charcoal),
+        0 0 0 5px var(--yellow-dark),
+        0 20px 60px rgba(0,0,0,0.4);
+    }
+
+    /* Corner crop marks */
+    .cta-box::before,
+    .cta-box::after {
       content: "";
       position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(0,0,0,0.04) 0%, transparent 30%);
-      pointer-events: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(0,0,0,0.12);
     }
+    .cta-box::before {
+      top: 12px;
+      left: 12px;
+      border-right: none;
+      border-bottom: none;
+    }
+    .cta-box::after {
+      bottom: 12px;
+      right: 12px;
+      border-left: none;
+      border-top: none;
+    }
+
+    .cta-edition {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--charcoal);
+      opacity: 0.4;
+      margin-bottom: 1rem;
+    }
+
     .cta h2 {
-      font-family: 'Nunito', sans-serif;
-      font-weight: 900;
-      font-size: 2.2rem;
+      font-family: 'Righteous', cursive;
+      font-weight: 400;
+      font-size: 2rem;
       color: var(--charcoal);
       margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
     }
     .cta p {
       color: var(--charcoal);
-      opacity: 0.6;
+      opacity: 0.55;
       margin-bottom: 2rem;
-      font-size: 0.95rem;
+      font-size: 0.85rem;
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
     }
     .cta .install-cmd {
       display: inline-block;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
       background: rgba(0,0,0,0.08);
       padding: 0.6rem 1.2rem;
-      border-radius: 10px;
+      border-radius: 2px;
       color: var(--charcoal);
       margin-top: 1.5rem;
       cursor: pointer;
       transition: background 0.2s;
+      border: 1px solid rgba(0,0,0,0.1);
     }
-    .cta .install-cmd:hover { background: rgba(0,0,0,0.12); }
+    .cta .install-cmd:hover { background: rgba(0,0,0,0.14); }
     .cta .install-cmd .copied {
       display: none;
       color: var(--red);
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'IBM Plex Sans', sans-serif;
       font-weight: 600;
     }
 
     /* ===== FOOTER ===== */
     footer {
-      padding: 2rem;
+      padding: 2.5rem 2rem 2rem;
       text-align: center;
-      font-size: 0.75rem;
-      color: rgba(255,255,255,0.3);
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.25);
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.05em;
     }
     footer a {
       color: var(--yellow);
@@ -431,6 +644,8 @@
       padding: 0.5rem 0;
       min-height: 44px;
       line-height: 44px;
+      font-family: 'Righteous', cursive;
+      letter-spacing: 0.08em;
     }
 
     /* ===== FOCUS STYLES ===== */
@@ -455,14 +670,18 @@
       .type-line { animation: none; opacity: 1; }
       .btn:hover { transform: none; }
       .feature-card:hover { transform: none; }
-      .screenshot-section img:hover { transform: none; }
+      .screenshot-frame:hover { transform: none; }
     }
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 640px) {
-      .hero h1 { font-size: 2.2rem; }
-      .terminal-body { font-size: 0.72rem; }
+      .hero h1 { font-size: 2rem; }
+      .terminal-body { font-size: 0.68rem; }
       .hero-buttons { flex-direction: column; align-items: center; }
+      .feature-grid { padding: 0 1.5rem; }
+      .features::before, .features::after { display: none; }
+      .cta-box { padding: 2rem 1.5rem 2rem; }
+      .screenshot-frame { padding: 8px 8px 28px 8px; }
     }
   </style>
 </head>
@@ -470,8 +689,9 @@
 
   <!-- HERO -->
   <section class="hero">
+    <div class="hero-band"></div>
     <img src="icon-64.png" alt="Charmera" class="hero-icon" />
-    <p class="hero-tagline">Inspired by the 1987 Kodak Charmera</p>
+    <p class="hero-tagline">Est. 1987 &middot; Kodak Charmera Series</p>
     <h1>
       Your photos deserve<br/><span class="accent">better names</span>
     </h1>
@@ -498,13 +718,14 @@
 
   <div class="stripe"></div>
 
-  <!-- TERMINAL DEMO -->
+  <!-- DARKROOM DEMO -->
   <section class="demo">
+    <span class="demo-label">The Darkroom</span>
     <div class="terminal reveal">
       <div class="terminal-bar">
-        <div class="terminal-dot" style="background:#ff5f57"></div>
-        <div class="terminal-dot" style="background:#ffbd2e"></div>
-        <div class="terminal-dot" style="background:#27c93f"></div>
+        <div class="terminal-dot" style="background:var(--red)"></div>
+        <div class="terminal-dot" style="background:var(--yellow)"></div>
+        <div class="terminal-dot" style="background:#6b5b3e"></div>
       </div>
       <div class="terminal-body" id="terminal">
         <!-- Lines injected by JS typing animation -->
@@ -514,7 +735,10 @@
 
   <!-- SCREENSHOT -->
   <section class="screenshot-section reveal">
-    <img src="screenshot.png" alt="Charmera Companion app" />
+    <div class="screenshot-frame">
+      <img src="screenshot.png" alt="Charmera Companion app" />
+      <p class="screenshot-caption">The companion app &mdash; drag, label, rename</p>
+    </div>
   </section>
 
   <!-- FEATURES -->
@@ -571,26 +795,31 @@
 
   <!-- CTA -->
   <section class="cta">
-    <h2 class="reveal">Try it now</h2>
-    <p class="reveal">Free. Open source. No camera required.</p>
-    <div class="hero-buttons reveal">
-      <a href="https://github.com/h3qing/Kodak-Charmera-Companion/releases" class="btn btn-dark">
-        Download
-      </a>
-      <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="btn btn-ghost" style="color:var(--charcoal);">
-        View Source
-      </a>
-    </div>
-    <div class="install-cmd reveal" role="button" tabindex="0" onclick="copyInstall(this)" onkeydown="if(event.key==='Enter')copyInstall(this)">
-      <span class="cmd">curl -fsSL https://raw.githubusercontent.com/h3qing/Kodak-Charmera-Companion/main/scripts/install.sh | bash</span>
-      <span class="copied"> — copied!</span>
+    <div class="cta-box reveal">
+      <p class="cta-edition">Open Source Edition &middot; v0.6.0</p>
+      <h2>Open the box</h2>
+      <p>Free forever. Your photos stay yours.</p>
+      <div class="hero-buttons">
+        <a href="https://github.com/h3qing/Kodak-Charmera-Companion/releases" class="btn btn-dark">
+          Download
+        </a>
+        <a href="https://github.com/h3qing/Kodak-Charmera-Companion" class="btn btn-ghost" style="color:var(--charcoal);">
+          View Source
+        </a>
+      </div>
+      <div class="install-cmd" role="button" tabindex="0" onclick="copyInstall(this)" onkeydown="if(event.key==='Enter')copyInstall(this)">
+        <span class="cmd">curl -fsSL https://raw.githubusercontent.com/h3qing/Kodak-Charmera-Companion/main/scripts/install.sh | bash</span>
+        <span class="copied"> -- copied!</span>
+      </div>
     </div>
   </section>
 
   <!-- FOOTER -->
+  <div class="stripe"></div>
   <footer>
-    <p><a href="https://github.com/h3qing/Kodak-Charmera-Companion">Charmera Companion</a> &middot; MIT License</p>
-    <p style="margin-top:0.4rem;">Not affiliated with Kodak. Trademarks belong to their respective owners.</p>
+    <p><a href="https://github.com/h3qing/Kodak-Charmera-Companion">Charmera Companion</a></p>
+    <p style="margin-top:0.5rem;">MIT License &middot; Made with care for your photographs</p>
+    <p style="margin-top:0.3rem; opacity:0.5;">Not affiliated with Kodak. Trademarks belong to their respective owners.</p>
   </footer>
 
   <script>
