@@ -336,22 +336,44 @@
       to { opacity: 1; }
     }
 
-    /* ===== SCREENSHOT ===== */
+    /* ===== SCREENSHOT — polaroid print ===== */
     .screenshot-section {
       padding: 0 2rem 4rem;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
     }
 
-    .screenshot-section img {
-      max-width: 900px;
+    .screenshot-frame {
+      max-width: 860px;
       width: 100%;
-      border-radius: 16px;
-      box-shadow: 0 20px 80px rgba(0,0,0,0.4);
-      transition: transform 0.3s ease;
+      background: var(--cream);
+      padding: 12px 12px 40px 12px;
+      border-radius: 2px;
+      box-shadow:
+        0 2px 8px rgba(0,0,0,0.3),
+        0 20px 60px rgba(0,0,0,0.3);
+      transform: rotate(-0.5deg);
+      transition: transform 0.4s ease;
     }
-    .screenshot-section img:hover {
-      transform: scale(1.02);
+    .screenshot-frame:hover {
+      transform: rotate(0deg) scale(1.01);
+    }
+
+    .screenshot-frame img {
+      width: 100%;
+      display: block;
+      border-radius: 1px;
+    }
+
+    .screenshot-caption {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 0.75rem;
+      color: var(--warm-gray);
+      text-align: center;
+      margin-top: 10px;
     }
 
     /* ===== FEATURES — film-strip layout ===== */
@@ -455,36 +477,40 @@
       line-height: 1.5;
     }
 
-    /* ===== TECH ===== */
+    /* ===== TECH — specifications label ===== */
     .tech {
-      padding: 3rem 2rem;
+      padding: 2.5rem 2rem;
       text-align: center;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
 
     .tech-label {
-      font-size: 0.7rem;
-      letter-spacing: 0.2em;
+      font-family: 'Righteous', cursive;
+      font-size: 0.6rem;
+      letter-spacing: 0.25em;
       text-transform: uppercase;
-      opacity: 0.4;
+      color: var(--yellow);
+      opacity: 0.6;
       margin-bottom: 1rem;
-      font-weight: 500;
     }
 
     .tech-pills {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.4rem;
       justify-content: center;
       flex-wrap: wrap;
     }
     .tech-pill {
-      padding: 0.4rem 1rem;
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 4px;
-      background: transparent;
-      font-size: 0.8rem;
+      padding: 0.35rem 0.8rem;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 2px;
+      background: rgba(255,255,255,0.03);
+      font-size: 0.7rem;
       font-weight: 500;
       font-family: 'IBM Plex Mono', monospace;
-      transition: border-color 0.2s ease-out;
+      letter-spacing: 0.05em;
+      transition: border-color 0.2s ease-out, color 0.2s ease-out;
     }
     .tech-pill:hover { border-color: var(--yellow); color: var(--yellow); }
 
@@ -620,7 +646,7 @@
       .type-line { animation: none; opacity: 1; }
       .btn:hover { transform: none; }
       .feature-card:hover { transform: none; }
-      .screenshot-section img:hover { transform: none; }
+      .screenshot-frame:hover { transform: none; }
     }
 
     /* ===== RESPONSIVE ===== */
@@ -681,7 +707,10 @@
 
   <!-- SCREENSHOT -->
   <section class="screenshot-section reveal">
-    <img src="screenshot.png" alt="Charmera Companion app" />
+    <div class="screenshot-frame">
+      <img src="screenshot.png" alt="Charmera Companion app" />
+      <p class="screenshot-caption">The companion app &mdash; drag, label, rename</p>
+    </div>
   </section>
 
   <!-- FEATURES -->
