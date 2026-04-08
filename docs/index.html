@@ -211,45 +211,81 @@
       50% { transform: translateX(-50%) translateY(8px); }
     }
 
-    /* ===== TERMINAL DEMO ===== */
+    /* ===== DARKROOM DEMO ===== */
     .demo {
       padding: 4rem 2rem;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .demo-label {
+      font-family: 'Righteous', cursive;
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--yellow);
+      opacity: 0.7;
     }
 
     .terminal {
-      background: #0d1117;
-      border-radius: 16px;
-      max-width: 720px;
+      background: #110e0a;
+      border-radius: 4px;
+      max-width: 640px;
       width: 100%;
       overflow: hidden;
-      box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+      box-shadow:
+        0 0 0 1px rgba(252,194,0,0.15),
+        0 20px 80px rgba(0,0,0,0.6);
+      position: relative;
+    }
+
+    /* Amber safe-light glow at top */
+    .terminal::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      background: linear-gradient(180deg, rgba(252,194,0,0.06) 0%, transparent 100%);
+      pointer-events: none;
     }
 
     .terminal-bar {
       display: flex;
+      align-items: center;
       gap: 8px;
-      padding: 14px 16px;
-      background: #161b22;
+      padding: 10px 16px;
+      background: rgba(252,194,0,0.08);
+      border-bottom: 1px solid rgba(252,194,0,0.1);
+    }
+    .terminal-bar::after {
+      content: "CHARMERA PROCESSING LAB";
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      color: rgba(252,194,0,0.4);
+      margin-left: auto;
     }
     .terminal-dot {
-      width: 12px;
-      height: 12px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
     }
 
     .terminal-body {
       padding: 1.5rem;
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.82rem;
-      line-height: 1.8;
-      color: #c9d1d9;
+      font-size: 0.8rem;
+      line-height: 1.9;
+      color: #d4a050;
     }
-    .terminal-body .prompt { color: #58a6ff; }
-    .terminal-body .success { color: #3fb950; }
-    .terminal-body .highlight { color: var(--yellow); }
-    .terminal-body .dim { opacity: 0.4; }
+    .terminal-body .prompt { color: var(--yellow); }
+    .terminal-body .success { color: #c0a050; }
+    .terminal-body .highlight { color: var(--yellow); font-weight: 500; }
+    .terminal-body .dim { opacity: 0.35; }
 
     /* Typing animation */
     .type-line {
@@ -543,13 +579,14 @@
 
   <div class="stripe"></div>
 
-  <!-- TERMINAL DEMO -->
+  <!-- DARKROOM DEMO -->
   <section class="demo">
+    <span class="demo-label">The Darkroom</span>
     <div class="terminal reveal">
       <div class="terminal-bar">
-        <div class="terminal-dot" style="background:#ff5f57"></div>
-        <div class="terminal-dot" style="background:#ffbd2e"></div>
-        <div class="terminal-dot" style="background:#27c93f"></div>
+        <div class="terminal-dot" style="background:var(--red)"></div>
+        <div class="terminal-dot" style="background:var(--yellow)"></div>
+        <div class="terminal-dot" style="background:#6b5b3e"></div>
       </div>
       <div class="terminal-body" id="terminal">
         <!-- Lines injected by JS typing animation -->
