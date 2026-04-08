@@ -170,7 +170,7 @@ Tauri 2 Desktop App
 ### Homebrew (CLI only)
 
 ```bash
-brew tap h3qing/tap https://github.com/h3qing/Kodak-Charmera-Companion.git
+brew tap h3qing/tap
 brew install charmera
 ```
 
