@@ -279,71 +279,104 @@
       transform: scale(1.02);
     }
 
-    /* ===== FEATURES ===== */
+    /* ===== FEATURES — film-strip layout ===== */
     .features {
-      padding: 5rem 2rem;
-      background: var(--cream);
-      color: var(--charcoal);
+      padding: 4rem 0;
+      background: var(--charcoal);
+      color: var(--cream);
+      position: relative;
+      overflow: hidden;
     }
+
+    /* Film-strip sprocket holes */
+    .features::before,
+    .features::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 32px;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0px,
+          transparent 14px,
+          rgba(255,255,255,0.06) 14px,
+          rgba(255,255,255,0.06) 26px,
+          transparent 26px,
+          transparent 40px
+        );
+      z-index: 1;
+    }
+    .features::before { left: 0; }
+    .features::after { right: 0; }
 
     .features h2 {
       font-family: 'Righteous', cursive;
       font-weight: 400;
-      font-size: 1.6rem;
+      font-size: 1.4rem;
       text-align: center;
-      margin-bottom: 3rem;
-      letter-spacing: 0.15em;
+      margin-bottom: 2.5rem;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
+      color: var(--yellow);
     }
 
     .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5rem;
-      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 640px;
       margin: 0 auto;
+      padding: 0 3rem;
     }
 
     .feature-card {
-      padding: 1.5rem;
-      border-radius: 12px;
-      background: white;
-      border: 1px solid #e8e0d6;
-      transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 1rem;
+      align-items: start;
+      padding: 1.4rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
       cursor: default;
+      transition: background 0.2s ease;
+    }
+    .feature-card:first-child {
+      border-top: 1px solid rgba(255,255,255,0.08);
     }
     .feature-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      background: rgba(255,255,255,0.03);
     }
 
     .feature-card .icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
+      width: 44px;
+      height: 44px;
+      border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 0.75rem;
-      font-size: 1rem;
+      font-size: 0.85rem;
       font-weight: 600;
       font-family: 'IBM Plex Mono', monospace;
-      color: var(--cream);
+      color: var(--charcoal);
+      margin-top: 2px;
     }
-    .feature-card .icon.icon-red { background: var(--red); }
-    .feature-card .icon.icon-blue { background: var(--blue); }
-    .feature-card .icon.icon-orange { background: var(--orange); }
-    .feature-card .icon.icon-charcoal { background: var(--charcoal); }
+    .feature-card .icon.icon-red { background: var(--red); color: var(--cream); }
+    .feature-card .icon.icon-blue { background: var(--blue); color: var(--cream); }
+    .feature-card .icon.icon-orange { background: var(--orange); color: var(--cream); }
+    .feature-card .icon.icon-charcoal { background: var(--yellow); color: var(--charcoal); }
     .feature-card h3 {
       font-family: 'Righteous', cursive;
       font-weight: 400;
       font-size: 0.95rem;
-      margin-bottom: 0.4rem;
-      letter-spacing: 0.03em;
+      margin-bottom: 0.25rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: white;
     }
     .feature-card p {
-      font-size: 0.85rem;
-      color: var(--warm-gray);
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.5);
       line-height: 1.5;
     }
 
