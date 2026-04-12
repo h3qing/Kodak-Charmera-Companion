@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from .effects import EFFECTS, FRAMES, apply_effects
 from .importer import find_camera_or_raise, import_files, list_media_files
 from .splash import create_splash, install_splash
 
@@ -63,26 +62,6 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Save splash to custom path instead of installing",
     )
 
-    # --- effects ---
-    eff = sub.add_parser("effects", help="Apply effects and frames to photos")
-    eff.add_argument("input", help="Photo file or directory of photos")
-    eff.add_argument(
-        "--output", "-o",
-        default="./processed",
-        help="Output directory (default: ./processed)",
-    )
-    eff.add_argument(
-        "--effect", "-e",
-        action="append",
-        choices=list(EFFECTS.keys()),
-        help=f"Effect to apply (can repeat). Options: {', '.join(EFFECTS)}",
-    )
-    eff.add_argument(
-        "--frame", "-f",
-        choices=list(FRAMES.keys()),
-        help=f"Frame to apply. Options: {', '.join(FRAMES)}",
-    )
-
     # --- list ---
     lst = sub.add_parser("list", help="List photos on connected camera")
     lst.add_argument(
@@ -137,42 +116,6 @@ def _cmd_splash(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_effects(args: argparse.Namespace) -> int:
-    input_path = Path(args.input)
-    output_dir = Path(args.output)
-
-    if not args.effect and not args.frame:
-        print("Error: specify at least one --effect or --frame")
-        return 1
-
-    if input_path.is_file():
-        files = [input_path]
-    elif input_path.is_dir():
-        files = sorted(
-            f for f in input_path.iterdir()
-            if f.suffix.lower() in {".jpg", ".jpeg"} and not f.name.startswith(".")
-        )
-    else:
-        print(f"Error: {input_path} not found")
-        return 1
-
-    if not files:
-        print("No photos found.")
-        return 1
-
-    suffix = "_".join(args.effect or [])
-    if args.frame:
-        suffix = f"{suffix}_{args.frame}" if suffix else args.frame
-
-    for f in files:
-        out = output_dir / f"{f.stem}_{suffix}{f.suffix}"
-        apply_effects(f, out, effects=args.effect, frame=args.frame)
-        print(f"  {f.name} → {out}")
-
-    print(f"\n{len(files)} photo(s) processed.")
-    return 0
-
-
 def _cmd_list(args: argparse.Namespace) -> int:
     camera = find_camera_or_raise(args.source)
     files = list_media_files(camera)
@@ -197,7 +140,6 @@ def _cmd_list(args: argparse.Namespace) -> int:
 COMMANDS = {
     "import": _cmd_import,
     "splash": _cmd_splash,
-    "effects": _cmd_effects,
     "list": _cmd_list,
 }
 

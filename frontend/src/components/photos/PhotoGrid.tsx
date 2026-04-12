@@ -1,6 +1,6 @@
 import { For, Show, createSignal, createEffect, createMemo, onMount } from "solid-js";
 import type { PhotoSummary } from "../../lib/tauri";
-import { getThumbnailBase64, getPhotoBase64, previewEffect, exportPhoto, getPhotoLabels, type PhotoLabels } from "../../lib/tauri";
+import { getThumbnailBase64, getPhotoBase64, exportPhoto, getPhotoLabels, type PhotoLabels } from "../../lib/tauri";
 import { showToast } from "../shared/Toast";
 
 type SortBy = "newest" | "oldest" | "name-asc" | "name-desc";
@@ -27,9 +27,6 @@ export default function PhotoGrid(props: PhotoGridProps) {
   const [batchExporting, setBatchExporting] = createSignal(false);
   const [sortBy, setSortBy] = createSignal<SortBy>("newest");
   const [gridSize, setGridSize] = createSignal<GridSize>("medium");
-  const [batchEffects, setBatchEffects] = createSignal<string[]>([]);
-  const [batchFrame, setBatchFrame] = createSignal<string | null>(null);
-  const [showBatchEffects, setShowBatchEffects] = createSignal(false);
 
   const sortedPhotos = createMemo(() => {
     const photos = [...props.photos];
@@ -87,7 +84,7 @@ export default function PhotoGrid(props: PhotoGridProps) {
       if (!photo) continue;
       const fileName = photo.relative_path.split("/").pop() || `photo-${id}.jpg`;
       try {
-        await exportPhoto(id, `${dest}/${fileName}`, batchEffects(), batchFrame());
+        await exportPhoto(id, `${dest}/${fileName}`);
         count++;
       } catch (e) {
         console.error(`Export failed for ${id}:`, e);
@@ -133,16 +130,6 @@ export default function PhotoGrid(props: PhotoGridProps) {
           </span>
           <div class="flex items-center gap-1.5 ml-auto">
             <button
-              onClick={() => setShowBatchEffects(!showBatchEffects())}
-              class={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
-                showBatchEffects() || batchEffects().length > 0
-                  ? "bg-kodak-yellow/20 text-kodak-yellow-dark font-medium"
-                  : "text-kodak-warm-gray hover:text-kodak-charcoal"
-              }`}
-            >
-              {batchEffects().length > 0 ? `Effects (${batchEffects().length})` : "Add Effects"}
-            </button>
-            <button
               onClick={selectAll}
               class="px-2.5 py-1 text-xs text-kodak-warm-gray hover:text-kodak-charcoal transition-colors"
             >
@@ -153,7 +140,7 @@ export default function PhotoGrid(props: PhotoGridProps) {
               disabled={batchExporting()}
               class="px-3 py-1.5 text-xs bg-kodak-yellow hover:bg-kodak-yellow-dark text-white rounded-lg font-medium transition-colors disabled:opacity-50"
             >
-              {batchExporting() ? "Exporting..." : batchEffects().length > 0 ? "Export with Effects" : "Export"}
+              {batchExporting() ? "Exporting..." : "Export"}
             </button>
             <button
               onClick={handleBatchDelete}
@@ -173,39 +160,6 @@ export default function PhotoGrid(props: PhotoGridProps) {
             </button>
           </div>
           </div>
-          {/* Batch effects row */}
-          <Show when={showBatchEffects()}>
-            <div class="mt-2 flex flex-wrap gap-1">
-              {EFFECTS.map(eff => (
-                <button
-                  onClick={() => {
-                    const cur = batchEffects();
-                    setBatchEffects(cur.includes(eff) ? cur.filter(e => e !== eff) : [...cur, eff].slice(-3));
-                  }}
-                  class={`px-2 py-0.5 text-[10px] rounded transition-colors ${
-                    batchEffects().includes(eff)
-                      ? "bg-kodak-yellow text-white font-medium"
-                      : "bg-white/80 text-kodak-warm-gray hover:bg-kodak-yellow/10"
-                  }`}
-                >
-                  {eff.replace("_", " ")}
-                </button>
-              ))}
-              <span class="text-kodak-warm-gray/50 mx-1">|</span>
-              {FRAMES.map(fr => (
-                <button
-                  onClick={() => setBatchFrame(batchFrame() === fr ? null : fr)}
-                  class={`px-2 py-0.5 text-[10px] rounded transition-colors ${
-                    batchFrame() === fr
-                      ? "bg-kodak-yellow text-white font-medium"
-                      : "bg-white/80 text-kodak-warm-gray hover:bg-kodak-yellow/10"
-                  }`}
-                >
-                  {fr.replace("_", " ")}
-                </button>
-              ))}
-            </div>
-          </Show>
         </div>
       </Show>
 
@@ -433,13 +387,6 @@ function PhotoCard(props: {
   );
 }
 
-const EFFECTS = ["vintage", "noir", "faded", "warm", "cool", "sharp", "soft", "vignette", "grain", "light_leak"];
-
-// Remember last used effects across photo navigation
-let lastUsedEffects: string[] = [];
-let lastUsedFrame: string | null = null;
-const FRAMES = ["simple", "polaroid", "film_strip", "rounded"];
-
 function PhotoDetailView(props: {
   photo: PhotoSummary;
   photos: PhotoSummary[];
@@ -448,29 +395,16 @@ function PhotoDetailView(props: {
 }) {
   const [detailSrc, setDetailSrc] = createSignal("");
   const [loading, setLoading] = createSignal(true);
-  const [activeEffects, setActiveEffects] = createSignal<string[]>([]);
-  const [activeFrame, setActiveFrame] = createSignal<string | null>(null);
-  const [previewSrc, setPreviewSrc] = createSignal<string | null>(null);
-  const [previewing, setPreviewing] = createSignal(false);
-  const [showEffects, setShowEffects] = createSignal(true);
   const [showInfo, setShowInfo] = createSignal(true);
   const [labels, setLabels] = createSignal<PhotoLabels | null>(null);
-  const [effectError, setEffectError] = createSignal<string | null>(null);
-  const [hasLastPreset, setHasLastPreset] = createSignal(lastUsedEffects.length > 0 || lastUsedFrame !== null);
 
-  // Load full-res photo and labels
   createEffect(async () => {
     setLoading(true);
-    setActiveEffects([]);
-    setActiveFrame(null);
-    setPreviewSrc(null);
     setLabels(null);
-    setHasLastPreset(lastUsedEffects.length > 0 || lastUsedFrame !== null);
     try {
       const src = await getPhotoBase64(props.photo.id);
       setDetailSrc(src);
     } catch {
-      // Fall back to thumbnail
       if (props.photo.thumbnail_path) {
         const src = await getThumbnailBase64(props.photo.thumbnail_path);
         setDetailSrc(src);
@@ -478,47 +412,11 @@ function PhotoDetailView(props: {
     }
     setLoading(false);
 
-    // Load labels
     try {
       const l = await getPhotoLabels(props.photo.id);
       setLabels(l);
     } catch { /* no labels yet */ }
   });
-
-  const toggleEffect = async (effect: string) => {
-    const current = activeEffects();
-    const updated = current.includes(effect)
-      ? current.filter((e) => e !== effect)
-      : [...current, effect].slice(-3); // max 3
-    setActiveEffects(updated);
-    lastUsedEffects = updated;
-    await applyPreview(updated, activeFrame());
-  };
-
-  const toggleFrame = async (frame: string) => {
-    const updated = activeFrame() === frame ? null : frame;
-    lastUsedFrame = updated;
-    setActiveFrame(updated);
-    await applyPreview(activeEffects(), updated);
-  };
-
-  const applyPreview = async (effects: string[], frame: string | null) => {
-    if (effects.length === 0 && !frame) {
-      setPreviewSrc(null);
-      setEffectError(null);
-      return;
-    }
-    setPreviewing(true);
-    setEffectError(null);
-    try {
-      const src = await previewEffect(props.photo.id, effects, frame);
-      setPreviewSrc(src);
-    } catch (e) {
-      console.error("Preview failed:", e);
-      setEffectError(String(e));
-    }
-    setPreviewing(false);
-  };
 
   const [exporting, setExporting] = createSignal(false);
 
@@ -526,16 +424,16 @@ function PhotoDetailView(props: {
     const { save } = await import("@tauri-apps/plugin-dialog");
     const fileName = props.photo.relative_path.split("/").pop()?.replace(/\.[^.]+$/, "") || `photo-${props.photo.id}`;
     const dest = await save({
-      defaultPath: `${fileName}-edited.jpg`,
+      defaultPath: `${fileName}.jpg`,
       filters: [{ name: "JPEG", extensions: ["jpg"] }],
     });
     if (dest) {
       setExporting(true);
       try {
-        await exportPhoto(props.photo.id, dest, activeEffects(), activeFrame());
-        showToast("Photo exported!", "success");
+        await exportPhoto(props.photo.id, dest);
+        showToast("Photo saved!", "success");
       } catch (e) {
-        showToast(`Export failed: ${e}`, "error");
+        showToast(`Save failed: ${e}`, "error");
       }
       setExporting(false);
     }
@@ -554,13 +452,16 @@ function PhotoDetailView(props: {
     if (e.key === "Escape") props.onBack();
     if (e.key === "ArrowLeft" && hasPrev()) navigate(-1);
     if (e.key === "ArrowRight" && hasNext()) navigate(1);
-    if (e.key === "e") setShowEffects(!showEffects());
     if (e.key === "i") setShowInfo(!showInfo());
-    if (e.key === "c" && previewSrc()) setComparing(!comparing());
   };
 
-  const [comparing, setComparing] = createSignal(false);
-  const displaySrc = () => previewSrc() || detailSrc();
+  const fileName = () => props.photo.relative_path.split("/").pop() || "";
+  const shortDate = () => {
+    const raw = props.photo.taken_at;
+    if (!raw) return null;
+    const normalized = raw.replace(/:/g, "-").slice(0, 10);
+    return normalized;
+  };
 
   return (
     <div
@@ -570,244 +471,178 @@ function PhotoDetailView(props: {
       ref={(el) => el.focus()}
     >
       {/* Top bar */}
-      <div class="h-10 flex items-center px-4 shrink-0">
-        <button
-          onClick={props.onBack}
-          class="text-white/70 hover:text-white text-sm flex items-center gap-1 transition-colors"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-          Back
-        </button>
-        <div class="flex-1 flex items-center justify-center gap-3">
+      <div class="shrink-0">
+        <div class="h-11 flex items-center px-4 bg-kodak-brown-dark">
           <button
-            onClick={() => setShowEffects(!showEffects())}
-            class={`text-xs px-3 py-1 rounded-full transition-colors ${
-              showEffects()
-                ? "bg-kodak-yellow text-white"
-                : "text-white/60 hover:text-white hover:bg-white/10"
-            }`}
+            onClick={props.onBack}
+            class="text-kodak-cream/70 hover:text-kodak-yellow text-sm flex items-center gap-1.5 transition-colors font-display"
           >
-            Effects
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Album
           </button>
-          <button
-            onClick={() => setShowInfo(!showInfo())}
-            class={`text-xs px-3 py-1 rounded-full transition-colors ${
-              showInfo()
-                ? "bg-white/20 text-white"
-                : "text-white/60 hover:text-white hover:bg-white/10"
-            }`}
-          >
-            Info
-          </button>
-          <Show when={previewSrc()}>
+          <div class="flex-1 flex items-center justify-center gap-2">
             <button
-              onClick={() => setComparing(!comparing())}
-              class={`text-xs px-3 py-1 rounded-full transition-colors ${
-                comparing()
-                  ? "bg-kodak-red/80 text-white"
-                  : "text-white/60 hover:text-white hover:bg-white/10"
+              onClick={() => setShowInfo(!showInfo())}
+              class={`text-[11px] uppercase tracking-widest px-3 py-1 rounded-full transition-colors font-display ${
+                showInfo()
+                  ? "bg-kodak-cream/15 text-kodak-cream"
+                  : "text-kodak-cream/50 hover:text-kodak-cream hover:bg-kodak-cream/10"
               }`}
             >
-              {comparing() ? "Hide Original" : "Compare"}
+              Info
             </button>
-          </Show>
-          <button
-            onClick={handleExport}
-            disabled={exporting()}
-            class="text-xs px-3 py-1 rounded-full bg-kodak-yellow/80 hover:bg-kodak-yellow text-white transition-colors disabled:opacity-50"
-          >
-            {exporting() ? "Saving..." : (activeEffects().length > 0 || activeFrame()) ? "Export with Effects" : "Save Copy"}
-          </button>
+            <button
+              onClick={handleExport}
+              disabled={exporting()}
+              class="text-[11px] uppercase tracking-widest px-3 py-1 rounded-full bg-kodak-yellow hover:bg-kodak-yellow-light text-kodak-charcoal font-display font-bold transition-colors disabled:opacity-50"
+            >
+              {exporting() ? "Saving…" : "Save Copy"}
+            </button>
+          </div>
+          <span class="text-kodak-cream/50 text-[11px] tabular-nums font-mono">
+            {String(currentIndex() + 1).padStart(2, "0")} / {String(props.photos.length).padStart(2, "0")}
+          </span>
         </div>
-        <span class="text-white/50 text-xs">
-          {currentIndex() + 1} / {props.photos.length}
-          {previewing() && " (rendering...)"}
-        </span>
+        <div class="kodak-stripe-thin" />
       </div>
 
       {/* Photo + Info panel */}
       <div class="flex-1 flex overflow-hidden">
-        {/* Photo area */}
-        <div class="flex-1 flex items-center justify-center relative overflow-hidden">
+        {/* Photo area — felt-table backdrop with polaroid-framed photo */}
+        <div class="flex-1 flex items-center justify-center relative overflow-hidden p-8">
           <Show when={hasPrev()}>
-            <button onClick={() => navigate(-1)} class="absolute left-4 z-10 w-10 h-10 bg-kodak-yellow/40 hover:bg-kodak-yellow/60 rounded-full flex items-center justify-center text-white transition-colors">
+            <button
+              onClick={() => navigate(-1)}
+              aria-label="Previous photo"
+              class="absolute left-4 z-10 w-11 h-11 bg-kodak-cream/10 hover:bg-kodak-yellow hover:text-kodak-charcoal rounded-full flex items-center justify-center text-kodak-cream/70 transition-colors"
+            >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
             </button>
           </Show>
 
           <Show when={!loading()} fallback={
-            <div class="text-white/40 text-sm">Loading...</div>
+            <div class="flex items-center gap-2 text-kodak-cream/50 text-sm font-display">
+              <span class="kodak-spinner" />
+              Loading photo…
+            </div>
           }>
-            <Show when={comparing() && previewSrc()} fallback={
-              <img src={displaySrc()} alt={props.photo.relative_path} class="max-w-full max-h-full object-contain" />
-            }>
-              {/* Side-by-side comparison */}
-              <div class="flex gap-2 max-w-full max-h-full items-center">
-                <div class="flex-1 text-center">
-                  <p class="text-white/40 text-[10px] uppercase tracking-wider mb-1">Original</p>
-                  <img src={detailSrc()} alt="Original" class="max-w-full max-h-[60vh] object-contain mx-auto rounded" />
-                </div>
-                <div class="w-px bg-white/20 self-stretch" />
-                <div class="flex-1 text-center">
-                  <p class="text-kodak-yellow text-[10px] uppercase tracking-wider mb-1">With Effects</p>
-                  <img src={previewSrc()!} alt="With effects" class="max-w-full max-h-[60vh] object-contain mx-auto rounded" />
-                </div>
+            {/* Polaroid print */}
+            <div
+              class="bg-kodak-cream p-3 pb-6 shadow-2xl max-w-full max-h-full flex flex-col items-center"
+              style={{ "box-shadow": "0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0,0,0,0.1)" }}
+            >
+              <img
+                src={detailSrc()}
+                alt={props.photo.relative_path}
+                class="max-w-[calc(100vw-28rem)] max-h-[calc(100vh-18rem)] object-contain bg-kodak-charcoal"
+              />
+              <div class="w-full mt-3 px-1 flex items-baseline justify-between gap-3 font-display">
+                <Show
+                  when={labels()?.description}
+                  fallback={<span class="text-kodak-warm-gray text-xs italic truncate">{fileName()}</span>}
+                >
+                  <span class="text-kodak-charcoal text-sm italic truncate" style={{ "font-family": "'Caveat', 'Nunito', cursive" }}>
+                    {labels()!.description}
+                  </span>
+                </Show>
+                <Show when={shortDate()}>
+                  <span class="text-kodak-warm-gray text-[10px] font-mono shrink-0">{shortDate()}</span>
+                </Show>
               </div>
-            </Show>
+            </div>
           </Show>
 
           <Show when={hasNext()}>
-            <button onClick={() => navigate(1)} class="absolute right-4 z-10 w-10 h-10 bg-kodak-yellow/40 hover:bg-kodak-yellow/60 rounded-full flex items-center justify-center text-white transition-colors">
+            <button
+              onClick={() => navigate(1)}
+              aria-label="Next photo"
+              class="absolute right-4 z-10 w-11 h-11 bg-kodak-cream/10 hover:bg-kodak-yellow hover:text-kodak-charcoal rounded-full flex items-center justify-center text-kodak-cream/70 transition-colors"
+            >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </button>
           </Show>
         </div>
 
-        {/* Info panel */}
+        {/* Info panel — album index card */}
         <Show when={showInfo()}>
-          <div class="w-64 bg-kodak-brown border-l border-white/10 overflow-auto shrink-0 p-4">
-            <h3 class="text-white/40 text-[10px] uppercase tracking-wider font-bold mb-3">Photo Info</h3>
-
-            {/* File info */}
-            <div class="mb-4">
-              <p class="text-white/80 text-xs break-all">{props.photo.relative_path.split("/").pop()}</p>
-              <p class="text-white/40 text-[10px] mt-1">{props.photo.width} x {props.photo.height}</p>
-              <Show when={props.photo.taken_at}>
-                <p class="text-white/40 text-[10px] mt-0.5 flex items-center gap-1">
-                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  {props.photo.taken_at}
+          <div class="w-72 bg-kodak-cream border-l-4 border-kodak-yellow overflow-auto shrink-0">
+            <div class="kodak-stripe-thin" />
+            <div class="p-5">
+              <div class="pb-3 mb-4 border-b border-dashed border-kodak-warm-gray/30">
+                <h3 class="text-kodak-warm-gray text-[10px] uppercase tracking-widest font-display font-bold mb-1">
+                  From the Album
+                </h3>
+                <p class="text-kodak-charcoal text-sm font-display font-semibold break-all leading-tight">
+                  {fileName()}
                 </p>
-              </Show>
-            </div>
-
-            {/* AI Description */}
-            <Show when={labels()}>
-              <div class="mb-4">
-                <h4 class="text-kodak-yellow text-[10px] uppercase tracking-wider font-bold mb-2 flex items-center gap-1">
-                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12" />
-                  </svg>
-                  AI Description
-                </h4>
-                <Show when={labels()!.description}>
-                  <p class="text-white/70 text-xs leading-relaxed">{labels()!.description}</p>
+                <p class="text-kodak-warm-gray text-[11px] mt-1 font-mono">
+                  {props.photo.width} × {props.photo.height}
+                </p>
+                <Show when={props.photo.taken_at}>
+                  <p class="text-kodak-warm-gray text-[11px] mt-0.5 font-mono">
+                    📅 {props.photo.taken_at}
+                  </p>
                 </Show>
               </div>
 
-              {/* AI Tags */}
-              <Show when={labels()!.tags.length > 0}>
-                <div class="mb-4">
-                  <h4 class="text-kodak-yellow text-[10px] uppercase tracking-wider font-bold mb-2">Tags</h4>
-                  <div class="flex flex-wrap gap-1">
-                    <For each={labels()!.tags}>
-                      {(tag) => (
-                        <span class="px-2 py-0.5 bg-kodak-yellow/20 text-kodak-yellow-light text-[11px] rounded-full">
-                          {tag}
-                        </span>
-                      )}
-                    </For>
-                  </div>
+              <Show when={labels()} fallback={
+                <div class="text-kodak-warm-gray text-xs italic font-display leading-relaxed">
+                  No caption yet. Tap <span class="font-semibold not-italic">Auto Label Photos</span> in the sidebar to let the AI write one.
                 </div>
-              </Show>
-            </Show>
+              }>
+                <Show when={labels()!.description}>
+                  <div class="mb-4">
+                    <h4 class="text-kodak-warm-gray text-[10px] uppercase tracking-widest font-display font-bold mb-2">
+                      Caption
+                    </h4>
+                    <p
+                      class="text-kodak-charcoal text-base leading-snug"
+                      style={{ "font-family": "'Caveat', 'Nunito', cursive" }}
+                    >
+                      “{labels()!.description}”
+                    </p>
+                  </div>
+                </Show>
 
-            <Show when={!labels()}>
-              <div class="text-white/30 text-xs italic">
-                No AI labels yet. Click "Auto Label Photos" in the sidebar.
-              </div>
-            </Show>
+                <Show when={labels()!.tags.length > 0}>
+                  <div>
+                    <h4 class="text-kodak-warm-gray text-[10px] uppercase tracking-widest font-display font-bold mb-2">
+                      Tags
+                    </h4>
+                    <div class="flex flex-wrap gap-1.5">
+                      <For each={labels()!.tags}>
+                        {(tag) => (
+                          <span class="px-2 py-0.5 bg-kodak-yellow/80 text-kodak-charcoal text-[11px] rounded-sm font-display font-semibold shadow-sm">
+                            {tag}
+                          </span>
+                        )}
+                      </For>
+                    </div>
+                  </div>
+                </Show>
+              </Show>
+            </div>
           </div>
         </Show>
       </div>
 
-      {/* Effects panel */}
-      <Show when={showEffects()}>
-        <div class="bg-kodak-brown px-4 py-3 shrink-0">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-white/50 text-[10px] uppercase tracking-wider font-bold">Effects</span>
-            <Show when={activeEffects().length > 0}>
-              <button
-                onClick={() => { setActiveEffects([]); setActiveFrame(null); setPreviewSrc(null); lastUsedEffects = []; lastUsedFrame = null; }}
-                class="text-[10px] text-kodak-red-light hover:text-kodak-red transition-colors"
-              >
-                Clear all
-              </button>
-            </Show>
-            <Show when={hasLastPreset() && activeEffects().length === 0}>
-              <button
-                onClick={() => { setActiveEffects(lastUsedEffects); setActiveFrame(lastUsedFrame); applyPreview(lastUsedEffects, lastUsedFrame); }}
-                class="text-[10px] text-kodak-yellow-dark hover:text-kodak-yellow transition-colors"
-              >
-                Reapply last
-              </button>
-            </Show>
-          </div>
-          <div class="flex gap-1.5 overflow-x-auto pb-1">
-            <For each={EFFECTS}>
-              {(effect) => (
-                <button
-                  onClick={() => toggleEffect(effect)}
-                  class={`shrink-0 px-3 py-1.5 text-xs rounded-lg transition-all ${
-                    activeEffects().includes(effect)
-                      ? "bg-kodak-yellow text-white font-semibold"
-                      : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
-                  }`}
-                >
-                  {effect.replace("_", " ")}
-                </button>
-              )}
-            </For>
-          </div>
-          <div class="flex items-center gap-2 mt-2">
-            <span class="text-white/50 text-[10px] uppercase tracking-wider font-bold">Frames</span>
-          </div>
-          <div class="flex gap-1.5 mt-1">
-            <For each={FRAMES}>
-              {(frame) => (
-                <button
-                  onClick={() => toggleFrame(frame)}
-                  class={`shrink-0 px-3 py-1.5 text-xs rounded-lg transition-all ${
-                    activeFrame() === frame
-                      ? "bg-kodak-yellow text-white font-semibold"
-                      : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
-                  }`}
-                >
-                  {frame.replace("_", " ")}
-                </button>
-              )}
-            </For>
-          </div>
-          {/* Error feedback */}
-          <Show when={effectError()}>
-            <div class="mt-2 px-2 py-1 bg-kodak-red/20 text-kodak-red-light text-xs rounded">
-              Effect failed: {effectError()}
-            </div>
-          </Show>
-          {/* Rendering indicator */}
-          <Show when={previewing()}>
-            <div class="mt-2 flex items-center gap-2 text-xs text-white/50">
-              <span class="kodak-spinner" style="width: 12px; height: 12px; border-width: 1.5px;" />
-              Rendering preview...
-            </div>
-          </Show>
-        </div>
-      </Show>
-
       {/* Film strip */}
-      <div class="h-20 bg-kodak-film-border flex items-center gap-1 px-4 overflow-x-auto shrink-0">
-        <For each={props.photos}>
-          {(photo) => (
-            <FilmStripThumb
-              photo={photo}
-              active={photo.id === props.photo.id}
-              onClick={() => props.onNavigate(photo.id)}
-            />
-          )}
-        </For>
+      <div class="shrink-0 bg-kodak-film-border">
+        <div class="film-sprockets" />
+        <div class="h-20 flex items-center gap-2 px-4 overflow-x-auto">
+          <For each={props.photos}>
+            {(photo) => (
+              <FilmStripThumb
+                photo={photo}
+                active={photo.id === props.photo.id}
+                onClick={() => props.onNavigate(photo.id)}
+              />
+            )}
+          </For>
+        </div>
+        <div class="film-sprockets" />
       </div>
     </div>
   );

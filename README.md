@@ -28,9 +28,9 @@
 </p>
 
 <details>
-<summary><strong>Photo Detail View</strong> — effects, AI labels, film strip navigation</summary>
+<summary><strong>Photo Detail View</strong> — AI labels and film strip navigation</summary>
 <p align="center">
-  <img src="docs/screenshot-detail.png" width="800" alt="Photo detail with effects and AI labels" />
+  <img src="docs/screenshot-detail.png" width="800" alt="Photo detail with AI labels" />
 </p>
 </details>
 
@@ -67,9 +67,6 @@ $ charmera label PICT0001.jpg --json
   "tags": ["dog", "indoor", "couch", "pet"],
   "file": "PICT0001.jpg"
 }
-
-$ charmera effects PICT0001.jpg --effects vintage,grain --frame polaroid --output dog-vintage.jpg
-Saved to dog-vintage.jpg
 ```
 </details>
 
@@ -83,14 +80,6 @@ Configure your naming pattern: `b {MM}-{DD}-{YYYY} {content}` transforms `PICT00
 
 ### Browse & Search
 Search photos by AI-generated descriptions and tags. Click a tag to filter. Full-text search across your entire library.
-
-### Photo Effects & Frames
-Apply vintage film effects and frames before exporting:
-
-| Effects | Frames |
-|---------|--------|
-| vintage, noir, faded, warm, cool | polaroid, film strip |
-| sharp, soft, vignette, grain, light leak | simple, rounded |
 
 ### Drag & Drop
 Drop any folder onto the app window to import photos. A bright yellow overlay appears — release to start importing.
@@ -115,10 +104,8 @@ Find identical photos by file hash. Keep the original, hide the duplicates (file
 | `Cmd+4` | Duplicates |
 | `Cmd+F` | Focus search |
 | `Cmd+,` | Settings |
-| `E` | Toggle effects (in photo detail) |
 | `I` | Toggle info panel (in photo detail) |
 | `←` `→` | Navigate photos |
-| `C` | Compare (before/after effects) |
 | `Esc` | Back to grid |
 
 </details>
@@ -134,7 +121,6 @@ Find identical photos by file hash. Keep the original, hide the duplicates (file
 | Keychain camera support | Built for it | Generic | Generic | Generic |
 | Cost | Free | Storage limits | iCloud sub | Free |
 | Custom naming patterns | Yes | No | No | No |
-| Photo effects | 10 + 4 frames | Filters | Filters | Limited |
 | Open source | MIT | No | No | GPL |
 
 </details>
@@ -154,12 +140,11 @@ Tauri 2 Desktop App
     ├── charmera-core (library)
     │   ├── ai         → Ollama/moondream vision labeling
     │   ├── catalog    → SQLite with WAL, full-text search
-    │   ├── effects    → 10 effects + 4 frames pipeline
     │   ├── import     → Camera detect, file hash, smart rename
     │   ├── thumbnails → 256px sharded cache
     │   ├── splash     → Boot screen editor (960×720)
-    │   └── export     → Batch JPEG pipeline
-    ├── charmera-app   → Tauri commands (25 IPC endpoints)
+    │   └── export     → JPEG export pipeline
+    ├── charmera-app   → Tauri commands
     └── charmera-cli   → Agent-friendly CLI with --json
 ```
 
@@ -234,9 +219,6 @@ charmera batch-label ./vacation/ --rename --json
 
 # Dry run — see proposed names without renaming
 charmera batch-label ./photos/ --rename --dry-run
-
-# Apply effects
-charmera effects photo.jpg --effects vintage,grain --frame polaroid --output edited.jpg
 ```
 
 ## How It Works
@@ -292,13 +274,10 @@ cargo tauri dev
 Planned features — star the repo to follow progress:
 
 - [ ] **Dark mode** toggle
-- [x] **Photo comparison** — side-by-side before/after effects *(v0.3.0)*
 - [ ] **Face detection** — group photos by person
-- [ ] **Export presets** — save favorite effect combinations
 - [x] **Linux support** — auto-detect cameras on Linux *(v0.3.0)*
 - [x] **Windows support** — volume detection for Windows *(v0.3.0)*
 - [ ] **Video thumbnails** — preview AVI clips from the camera
-- [x] **Batch effects** — apply effects to multiple photos at once *(v0.3.0)*
 - [ ] **CLIP embeddings** — semantic photo search ("photos near the ocean")
 - [x] **Cloud sync** — Google Drive & Dropbox via desktop apps *(v0.6.0)*
 

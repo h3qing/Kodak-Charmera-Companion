@@ -461,48 +461,11 @@ impl AppState {
         }
     }
 
-    pub fn preview_effect(
-        &self,
-        id: i64,
-        effects: &[String],
-        frame: Option<&str>,
-    ) -> Result<String> {
+    pub fn export_photo(&self, id: i64, dest: &str) -> Result<String> {
         let file_path = self.get_photo_file_path(id)?;
         let img = image::open(&file_path).with_context(|| format!("opening {file_path}"))?;
-
-        // Resize for preview speed (max 800px on long edge), then free full image
-        let preview = img.resize(800, 800, image::imageops::FilterType::Triangle);
-        drop(img); // Free 4.7MB pixel buffer immediately
-
-        let result = charmera_core::effects::apply_pipeline(&preview, effects, frame)?;
-        drop(preview); // Free preview buffer
-
-        // Encode to JPEG base64
-        let rgb = result.to_rgb8();
-        drop(result);
-        let mut buf = Vec::with_capacity(100_000); // Pre-allocate ~100KB
-        let mut cursor = std::io::Cursor::new(&mut buf);
-        let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, 80);
-        rgb.write_with_encoder(encoder)?;
-        drop(cursor);
-        drop(rgb);
-
-        use base64::Engine;
-        let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
-        Ok(format!("data:image/jpeg;base64,{b64}"))
-    }
-
-    pub fn export_photo(
-        &self,
-        id: i64,
-        dest: &str,
-        effects: &[String],
-        frame: Option<&str>,
-    ) -> Result<String> {
-        let file_path = self.get_photo_file_path(id)?;
-        let img = image::open(&file_path)?;
         let dest_path = std::path::PathBuf::from(dest);
-        charmera_core::export::export_photo(&img, &dest_path, effects, frame, None)?;
+        charmera_core::export::export_photo(&img, &dest_path, None)?;
         Ok(dest_path.display().to_string())
     }
 

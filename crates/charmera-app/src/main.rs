@@ -170,30 +170,9 @@ fn get_photo_base64(app: tauri::AppHandle, id: i64) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn preview_effect(
-    app: tauri::AppHandle,
-    id: i64,
-    effects: Vec<String>,
-    frame: Option<String>,
-) -> Result<String, String> {
+fn export_photo(app: tauri::AppHandle, id: i64, dest: String) -> Result<String, String> {
     let app_state = app.state::<AppState>();
-    app_state
-        .preview_effect(id, &effects, frame.as_deref())
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn export_photo(
-    app: tauri::AppHandle,
-    id: i64,
-    dest: String,
-    effects: Vec<String>,
-    frame: Option<String>,
-) -> Result<String, String> {
-    let app_state = app.state::<AppState>();
-    app_state
-        .export_photo(id, &dest, &effects, frame.as_deref())
-        .map_err(|e| e.to_string())
+    app_state.export_photo(id, &dest).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -609,7 +588,6 @@ fn main() {
             get_recent_photos,
             get_thumbnail_base64,
             get_photo_base64,
-            preview_effect,
             export_photo,
             check_ai_status,
             auto_label_all,
