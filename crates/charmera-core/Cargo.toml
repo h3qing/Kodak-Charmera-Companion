@@ -17,7 +17,6 @@ tokio = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 rayon = "1"
-fastrand = "2"
 walkdir = "2"
 chrono = { version = "0.4", features = ["serde"] }
 ureq = { version = "3", features = ["json"] }

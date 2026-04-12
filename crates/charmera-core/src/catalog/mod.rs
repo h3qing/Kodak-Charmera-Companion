@@ -18,7 +18,6 @@ pub enum WriteOp {
     InsertTag(String, String, String),
     CreateAlbum(String, Option<String>),
     AddPhotoToAlbum(i64, i64),
-    SaveEdit(i64, String, Option<String>),
     SetPhotoRating(i64, u8),
     HidePhoto(i64),
     UnhidePhoto(i64),
@@ -78,7 +77,6 @@ pub struct PhotoDetail {
     pub source_device: Option<String>,
     pub original_name: Option<String>,
     pub tags: Vec<TagInfo>,
-    pub edits: Vec<EditInfo>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -89,15 +87,6 @@ pub struct TagInfo {
     pub source: String,
     pub category: Option<String>,
     pub count: i64,
-}
-
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct EditInfo {
-    pub id: i64,
-    pub name: String,
-    pub edit_stack: String,
-    pub frame: Option<String>,
-    pub is_active: bool,
 }
 
 /// Database handle. Reads happen directly; writes go through the writer channel.
@@ -241,18 +230,6 @@ impl Catalog {
                 conn.execute(
                     "INSERT OR IGNORE INTO album_photos (album_id, photo_id) VALUES (?1, ?2)",
                     rusqlite::params![album_id, photo_id],
-                )?;
-                Ok(())
-            }
-            WriteOp::SaveEdit(photo_id, edit_stack, frame) => {
-                // Deactivate previous edits
-                conn.execute(
-                    "UPDATE edits SET is_active = 0 WHERE photo_id = ?1",
-                    [photo_id],
-                )?;
-                conn.execute(
-                    "INSERT INTO edits (photo_id, edit_stack, frame) VALUES (?1, ?2, ?3)",
-                    rusqlite::params![photo_id, edit_stack, frame],
                 )?;
                 Ok(())
             }

@@ -34,20 +34,6 @@ enum Commands {
         /// Camera path (auto-detects if omitted)
         source: Option<String>,
     },
-    /// Apply effects to a photo
-    Effects {
-        /// Input photo path
-        input: String,
-        /// Effects to apply (comma-separated)
-        #[arg(short, long)]
-        effects: Option<String>,
-        /// Frame style
-        #[arg(short, long)]
-        frame: Option<String>,
-        /// Output path
-        #[arg(short, long)]
-        output: Option<String>,
-    },
     /// Label a photo using local AI (Ollama)
     Label {
         /// Photo path
@@ -179,39 +165,6 @@ fn main() -> Result<()> {
                         .unwrap_or_default();
                     println!("  {} ({})", f.display(), size);
                 }
-            }
-            Ok(())
-        }
-        Commands::Effects {
-            input,
-            effects,
-            frame,
-            output,
-        } => {
-            let img = image::open(&input)?;
-            let effect_list: Vec<String> = effects
-                .unwrap_or_default()
-                .split(',')
-                .filter(|s| !s.is_empty())
-                .map(String::from)
-                .collect();
-            let out_path = output.unwrap_or_else(|| {
-                let p = std::path::Path::new(&input);
-                let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("photo");
-                let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("jpg");
-                format!("{stem}_edited.{ext}")
-            });
-            charmera_core::export::export_photo(
-                &img,
-                std::path::Path::new(&out_path),
-                &effect_list,
-                frame.as_deref(),
-                None,
-            )?;
-            if cli.json {
-                println!("{}", serde_json::json!({"output": out_path}));
-            } else {
-                println!("Saved to {out_path}");
             }
             Ok(())
         }

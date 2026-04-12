@@ -2,6 +2,15 @@
 
 All notable changes to Charmera Companion will be documented in this file.
 
+## [Unreleased]
+
+### Removed
+- **Photo effects & frames** — dropped the 10-effect / 4-frame pipeline, compare view, batch effects UI, and `charmera effects` CLI subcommand. Charmera is now a focused photo-management app: import, label, browse, rename, export. Editing belongs elsewhere.
+- `edits` catalog table, `EditInfo` type, `SaveEdit` write op, `preview_effect` Tauri command
+- Keyboard shortcuts `E` (toggle effects) and `C` (compare) — both freed up
+- `fastrand` dependency (only used by the `grain` effect)
+- Legacy `kodak_helper/effects.py` and `tests/test_effects.py`
+
 ## [0.6.0] - 2026-04-01
 
 ### Added

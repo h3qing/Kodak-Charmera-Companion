@@ -79,16 +79,6 @@ CREATE TABLE IF NOT EXISTS album_photos (
     PRIMARY KEY (album_id, photo_id)
 );
 
-CREATE TABLE IF NOT EXISTS edits (
-    id          INTEGER PRIMARY KEY,
-    photo_id    INTEGER REFERENCES photos(id) ON DELETE CASCADE,
-    name        TEXT NOT NULL DEFAULT 'default',
-    edit_stack  TEXT NOT NULL,
-    frame       TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-    is_active   INTEGER DEFAULT 1
-);
-
 CREATE TABLE IF NOT EXISTS duplicate_groups (
     id          INTEGER PRIMARY KEY,
     group_type  TEXT NOT NULL,

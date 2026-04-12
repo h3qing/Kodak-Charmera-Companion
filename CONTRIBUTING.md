@@ -20,7 +20,7 @@ cargo tauri dev
 
 ```
 crates/
-  charmera-core/   # Core library (AI, catalog, effects, import)
+  charmera-core/   # Core library (AI, catalog, import, export)
   charmera-app/    # Tauri desktop app (commands, state)
   charmera-cli/    # CLI tool (--json for agent use)
 frontend/          # Solid.js + Tailwind CSS v4
@@ -43,7 +43,7 @@ Use conventional commits:
 
 ```
 feat: add drag-and-drop import
-fix: effects panel not rendering preview
+fix: thumbnail cache not updating after rename
 docs: update hardware guide
 refactor: extract thumbnail cache logic
 ```
@@ -57,7 +57,6 @@ refactor: extract thumbnail cache logic
 
 ## Areas to Contribute
 
-- **Effects**: Add new photo effects or frames
 - **Camera support**: Test with other keychain cameras
 - **AI models**: Test with different Ollama vision models
 - **Platform**: Help with Linux/Windows support

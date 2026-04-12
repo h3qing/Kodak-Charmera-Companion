@@ -8,7 +8,7 @@ charmera \- AI photo organizer for keychain cameras
 [\fIoptions\fR]
 .SH DESCRIPTION
 Charmera Companion is a photo organizer with local AI for KODAK CHARMERA and other keychain cameras.
-It labels, renames, and applies effects to photos using a local vision model (Ollama).
+It imports, labels, and renames photos using a local vision model (Ollama).
 .PP
 All processing happens locally. No cloud, no API keys, no subscriptions.
 .SH COMMANDS
@@ -40,9 +40,6 @@ Check if a camera is connected.
 \fBcompletions\fR \fIshell\fR
 Generate shell completions (bash, zsh, fish, powershell).
 .TP
-\fBeffects\fR \fIphoto\fR [\fB\-e\fR \fIeffects\fR] [\fB\-f\fR \fIframe\fR] [\fB\-o\fR \fIoutput\fR]
-Apply visual effects (vintage, noir, grain, etc.) and frames (polaroid, film_strip, etc.).
-.TP
 \fBsplash\fR \fIphoto\fR [\fB\-\-install\fR]
 Create a 960x720 boot splash screen for the camera.
 .SH OPTIONS
@@ -68,10 +65,6 @@ Zero-padded sequence number
 .TP
 {original}
 Original filename without extension
-.SH EFFECTS
-vintage, noir, faded, warm, cool, sharp, soft, vignette, grain, light_leak
-.SH FRAMES
-simple, polaroid, film_strip, rounded
 .SH EXAMPLES
 .PP
 Label a photo:
@@ -82,11 +75,6 @@ charmera label photo.jpg \-\-json
 Rename all photos in a folder:
 .RS
 charmera batch-label ./vacation/ \-\-rename
-.RE
-.PP
-Apply vintage effect with polaroid frame:
-.RS
-charmera effects photo.jpg \-e vintage,grain \-f polaroid \-o edited.jpg
 .RE
 .SH FILES
 .TP

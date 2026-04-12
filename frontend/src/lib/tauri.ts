@@ -64,14 +64,6 @@ export async function getPhotoBase64(id: number): Promise<string> {
   return invoke("get_photo_base64", { id });
 }
 
-export async function previewEffect(
-  id: number,
-  effects: string[],
-  frame: string | null,
-): Promise<string> {
-  return invoke("preview_effect", { id, effects, frame });
-}
-
 export interface AiStatus {
   available: boolean;
   model: string;
@@ -131,13 +123,8 @@ export async function getDuplicates(): Promise<DuplicateGroup[]> {
   return invoke("get_duplicates");
 }
 
-export async function exportPhoto(
-  id: number,
-  dest: string,
-  effects: string[],
-  frame: string | null,
-): Promise<string> {
-  return invoke("export_photo", { id, dest, effects, frame });
+export async function exportPhoto(id: number, dest: string): Promise<string> {
+  return invoke("export_photo", { id, dest });
 }
 
 export async function getNamingPattern(): Promise<string> {
