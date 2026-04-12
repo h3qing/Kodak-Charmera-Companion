@@ -59,6 +59,15 @@ else
   echo -e "  ${DIM}Install: https://ollama.com/download${NC}"
 fi
 
+# Tauri CLI — required for `cargo tauri dev`
+if check_cmd cargo-tauri; then
+  echo -e "  ${GREEN}✓${NC} tauri-cli $(cargo tauri --version 2>/dev/null | awk '{print $2}')"
+else
+  echo -e "${DIM}Installing tauri-cli (one-time, ~2 min)...${NC}"
+  cargo install tauri-cli --locked
+  echo -e "  ${GREEN}✓${NC} tauri-cli installed"
+fi
+
 echo ""
 
 # Clone or update
