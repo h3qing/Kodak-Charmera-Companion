@@ -174,6 +174,9 @@ Prerequisites: [Rust](https://rustup.rs/), [Bun](https://bun.sh/) or Node.js, [O
 git clone https://github.com/h3qing/Kodak-Charmera-Companion.git
 cd Kodak-Charmera-Companion
 
+# Install the Tauri CLI (one-time, adds `cargo tauri` subcommand)
+cargo install tauri-cli --locked
+
 # Pull a vision model (pick one)
 ollama pull moondream    # Fast, 1B params, basic descriptions
 # ollama pull llava      # Better quality, 7B params (recommended if you have 8GB+ RAM)
@@ -181,7 +184,7 @@ ollama pull moondream    # Fast, 1B params, basic descriptions
 # Install frontend deps
 cd frontend && bun install && cd ..
 
-# Run in development
+# Run in development (builds the Rust shell + starts the Vite dev server)
 cargo tauri dev
 ```
 
@@ -190,7 +193,8 @@ cargo tauri dev
 ### CLI (for automation & AI agents)
 
 ```bash
-cargo build -p charmera-cli
+# Install the charmera CLI onto your PATH
+cargo install --path crates/charmera-cli
 
 # Detect camera
 charmera detect --json
