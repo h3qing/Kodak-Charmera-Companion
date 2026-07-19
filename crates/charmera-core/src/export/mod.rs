@@ -6,11 +6,7 @@ use image::DynamicImage;
 use crate::constants::DEFAULT_JPEG_QUALITY;
 
 /// Export a photo as JPEG, optionally downscaling to fit `max_dimension`.
-pub fn export_photo(
-    source: &DynamicImage,
-    dest: &Path,
-    max_dimension: Option<u32>,
-) -> Result<()> {
+pub fn export_photo(source: &DynamicImage, dest: &Path, max_dimension: Option<u32>) -> Result<()> {
     let resized = match max_dimension {
         Some(max_dim) if source.width() > max_dim || source.height() > max_dim => {
             source.resize(max_dim, max_dim, image::imageops::FilterType::Lanczos3)

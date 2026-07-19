@@ -159,6 +159,21 @@ brew tap h3qing/tap
 brew install charmera
 ```
 
+### Linux (.deb and AppImage)
+
+For releases that include Linux packages, download the `.deb` or `.AppImage` from the
+[GitHub Releases](https://github.com/h3qing/Kodak-Charmera-Companion/releases)
+page.
+
+```bash
+# Debian, Ubuntu, and derivatives
+sudo apt install ./*.deb
+
+# Other Linux distributions
+chmod +x ./*.AppImage
+./*.AppImage
+```
+
 ### One-Line Install (full app)
 
 ```bash
