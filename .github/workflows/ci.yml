@@ -22,6 +22,12 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev libxdo-dev librsvg2-dev
+
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -49,6 +55,37 @@ jobs:
 
       - name: Install & Build
         run: cd frontend && bun install && bun run build
+
+  linux-bundle:
+    name: Linux Bundle
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev libxdo-dev librsvg2-dev patchelf xdg-utils
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install and build frontend
+        working-directory: frontend
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Build Linux packages
+        uses: tauri-apps/tauri-action@v0
+        with:
+          projectPath: crates/charmera-app
+          args: >-
+            --bundles deb,appimage
+            --config '{"build":{"beforeBuildCommand":""}}'
 
   format:
     name: Format Check
