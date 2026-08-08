@@ -3,8 +3,27 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use serde::Deserialize;
 
-const OLLAMA_URL: &str = "http://localhost:11434";
+const DEFAULT_OLLAMA_URL: &str = "http://localhost:11434";
 const DEFAULT_MODEL: &str = "moondream";
+
+/// Base URL for the Ollama server.
+///
+/// Honors `OLLAMA_HOST`, matching Ollama's own convention, so remote servers,
+/// non-default ports and Docker setups work without a rebuild. A bare
+/// `host:port` value (which Ollama also accepts) is upgraded to a URL.
+pub fn ollama_url() -> String {
+    match std::env::var("OLLAMA_HOST") {
+        Ok(v) if !v.trim().is_empty() => {
+            let v = v.trim().trim_end_matches('/').to_string();
+            if v.starts_with("http://") || v.starts_with("https://") {
+                v
+            } else {
+                format!("http://{v}")
+            }
+        }
+        _ => DEFAULT_OLLAMA_URL.to_string(),
+    }
+}
 
 /// Supported vision models with their optimal prompts.
 pub fn prompt_for_model(model: &str) -> &'static str {
@@ -45,12 +64,6 @@ const VISION_MODELS: &[&str] = &[
     "minicpm-v",
 ];
 
-/// Check if Ollama is running and find available vision models.
-pub fn check_ollama() -> Result<bool> {
-    let models = list_vision_models()?;
-    Ok(!models.is_empty())
-}
-
 /// List all vision-capable models available in Ollama.
 pub fn list_vision_models() -> Result<Vec<String>> {
     let agent = ureq::Agent::new_with_config(
@@ -58,10 +71,11 @@ pub fn list_vision_models() -> Result<Vec<String>> {
             .timeout_global(Some(std::time::Duration::from_secs(5)))
             .build(),
     );
+    let base = ollama_url();
     let resp = agent
-        .get(&format!("{OLLAMA_URL}/api/tags"))
+        .get(&format!("{base}/api/tags"))
         .call()
-        .map_err(|e| anyhow::anyhow!("ollama not reachable: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("can't reach Ollama at {base}: {e}"))?;
 
     let body: serde_json::Value = resp.into_body().read_json()?;
     let empty = vec![];
@@ -113,9 +127,20 @@ pub fn label_photo_with_model(image_path: &Path, model: &str) -> Result<PhotoLab
 
 /// Label a photo from raw bytes. If model is None, uses the best available.
 pub fn label_photo_bytes(image_bytes: &[u8], model: Option<&str>) -> Result<PhotoLabel> {
+    // Don't swallow the error here. If Ollama is unreachable this is the one
+    // place we know why; falling back to DEFAULT_MODEL just POSTs to a dead
+    // socket and reports the resulting refusal as a mysterious timeout.
     let model_name = match model {
         Some(m) => m.to_string(),
-        None => best_available_model().unwrap_or_else(|_| DEFAULT_MODEL.to_string()),
+        None => match best_available_model() {
+            Ok(m) => m,
+            Err(e) => {
+                return Err(e.context(format!(
+                    "no vision model to label with. Install one with \
+                     `ollama pull {DEFAULT_MODEL}`"
+                )));
+            }
+        },
     };
     let prompt = prompt_for_model(&model_name);
 
@@ -134,10 +159,11 @@ pub fn label_photo_bytes(image_bytes: &[u8], model: Option<&str>) -> Result<Phot
             .timeout_global(Some(std::time::Duration::from_secs(120)))
             .build(),
     );
+    let base = ollama_url();
     let resp = agent
-        .post(&format!("{OLLAMA_URL}/api/generate"))
+        .post(&format!("{base}/api/generate"))
         .send_json(&request_body)
-        .map_err(|e| anyhow::anyhow!("ollama request failed (timeout 120s): {e}"))?;
+        .map_err(|e| describe_ollama_failure(e, &base, &model_name))?;
 
     let ollama_resp: OllamaResponse = resp.into_body().read_json()?;
 
@@ -148,6 +174,34 @@ pub fn label_photo_bytes(image_bytes: &[u8], model: Option<&str>) -> Result<Phot
     let response_text = ollama_resp.response.unwrap_or_default();
 
     parse_label_response(&response_text)
+}
+
+/// Turn a transport-level Ollama failure into a message that names the cause
+/// and the fix. The old blanket "request failed (timeout 120s)" was reported
+/// for connection-refused and bad-image alike, which is actively misleading.
+fn describe_ollama_failure(err: ureq::Error, base: &str, model: &str) -> anyhow::Error {
+    match &err {
+        ureq::Error::StatusCode(404) => anyhow::anyhow!(
+            "model `{model}` isn't installed in Ollama. \
+             Install it with `ollama pull {model}`."
+        ),
+        ureq::Error::StatusCode(400) => anyhow::anyhow!(
+            "Ollama rejected the image (HTTP 400). The file may be corrupt or \
+             in a format `{model}` can't read. Try another photo, or a \
+             different model with --model."
+        ),
+        ureq::Error::StatusCode(code) => {
+            anyhow::anyhow!("Ollama returned HTTP {code} for model `{model}`: {err}")
+        }
+        ureq::Error::Timeout(_) => anyhow::anyhow!(
+            "Ollama didn't respond within 120s. Large models on a cold start \
+             can exceed this — try `ollama run {model}` once to warm it up."
+        ),
+        _ => anyhow::anyhow!(
+            "can't reach Ollama at {base}. Start it with `ollama serve`, or \
+             install it from https://ollama.com/download. ({err})"
+        ),
+    }
 }
 
 fn parse_label_response(text: &str) -> Result<PhotoLabel> {

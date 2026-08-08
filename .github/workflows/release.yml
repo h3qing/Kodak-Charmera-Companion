@@ -1,0 +1,311 @@
+name: Release
+
+# Builds the `charmera` CLI and the Charmera Companion desktop bundles for
+# macOS / Linux / Windows, then publishes them all on a single GitHub Release.
+#
+# Trigger: push a tag (`git tag v0.6.0 && git push origin v0.6.0`),
+# or run manually from the Actions tab with an existing tag.
+#
+# Only `*-latest` runner labels are used on purpose: pinned labels such as
+# `macos-13` or `ubuntu-22.04` get retired, and a retired label fails the whole
+# release with "no runner matching the labels". Intel macOS is covered by
+# cross-compiling from the Apple Silicon runner instead.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and release (e.g. v0.6.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  # Single source of truth for what commit/tag every job builds.
+  RELEASE_REF: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. `charmera` CLI — pure Rust, no system deps, cheap to build everywhere.
+  # ---------------------------------------------------------------------------
+  cli:
+    name: CLI (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            name: charmera-macos-aarch64
+          # Cross-compiled from the Apple Silicon runner. charmera-cli is pure
+          # Rust plus cc-built C (blake3); both target either macOS arch out of
+          # the box, and it does not depend on charmera-app, so no webkit here.
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            name: charmera-macos-x86_64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            name: charmera-linux-x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            name: charmera-windows-x86_64
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_REF }}
+
+      # Cargo.toml declares rust-version = "1.85" (edition 2024); stable is
+      # well past that, so no toolchain pin is needed.
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: cli-${{ matrix.target }}
+
+      - name: Build charmera CLI
+        run: cargo build --release --locked -p charmera-cli --target ${{ matrix.target }}
+
+      - name: Package (tar.gz)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          staging="${{ matrix.name }}"
+          mkdir -p "dist/$staging"
+          cp "target/${{ matrix.target }}/release/charmera" "dist/$staging/"
+          cp LICENSE README.md "dist/$staging/"
+          cp docs/man/charmera.1 "dist/$staging/"
+          tar -czf "dist/$staging.tar.gz" -C dist "$staging"
+          rm -rf "dist/$staging"
+
+      - name: Package (zip)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          staging="${{ matrix.name }}"
+          mkdir -p "dist/$staging"
+          cp "target/${{ matrix.target }}/release/charmera.exe" "dist/$staging/"
+          cp LICENSE README.md "dist/$staging/"
+          cd dist && 7z a "$staging.zip" "$staging" && rm -rf "$staging"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # 2. Desktop bundles — Tauri 2. Needs the frontend built first and, on Linux,
+  #    the webkit2gtk/gtk system libraries.
+  # ---------------------------------------------------------------------------
+  desktop:
+    name: Desktop (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # One universal .dmg covers Apple Silicon and Intel, so no second
+          # (retirement-prone) Intel macOS runner is needed.
+          - os: macos-latest
+            label: macos-universal
+            bundles: dmg
+            target: universal-apple-darwin
+          # Trade-off: the AppImage links against ubuntu-latest's glibc, so it
+          # will not run on distros older than that runner image.
+          - os: ubuntu-latest
+            label: linux-x86_64
+            bundles: deb,appimage
+            target: ""
+          - os: windows-latest
+            label: windows-x86_64
+            bundles: msi
+            target: ""
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_REF }}
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            patchelf
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # A universal binary is lipo'd from both macOS targets.
+      - name: Add macOS targets
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: desktop-${{ matrix.label }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      # Built explicitly (rather than leaning on tauri.conf.json's
+      # beforeBuildCommand) so the bundle can never pick up a stale
+      # frontend/dist and so a bun failure shows up as its own red step.
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      # `--bundles` overrides tauri.conf.json's macOS-only ["dmg", "app"].
+      # `--config` blanks beforeBuildCommand since the frontend is already built.
+      #
+      # CI=true is load-bearing on macOS: bundle_dmg.sh otherwise drives Finder
+      # over AppleScript to prettify the disk-image window, which has no GUI
+      # session to talk to and dies with "AppleEvent timed out (-1712)" after a
+      # long stall. Actions already sets CI, but it is set explicitly here so
+      # the step cannot regress if it is ever run elsewhere.
+      - name: Build desktop bundle
+        env:
+          CI: "true"
+        shell: bash
+        run: |
+          set -euo pipefail
+          target_flag=""
+          if [ -n "${{ matrix.target }}" ]; then
+            target_flag="--target ${{ matrix.target }}"
+          fi
+          cargo tauri build $target_flag \
+            --bundles ${{ matrix.bundles }} \
+            --config '{"build":{"beforeBuildCommand":""}}'
+
+      - name: Collect bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          found=0
+          while IFS= read -r -d '' f; do
+            # Spaces in "Charmera Companion_0.6.0_..." break release asset URLs.
+            cp "$f" "dist/$(basename "$f" | tr ' ' '-')"
+            found=1
+          done < <(find target -path '*/bundle/*' -type f \
+            \( -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' -o -name '*.msi' \) -print0)
+          if [ "$found" -eq 0 ]; then
+            echo "::error::No bundles produced for ${{ matrix.label }}"
+            exit 1
+          fi
+          ls -lh dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.label }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # 3. Publish everything on one release.
+  # ---------------------------------------------------------------------------
+  release:
+    name: Publish GitHub Release
+    needs: [cli, desktop]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_REF }}
+          name: Charmera Companion ${{ env.RELEASE_REF }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: dist/*
+          body: |
+            ## Downloads
+
+            | Platform | Desktop app | CLI |
+            |---|---|---|
+            | macOS (Apple Silicon + Intel) | `.dmg` (universal) | `charmera-macos-aarch64.tar.gz` / `charmera-macos-x86_64.tar.gz` |
+            | Linux (x86_64) | `.AppImage` / `.deb` | `charmera-linux-x86_64.tar.gz` |
+            | Windows (x86_64) | `.msi` | `charmera-windows-x86_64.zip` |
+
+            Verify a download against `SHA256SUMS.txt`.
+
+            ## Requirements
+
+            AI labelling runs entirely on your machine through [Ollama](https://ollama.com).
+            Install it, then pull a vision model:
+
+            ```sh
+            ollama pull moondream
+            ```
+
+            Everything else (import, browse, rename by pattern) works without it.
+
+            ## macOS: unsigned build
+
+            These builds are **not** code-signed or notarised, so Gatekeeper will
+            quarantine them ("app is damaged and can't be opened"). To run anyway:
+
+            ```sh
+            xattr -dr com.apple.quarantine "/Applications/Charmera Companion.app"
+            ```
+
+            For the CLI:
+
+            ```sh
+            xattr -dr com.apple.quarantine ./charmera
+            ```
+
+            Only do this for builds you got from this releases page.
+
+            ## Linux
+
+            ```sh
+            chmod +x Charmera-Companion_*.AppImage && ./Charmera-Companion_*.AppImage
+            # or
+            sudo dpkg -i charmera-companion_*.deb
+            ```
+
+            ---

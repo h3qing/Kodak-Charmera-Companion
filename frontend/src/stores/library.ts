@@ -19,9 +19,13 @@ import {
   type RenameProposal,
   type NasConfig,
 } from "../lib/tauri";
+import { showToast } from "../components/shared/Toast";
 
 const [photoCount, setPhotoCount] = createSignal(0);
 const [photos, setPhotos] = createSignal<PhotoSummary[]>([]);
+// False until the first refreshPhotos() settles, so the UI can show a skeleton
+// instead of flashing the welcome screen at returning users.
+const [libraryLoaded, setLibraryLoaded] = createSignal(false);
 const [isImporting, setIsImporting] = createSignal(false);
 const [importStatus, setImportStatus] = createSignal("");
 const [cameraPath, setCameraPath] = createSignal<string | null>(null);
@@ -33,7 +37,7 @@ const [renameProposals, setRenameProposals] = createSignal<RenameProposal[]>([])
 const [showRenameDialog, setShowRenameDialog] = createSignal(false);
 const [cameraJustConnected, setCameraJustConnected] = createSignal(false);
 const [cameraFileCount, setCameraFileCount] = createSignal(0);
-const [namingPattern, setNamingPatternSignal] = createSignal("b {MM}-{DD}-{YYYY} {content}");
+const [namingPattern, setNamingPatternSignal] = createSignal("{YYYY}-{MM}-{DD} {content}");
 const [recentPhotos, setRecentPhotos] = createSignal<PhotoSummary[]>([]);
 const [appVersion, setAppVersion] = createSignal("");
 
@@ -59,7 +63,10 @@ listen("import:done", (event: any) => {
   const data = event.payload as { imported: number; skipped: number; total_files: number; error?: string };
   setIsImporting(false);
   if (data.error) {
+    // importStatus only renders while isImporting is true, which it no longer
+    // is — the toast is the only thing the user will actually see.
     setImportStatus(`Import failed: ${data.error}`);
+    showToast(`Import failed: ${data.error}`, "error", 6000);
   } else {
     setImportStatus(`Imported ${data.imported} photos (${data.skipped} skipped)`);
   }
@@ -79,21 +86,49 @@ listen("label:progress", (event: any) => {
   setLabelStatus(`${data.done + 1} of ${data.total}: ${data.current}`);
 });
 
+// IDs labeled during the current run, so follow-up actions (NAS move) touch
+// only this batch rather than the whole library.
+let labeledBatchIds: number[] = [];
+
+// refreshPhotos() replaces every photo object, and <For> is keyed by reference,
+// so every card unmounts and refetches its thumbnail + labels. Once per photo
+// is unusable on a large library; batch it.
+const LABEL_REFRESH_EVERY = 20;
+
 listen("label:photo_done", (event: any) => {
   const data = event.payload as { id: number; description: string; tags: string[]; done: number; total: number };
   setLabelProgress({ done: data.done, total: data.total, current: "" });
   setLabelStatus(`${data.done} of ${data.total} done`);
-  // Refresh photos to show new labels on the grid
-  refreshPhotos();
+  labeledBatchIds.push(data.id);
+  // Refresh photos to show new labels on the grid, batched. The final refresh
+  // is guaranteed by the label:done listener below.
+  if (data.done % LABEL_REFRESH_EVERY === 0) {
+    refreshPhotos();
+  }
 });
 
 listen("label:done", (event: any) => {
-  const data = event.payload as { labeled: number; failed: number; total: number };
+  const data = event.payload as {
+    labeled: number;
+    failed: number;
+    total: number;
+    remaining?: number;
+  };
   setIsLabeling(false);
+
   if (data.labeled === 0 && data.total === 0) {
     setLabelStatus("All photos already labeled!");
   } else {
-    setLabelStatus(`Done! Labeled ${data.labeled} photos`);
+    // Report failures and the un-run remainder instead of only the good news:
+    // a run that labels 3 of 500 should not read as "Done!".
+    const parts = [`Labeled ${data.labeled} photos`];
+    if (data.failed > 0) parts.push(`${data.failed} failed`);
+    if (data.remaining && data.remaining > 0) {
+      parts.push(`${data.remaining} still waiting — run Auto Label again`);
+    }
+    const message = parts.join(" · ");
+    setLabelStatus(message);
+    showToast(message, data.failed > 0 ? "error" : "success");
   }
   refreshPhotos();
 
@@ -109,14 +144,14 @@ listen("label:done", (event: any) => {
     // Check if NAS is configured and auto_move is enabled
     const cfg = nasConfig();
     if (cfg?.enabled && cfg.auto_move && cfg.path) {
-      // Collect photo IDs for the labeled batch
-      getPhotos(0, 10000).then((page) => {
-        const ids = page.photos.map(p => p.id);
-        if (ids.length > 0) {
-          setNasPhotoIds(ids);
-          setShowNasMoveDialog(true);
-        }
-      }).catch((e) => console.error("Failed to get photos for NAS move:", e));
+      // Only the photos this run actually labeled. Offering the whole library
+      // would propose moving (and with keep-local off, deleting) thousands of
+      // files the user never touched.
+      const ids = [...new Set(labeledBatchIds)];
+      if (ids.length > 0) {
+        setNasPhotoIds(ids);
+        setShowNasMoveDialog(true);
+      }
     }
   }
 });
@@ -125,6 +160,7 @@ export function useLibrary() {
   return {
     photoCount,
     photos,
+    libraryLoaded,
     isImporting,
     importStatus,
     importProgress,
@@ -183,6 +219,7 @@ async function refreshPhotos() {
   } catch (e) {
     console.error("Failed to load photos:", e);
   }
+  setLibraryLoaded(true);
 }
 
 async function loadMorePhotos() {
@@ -234,6 +271,12 @@ setInterval(async () => {
     await onCameraDetected(newPath);
   }
   previousCameraPath = newPath ?? null;
+  // AI availability changes out from under us (user starts Ollama, pulls a
+  // model). Checking only once at module load left the core feature
+  // permanently disabled with no way to recover short of restarting.
+  if (!isLabeling()) {
+    await refreshAiStatus();
+  }
 }, 5000);
 
 // Also check immediately on startup — if camera is already plugged in, show popup
@@ -267,6 +310,7 @@ async function importFromCamera() {
     const detected = await checkCamera();
     if (!detected) {
       setImportStatus("No camera detected");
+      showToast("No camera detected. Plug in your Charmera, or use Add Folder.", "error", 5000);
       return;
     }
     return importFromPath(detected);
@@ -287,12 +331,14 @@ async function importFromPath(source: string) {
   } catch (e) {
     setImportStatus(`Import failed: ${e}`);
     setIsImporting(false);
+    showToast(`Import failed: ${e}`, "error", 6000);
   }
   // Note: setIsImporting(false) is now handled by the import:done event listener
 }
 
 async function runAutoLabel() {
   setIsLabeling(true);
+  labeledBatchIds = [];
   setLabelProgress({ done: 0, total: 0, current: "" });
   setLabelStatus("Starting AI analysis...");
   try {
@@ -307,6 +353,7 @@ async function runAutoLabel() {
   } catch (e) {
     setLabelStatus(`Labeling failed: ${e}`);
     setIsLabeling(false);
+    showToast(`Labeling failed: ${e}`, "error", 6000);
   }
 }
 
@@ -316,13 +363,18 @@ async function confirmRenames(approved: [number, string][]) {
     return;
   }
   try {
-    const count = await applyRenames(approved);
-    setLabelStatus(`Renamed ${count} files`);
+    const { renamed, skipped } = await applyRenames(approved);
+    const msg = skipped > 0
+      ? `Renamed ${renamed} · ${skipped} skipped (name already taken)`
+      : `Renamed ${renamed} files`;
+    setLabelStatus(msg);
+    showToast(msg, skipped > 0 ? "info" : "success", skipped > 0 ? 6000 : 3000);
     setShowRenameDialog(false);
     setRenameProposals([]);
     await refreshPhotos();
   } catch (e) {
     setLabelStatus(`Rename failed: ${e}`);
+    showToast(`Rename failed: ${e}`, "error", 6000);
   }
 }
 
@@ -342,6 +394,7 @@ async function movePhotosToNas(keepLocal: boolean) {
     }
   } catch (e) {
     setLabelStatus(`NAS move failed: ${e}`);
+    showToast(`NAS move failed: ${e}`, "error", 6000);
     setShowNasMoveDialog(false);
     setNasPhotoIds([]);
   }
@@ -367,11 +420,26 @@ async function triggerRenameDialog(): Promise<{ found: boolean; count: number }>
   }
 }
 
+async function refreshAiStatus() {
+  try {
+    setAiStatus(await checkAiStatus());
+  } catch (e) {
+    // Swallowing this used to leave aiStatus null, which the Sidebar rendered
+    // as "no AI button at all" with zero explanation.
+    setAiStatus({
+      available: false,
+      model: "",
+      models: [],
+      reason: `Could not reach the AI service: ${e}`,
+    });
+  }
+}
+
 // Initialize
 checkCamera();
 refreshPhotos();
 refreshRecentPhotos();
-checkAiStatus().then(setAiStatus).catch(() => setAiStatus(null));
+refreshAiStatus();
 getNamingPattern().then(setNamingPatternSignal).catch(() => {});
 getNasConfig().then(setNasConfigSignal).catch(() => setNasConfigSignal(null));
 getAppVersion().then(setAppVersion).catch(() => setAppVersion(""));

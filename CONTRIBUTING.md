@@ -9,12 +9,23 @@ Thanks for your interest in contributing! This project welcomes PRs for bug fixe
 git clone https://github.com/h3qing/Kodak-Charmera-Companion.git
 cd Kodak-Charmera-Companion
 
-# Install frontend deps
-cd frontend && bun install && cd ..
+just setup   # frontend deps + tauri-cli
+just dev     # run the desktop app
+```
 
-# Run in development
+Without `just`:
+
+```bash
+cargo install tauri-cli --locked
+cd frontend && bun install && cd ..
 cargo tauri dev
 ```
+
+Requires Rust 1.85+ (edition 2024), [Bun](https://bun.sh/), and
+[Ollama](https://ollama.com/download) with a vision model
+(`ollama pull moondream`). On Linux you also need the Tauri system
+dependencies: `libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev
+libayatana-appindicator3-dev librsvg2-dev`.
 
 ## Project Structure
 
@@ -32,10 +43,13 @@ scripts/           # Build scripts (icon generation)
 
 1. Create a feature branch from `main`
 2. Make changes with clear, focused commits
-3. Run tests: `cargo test -p charmera-core`
-4. Format: `cargo fmt --all`
-5. Build frontend: `cd frontend && bun run build`
-6. Open a PR against `main`
+3. Run the checks CI runs: `just lint && just test`
+   (raw: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`,
+   `cargo test --workspace`, and `cd frontend && bunx tsc --noEmit && bun run build`)
+4. Open a PR against `main`
+
+Clippy is enforced with `-D warnings`, and the frontend is type-checked with
+`tsc --noEmit`. Both are green on `main` — please keep them that way.
 
 ## Commit Messages
 
@@ -65,7 +79,7 @@ refactor: extract thumbnail cache logic
 ## Testing
 
 ```bash
-cargo test -p charmera-core    # 41 unit tests
+cargo test --workspace          # 38 tests
 cargo check --workspace        # Full type check
 cargo fmt --all -- --check     # Format check
 cd frontend && bun run build   # Frontend build

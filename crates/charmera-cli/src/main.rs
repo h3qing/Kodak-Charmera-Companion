@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser, Subcommand};
 
 #[derive(Parser)]
@@ -21,13 +21,19 @@ enum Commands {
         /// Shell to generate for (bash, zsh, fish, powershell)
         shell: clap_complete::Shell,
     },
-    /// Import photos from camera or folder
+    /// Copy photos off a camera or folder into a destination directory
     Import {
         /// Source path (camera mount or folder). Auto-detects if omitted.
         source: Option<String>,
-        /// Content label for smart renaming
-        #[arg(short, long)]
-        label: Option<String>,
+        /// Destination directory (created if missing)
+        #[arg(short, long, default_value = "./imported")]
+        dest: String,
+        /// Move files instead of copying (frees the SD card)
+        #[arg(long)]
+        r#move: bool,
+        /// Show what would be copied without writing anything
+        #[arg(short = 'n', long)]
+        dry_run: bool,
     },
     /// List photos on connected camera
     List {
@@ -46,7 +52,7 @@ enum Commands {
     Rename {
         /// Photo path
         input: String,
-        /// Naming pattern (default: b {MM}-{DD}-{YYYY} {content})
+        /// Naming pattern (default: {YYYY}-{MM}-{DD} {content})
         #[arg(short, long)]
         pattern: Option<String>,
         /// Dry run — show proposed name without renaming
@@ -63,7 +69,7 @@ enum Commands {
         /// Also rename files using naming pattern
         #[arg(long)]
         rename: bool,
-        /// Naming pattern for --rename (default: b {MM}-{DD}-{YYYY} {content})
+        /// Naming pattern for --rename (default: {YYYY}-{MM}-{DD} {content})
         #[arg(short, long)]
         pattern: Option<String>,
         /// Dry run — show labels without renaming
@@ -83,9 +89,6 @@ enum Commands {
     Splash {
         /// Source image
         input: String,
-        /// Text overlay
-        #[arg(short, long)]
-        text: Option<String>,
         /// Install directly to camera
         #[arg(long)]
         install: bool,
@@ -112,28 +115,127 @@ fn main() -> Result<()> {
             );
             Ok(())
         }
-        Commands::Import { source, label: _ } => {
+        Commands::Import {
+            source,
+            dest,
+            r#move,
+            dry_run,
+        } => {
             let camera_path = match source {
                 Some(p) => std::path::PathBuf::from(p),
                 None => charmera_core::import::find_camera_or_raise()?,
             };
             let files = charmera_core::import::list_media_files(&camera_path)?;
+            let dest_dir = std::path::PathBuf::from(&dest);
+
+            if !dry_run {
+                std::fs::create_dir_all(&dest_dir)
+                    .with_context(|| format!("creating destination directory: {dest}"))?;
+            }
+
+            let mut copied = 0u32;
+            let mut skipped = 0u32;
+            let mut entries = Vec::new();
+
+            for src in &files {
+                let name = match src.file_name() {
+                    Some(n) => n,
+                    None => {
+                        skipped += 1;
+                        continue;
+                    }
+                };
+                let target = dest_dir.join(name);
+
+                // Never silently clobber a file already in the destination.
+                if target.exists() {
+                    skipped += 1;
+                    entries.push(serde_json::json!({
+                        "file": src.display().to_string(),
+                        "status": "skipped",
+                        "reason": "a file with this name already exists at the destination",
+                    }));
+                    continue;
+                }
+
+                if dry_run {
+                    copied += 1;
+                    entries.push(serde_json::json!({
+                        "file": src.display().to_string(),
+                        "target": target.display().to_string(),
+                        "status": "would-copy",
+                    }));
+                    continue;
+                }
+
+                let outcome = if r#move {
+                    // rename() fails across filesystems, which is the normal case
+                    // for an SD card, so fall back to copy-then-delete.
+                    std::fs::rename(src, &target).or_else(|_| {
+                        std::fs::copy(src, &target)
+                            .and_then(|_| std::fs::remove_file(src))
+                            .map(|_| ())
+                    })
+                } else {
+                    std::fs::copy(src, &target).map(|_| ())
+                };
+
+                match outcome {
+                    Ok(()) => {
+                        copied += 1;
+                        entries.push(serde_json::json!({
+                            "file": src.display().to_string(),
+                            "target": target.display().to_string(),
+                            "status": if r#move { "moved" } else { "copied" },
+                        }));
+                    }
+                    Err(e) => {
+                        skipped += 1;
+                        entries.push(serde_json::json!({
+                            "file": src.display().to_string(),
+                            "status": "failed",
+                            "reason": e.to_string(),
+                        }));
+                    }
+                }
+            }
 
             if cli.json {
-                let json = serde_json::json!({
-                    "source": camera_path.display().to_string(),
-                    "files": files.iter().map(|f| f.display().to_string()).collect::<Vec<_>>(),
-                    "count": files.len(),
-                });
-                println!("{}", serde_json::to_string_pretty(&json)?);
-            } else {
                 println!(
-                    "Found {} media files in {}",
-                    files.len(),
-                    camera_path.display()
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "source": camera_path.display().to_string(),
+                        "dest": dest_dir.display().to_string(),
+                        "dry_run": dry_run,
+                        "total": files.len(),
+                        "imported": copied,
+                        "skipped": skipped,
+                        "files": entries,
+                    }))?
                 );
-                for f in &files {
-                    println!("  {}", f.display());
+            } else {
+                let verb = if dry_run {
+                    "Would import"
+                } else if r#move {
+                    "Moved"
+                } else {
+                    "Imported"
+                };
+                println!(
+                    "{verb} {copied}/{} files from {} to {}",
+                    files.len(),
+                    camera_path.display(),
+                    dest_dir.display()
+                );
+                if skipped > 0 {
+                    println!(
+                        "Skipped {skipped} (already present at the destination, or unreadable)"
+                    );
+                }
+                if dry_run {
+                    println!(
+                        "\nDry run — nothing was written. Re-run without --dry-run to import."
+                    );
                 }
             }
             Ok(())
@@ -214,7 +316,8 @@ fn main() -> Result<()> {
             let exif = charmera_core::import::extract_exif(path);
 
             // Apply naming pattern
-            let pat = pattern.unwrap_or_else(|| "b {MM}-{DD}-{YYYY} {content}".to_string());
+            let pat = pattern
+                .unwrap_or_else(|| charmera_core::constants::DEFAULT_NAMING_PATTERN.to_string());
             let original_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("photo");
             let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("jpg");
 
@@ -292,13 +395,26 @@ fn main() -> Result<()> {
                 if cli.json {
                     println!("{}", serde_json::json!({"photos": [], "total": 0}));
                 } else {
-                    println!("No JPEG photos found in {folder}");
+                    // The filter above accepts more than JPEG; say so, or the
+                    // user assumes their PNGs were the problem.
+                    println!("No supported photos (jpg, jpeg, png, bmp, webp) found in {folder}");
                 }
                 return Ok(());
             }
 
+            // Preflight: without this, a 500-photo run against a stopped Ollama
+            // burns through all 500, fails every one, and still exits 0.
+            if let Err(e) = charmera_core::ai::best_available_model() {
+                anyhow::bail!(
+                    "can't label photos: {e}\n\
+                     Check that Ollama is running (`ollama serve`) and a vision \
+                     model is installed (`ollama pull moondream`)."
+                );
+            }
+
             let total = photos.len();
-            let pat = pattern.unwrap_or_else(|| "b {MM}-{DD}-{YYYY} {content}".to_string());
+            let pat = pattern
+                .unwrap_or_else(|| charmera_core::constants::DEFAULT_NAMING_PATTERN.to_string());
             let mut results = Vec::new();
             let mut renamed_count = 0u32;
 
@@ -385,7 +501,7 @@ fn main() -> Result<()> {
                 for r in &results {
                     if let Some(desc) = r.get("description").and_then(|d| d.as_str()) {
                         let file = r["file"].as_str().unwrap_or("");
-                        let short = file.split('/').last().unwrap_or(file);
+                        let short = file.split('/').next_back().unwrap_or(file);
                         print!("{short}: {desc}");
                         if let Some(new) = r.get("new_name").and_then(|n| n.as_str()) {
                             print!(" → {new}");
@@ -404,6 +520,19 @@ fn main() -> Result<()> {
                     } else {
                         String::new()
                     }
+                );
+            }
+
+            // Exit non-zero when nothing succeeded, so scripts and cron jobs
+            // don't treat a total failure as a successful run.
+            let labeled = results
+                .iter()
+                .filter(|r| r.get("description").is_some())
+                .count();
+            if labeled == 0 {
+                anyhow::bail!(
+                    "labeled 0 of {total} photos — every request to Ollama failed. \
+                     Run `charmera status` to check the connection."
                 );
             }
 
@@ -455,7 +584,11 @@ fn main() -> Result<()> {
         }
         Commands::Status => {
             let camera = charmera_core::import::find_camera();
-            let ai_models = charmera_core::ai::list_vision_models().unwrap_or_default();
+            // `status` is the command people run when labeling isn't working,
+            // so keep the reason instead of collapsing it to "not available".
+            let ai_probe = charmera_core::ai::list_vision_models();
+            let ai_error = ai_probe.as_ref().err().map(|e| e.to_string());
+            let ai_models = ai_probe.unwrap_or_default();
             let best_model = charmera_core::ai::best_available_model().ok();
             let data_dir =
                 dirs_next::home_dir().map(|h| h.join(charmera_core::constants::APP_DIR_NAME));
@@ -477,6 +610,8 @@ fn main() -> Result<()> {
                             "available": !ai_models.is_empty(),
                             "models": ai_models,
                             "best_model": best_model,
+                            "url": charmera_core::ai::ollama_url(),
+                            "error": ai_error,
                         },
                         "storage": {
                             "data_dir": data_dir.as_ref().map(|d| d.display().to_string()),
@@ -493,7 +628,21 @@ fn main() -> Result<()> {
                     println!("Camera:  not detected");
                 }
                 if ai_models.is_empty() {
-                    println!("AI:      not available (install Ollama + vision model)");
+                    println!("AI:      not available");
+                    match &ai_error {
+                        Some(e) => {
+                            println!("         {e}");
+                            println!("         Start Ollama with `ollama serve`, or install it");
+                            println!("         from https://ollama.com/download");
+                        }
+                        None => {
+                            println!(
+                                "         Ollama is reachable at {} but has no vision model.",
+                                charmera_core::ai::ollama_url()
+                            );
+                            println!("         Install one with `ollama pull moondream`.");
+                        }
+                    }
                 } else {
                     println!(
                         "AI:      {} model(s): {}",
@@ -531,12 +680,9 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
-        Commands::Splash {
-            input,
-            text: _,
-            install,
-        } => {
-            let img = image::open(&input)?;
+        Commands::Splash { input, install } => {
+            let img = charmera_core::imageio::open_limited(std::path::Path::new(&input))
+                .with_context(|| format!("opening splash source image: {input}"))?;
             let splash = charmera_core::splash::create_splash(&img);
             let out_path = if install {
                 let camera = charmera_core::import::find_camera_or_raise()?;

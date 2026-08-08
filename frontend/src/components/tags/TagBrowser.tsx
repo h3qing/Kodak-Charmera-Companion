@@ -15,19 +15,25 @@ export default function TagBrowser() {
   const [tags, setTags] = createSignal<TagInfo[]>([]);
   const [selectedTag, setSelectedTag] = createSignal<string | null>(null);
   const [tagPhotos, setTagPhotos] = createSignal<PhotoSummary[]>([]);
-
-  onMount(async () => {
-    await loadTags();
-  });
+  const [loading, setLoading] = createSignal(true);
+  // A failed tag query used to render the same encouraging empty state as a
+  // genuinely untagged library, so the user waited for labels that never came.
+  const [error, setError] = createSignal<string | null>(null);
 
   const loadTags = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const t: TagInfo[] = await invoke("get_all_tags");
       setTags(t);
     } catch (e) {
       console.error("Failed to load tags:", e);
+      setError(String(e));
     }
+    setLoading(false);
   };
+
+  onMount(loadTags);
 
   const selectTag = async (tagName: string) => {
     setSelectedTag(tagName);
@@ -44,6 +50,26 @@ export default function TagBrowser() {
 
   return (
     <div class="p-4 h-full overflow-auto">
+      <Show when={!loading()} fallback={
+        <div class="flex items-center justify-center py-16">
+          <span class="kodak-spinner" />
+        </div>
+      }>
+      <Show when={!error()} fallback={
+        <div class="flex flex-col items-center justify-center h-full text-kodak-warm-gray" role="alert">
+          <svg class="w-12 h-12 mb-3 opacity-40 text-kodak-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          <p class="text-sm font-medium text-kodak-charcoal">Couldn't load your tags</p>
+          <p class="text-xs mt-1 max-w-md text-center break-words">{error()}</p>
+          <button
+            onClick={loadTags}
+            class="mt-4 px-4 py-2 text-xs bg-kodak-yellow hover:bg-kodak-yellow-dark text-kodak-charcoal rounded-lg font-medium transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      }>
       <Show
         when={tags().length > 0}
         fallback={
@@ -70,7 +96,7 @@ export default function TagBrowser() {
                       onClick={() => selectTag(tag.name)}
                       class={`px-2.5 py-1 text-xs rounded-full transition-all cursor-pointer ${
                         selectedTag() === tag.name
-                          ? "bg-kodak-yellow text-white font-semibold shadow-sm"
+                          ? "bg-kodak-yellow text-kodak-charcoal font-semibold shadow-sm"
                           : "bg-kodak-yellow/10 text-kodak-yellow-dark hover:bg-kodak-yellow/20"
                       }`}
                     >
@@ -123,6 +149,8 @@ export default function TagBrowser() {
             </Show>
           </div>
         </div>
+      </Show>
+      </Show>
       </Show>
     </div>
   );

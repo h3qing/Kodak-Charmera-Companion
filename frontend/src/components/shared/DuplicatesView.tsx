@@ -5,16 +5,23 @@ import { invoke } from "@tauri-apps/api/core";
 export default function DuplicatesView() {
   const [groups, setGroups] = createSignal<DuplicateGroup[]>([]);
   const [loading, setLoading] = createSignal(true);
+  // A failed scan is not an empty result. Telling the user "All your photos are
+  // unique" when the query blew up is worse than saying nothing.
+  const [error, setError] = createSignal<string | null>(null);
 
-  onMount(async () => {
+  const load = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const dupes = await getDuplicates();
-      setGroups(dupes);
+      setGroups(await getDuplicates());
     } catch (e) {
       console.error("Failed to load duplicates:", e);
+      setError(String(e));
     }
     setLoading(false);
-  });
+  };
+
+  onMount(load);
 
   const totalDuplicates = () => groups().reduce((sum, g) => sum + g.photos.length - 1, 0);
 
@@ -45,6 +52,21 @@ export default function DuplicatesView() {
           <span class="kodak-spinner" />
         </div>
       }>
+        <Show when={!error()} fallback={
+          <div class="flex flex-col items-center justify-center py-16 text-kodak-warm-gray" role="alert">
+            <svg class="w-12 h-12 mb-3 opacity-40 text-kodak-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+            <p class="text-sm font-medium text-kodak-charcoal">Couldn't scan for duplicates</p>
+            <p class="text-xs mt-1 max-w-md text-center break-words">{error()}</p>
+            <button
+              onClick={load}
+              class="mt-4 px-4 py-2 text-xs bg-kodak-yellow hover:bg-kodak-yellow-dark text-kodak-charcoal rounded-lg font-medium transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        }>
         <Show when={groups().length > 0} fallback={
           <div class="flex flex-col items-center justify-center py-16 text-kodak-warm-gray">
             <svg class="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,6 +103,7 @@ export default function DuplicatesView() {
               )}
             </For>
           </div>
+        </Show>
         </Show>
       </Show>
     </div>

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & ideas
+    url: https://github.com/h3qing/Kodak-Charmera-Companion/discussions
+    about: Ask how something works, share a setup, or float an idea before filing an issue.
+  - name: Hardware & camera compatibility
+    url: https://github.com/h3qing/Kodak-Charmera-Companion/blob/main/docs/hardware-guide.md
+    about: Check the hardware guide before reporting a camera that is not detected.
+  - name: Report a security vulnerability
+    url: https://github.com/h3qing/Kodak-Charmera-Companion/security/advisories/new
+    about: Please report security issues privately, not as a public issue.

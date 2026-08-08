@@ -1,30 +1,24 @@
 import { createSignal, onMount, Show } from "solid-js";
-import type { NasConfig } from "../../lib/tauri";
 import { showToast } from "./Toast";
 import StorageSetup from "./StorageSetup";
 import { useLibrary } from "../../stores/library";
 
 export default function SettingsView() {
   const library = useLibrary();
-  const [namingPattern, setNamingPatternLocal] = createSignal("b {MM}-{DD}-{YYYY} {content}");
+  const [namingPattern, setNamingPatternLocal] = createSignal("{YYYY}-{MM}-{DD} {content}");
   const [appVersion, setAppVersion] = createSignal("");
   const [applyingPattern, setApplyingPattern] = createSignal(false);
   const [aiAvailable, setAiAvailable] = createSignal(false);
   const [aiModel, setAiModel] = createSignal("");
   const [aiModels, setAiModels] = createSignal<string[]>([]);
+  const [aiReason, setAiReason] = createSignal<string | null>(null);
   const [saved, setSaved] = createSignal(false);
 
-  // NAS state
-  const defaultNasConfig: NasConfig = { enabled: false, path: "", auto_move: false, organize_by_date: true };
+  // NAS state — StorageSetup owns the wizard's own transient state.
   const [nasPath, setNasPath] = createSignal("");
   const [nasAutoMove, setNasAutoMove] = createSignal(false);
   const [nasOrganizeByDate, setNasOrganizeByDate] = createSignal(true);
   const [nasEnabled, setNasEnabled] = createSignal(false);
-  const [nasTestResult, setNasTestResult] = createSignal<boolean | null>(null);
-  const [nasTesting, setNasTesting] = createSignal(false);
-  const [nasDetecting, setNasDetecting] = createSignal(false);
-  const [nasSaved, setNasSaved] = createSignal(false);
-  const [nasMovingAll, setNasMovingAll] = createSignal(false);
 
   onMount(async () => {
     try {
@@ -35,7 +29,10 @@ export default function SettingsView() {
         setAiAvailable(status.available);
         setAiModel(status.model);
         setAiModels(status.models || []);
-      } catch {}
+        setAiReason(status.reason ?? null);
+      } catch (e) {
+        setAiReason(`Could not reach the AI service: ${e}`);
+      }
       try {
         const pattern = await getNamingPattern();
         if (pattern) setNamingPatternLocal(pattern);
@@ -64,7 +61,7 @@ export default function SettingsView() {
   };
 
   const resetPattern = () => {
-    setNamingPatternLocal("b {MM}-{DD}-{YYYY} {content}");
+    setNamingPatternLocal("{YYYY}-{MM}-{DD} {content}");
   };
 
   const patternPreview = () => {
@@ -151,7 +148,7 @@ export default function SettingsView() {
             <div class="flex items-center gap-2">
               <button
                 onClick={handlePatternSave}
-                class="px-4 py-2 bg-kodak-yellow hover:bg-kodak-yellow-dark text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer"
+                class="px-4 py-2 bg-kodak-yellow hover:bg-kodak-yellow-dark text-kodak-charcoal text-sm font-semibold rounded-lg transition-colors cursor-pointer"
               >
                 Save Pattern
               </button>
@@ -191,22 +188,24 @@ export default function SettingsView() {
             </p>
             <button
               onClick={async () => {
+                // Ask for the destination first, then let Rust stream straight
+                // to it. Nothing large crosses the IPC boundary and the webview
+                // needs no filesystem write permission.
                 try {
-                  const { invoke } = await import("@tauri-apps/api/core");
-                  const json: string = await invoke("export_labels_json");
                   const { save } = await import("@tauri-apps/plugin-dialog");
                   const dest = await save({
                     defaultPath: "charmera-labels.json",
                     filters: [{ name: "JSON", extensions: ["json"] }],
                   });
-                  if (dest) {
-                    const { writeTextFile } = await import("@tauri-apps/plugin-fs");
-                    await writeTextFile(dest, json);
-                    setSaved(true);
-                    setTimeout(() => setSaved(false), 2000);
-                  }
+                  if (!dest) return;
+
+                  const { invoke } = await import("@tauri-apps/api/core");
+                  const count: number = await invoke("export_labels_json", { dest });
+                  showToast(`Exported ${count} photo labels`, "success");
+                  setSaved(true);
+                  setTimeout(() => setSaved(false), 2000);
                 } catch (e) {
-                  console.error("Export failed:", e);
+                  showToast(`Export failed: ${e}`, "error");
                 }
               }}
               class="px-4 py-2 bg-kodak-charcoal hover:bg-kodak-charcoal-light text-kodak-yellow text-sm font-semibold rounded-lg transition-colors"
@@ -284,12 +283,12 @@ export default function SettingsView() {
               </div>
             </Show>
             <Show when={!aiAvailable()}>
-              <p class="text-xs text-kodak-warm-gray mt-2">
-                Install Ollama and pull a vision model to enable AI photo labeling:
+              {/* The backend distinguishes "Ollama not reachable" from "no
+                  vision model pulled" and returns the exact fix; show that
+                  rather than a generic install blurb. */}
+              <p class="text-xs text-kodak-warm-gray mt-2 leading-relaxed whitespace-pre-wrap">
+                {aiReason() ?? "Install Ollama and pull a vision model to enable AI photo labeling."}
               </p>
-              <pre class="text-xs font-mono bg-kodak-cream p-2 rounded-lg mt-1 text-kodak-charcoal">
-                ollama pull moondream
-              </pre>
             </Show>
           </div>
         </section>

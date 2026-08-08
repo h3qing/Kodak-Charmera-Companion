@@ -54,14 +54,30 @@ export default function PhotoGrid(props: PhotoGridProps) {
       if (next.has(id)) next.delete(id); else next.add(id);
       setSelectedIds(next);
     } else if (e.shiftKey && selectedIds().size > 0) {
-      // Range select
-      const ids = props.photos.map((p) => p.id);
-      const lastSelected = [...selectedIds()].pop()!;
-      const from = ids.indexOf(lastSelected);
+      // Range select. Index into the SORTED list — that's what's on screen, so
+      // ranging over props.photos would select photos the user never dragged
+      // across as soon as the sort order differs from insertion order.
+      const ids = sortedPhotos().map((p) => p.id);
+      // Anchor on the visually-nearest existing selection rather than Set
+      // insertion order, which has nothing to do with what the user sees.
       const to = ids.indexOf(id);
+      const selected = selectedIds();
+      let from = to;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      ids.forEach((candidate, index) => {
+        if (!selected.has(candidate)) return;
+        const distance = Math.abs(index - to);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          from = index;
+        }
+      });
       const [start, end] = from < to ? [from, to] : [to, from];
       const next = new Set(selectedIds());
-      for (let i = start; i <= end; i++) next.add(ids[i]!);
+      for (let i = start; i <= end; i++) {
+        const rangeId = ids[i];
+        if (rangeId !== undefined) next.add(rangeId);
+      }
       setSelectedIds(next);
     } else {
       // Single select
@@ -69,8 +85,8 @@ export default function PhotoGrid(props: PhotoGridProps) {
     }
   };
 
-  const selectAll = () => setSelectedIds(new Set(props.photos.map((p) => p.id)));
-  const clearSelection = () => setSelectedIds(new Set());
+  const selectAll = () => setSelectedIds(new Set(sortedPhotos().map((p) => p.id)));
+  const clearSelection = () => setSelectedIds(new Set<number>());
 
   const handleBatchExport = async () => {
     const { open: openDir } = await import("@tauri-apps/plugin-dialog");
@@ -122,7 +138,7 @@ export default function PhotoGrid(props: PhotoGridProps) {
   return (
     <div class="h-full flex flex-col">
       {/* Batch action bar */}
-      <Show when={selectedCount() >= 1 && !viewingId()}>
+      <Show when={selectedCount() >= 1 && !viewingPhoto()}>
         <div class="px-4 py-2 bg-kodak-yellow/10 border-b border-kodak-yellow/20 shrink-0">
           <div class="flex items-center gap-3">
           <span class="text-sm font-semibold text-kodak-yellow-dark">
@@ -138,7 +154,7 @@ export default function PhotoGrid(props: PhotoGridProps) {
             <button
               onClick={handleBatchExport}
               disabled={batchExporting()}
-              class="px-3 py-1.5 text-xs bg-kodak-yellow hover:bg-kodak-yellow-dark text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              class="px-3 py-1.5 text-xs bg-kodak-yellow hover:bg-kodak-yellow-dark text-kodak-charcoal rounded-lg font-medium transition-colors disabled:opacity-50"
             >
               {batchExporting() ? "Exporting..." : "Export"}
             </button>
@@ -163,8 +179,8 @@ export default function PhotoGrid(props: PhotoGridProps) {
         </div>
       </Show>
 
-      {/* Grid view */}
-      <Show when={!viewingId()}>
+      {/* Grid view. Falls back into view if the photo being viewed vanishes. */}
+      <Show when={!viewingPhoto()}>
         <div class="flex-1 overflow-auto">
           {/* Toolbar */}
           <div class="flex items-center justify-between px-3 py-2 border-b border-kodak-cream-dark bg-kodak-cream/50">
@@ -210,7 +226,12 @@ export default function PhotoGrid(props: PhotoGridProps) {
             </div>
           </div>
           <div class="p-3">
-          <div class={`grid ${GRID_SIZES[gridSize()]} gap-2`}>
+          <div
+            class={`grid ${GRID_SIZES[gridSize()]} gap-2`}
+            role="listbox"
+            aria-multiselectable="true"
+            aria-label="Photos"
+          >
             <For each={sortedPhotos()}>
               {(photo) => (
                 <PhotoCard
@@ -218,6 +239,11 @@ export default function PhotoGrid(props: PhotoGridProps) {
                   selected={selectedIds().has(photo.id)}
                   onClick={(e) => handleClick(photo.id, e)}
                   onDoubleClick={() => setViewingId(photo.id)}
+                  onToggleSelect={() => {
+                    const next = new Set(selectedIds());
+                    if (next.has(photo.id)) next.delete(photo.id); else next.add(photo.id);
+                    setSelectedIds(next);
+                  }}
                   searchQuery={props.searchQuery}
                 />
               )}
@@ -245,24 +271,22 @@ export default function PhotoGrid(props: PhotoGridProps) {
         </div>
       </Show>
 
-      {/* Detail view */}
-      <Show when={viewingId()}>
-        <PhotoDetailView
-          photo={viewingPhoto()!}
-          photos={sortedPhotos()}
-          onBack={() => setViewingId(null)}
-          onNavigate={(id) => setViewingId(id)}
-        />
+      {/* Detail view. Gated on viewingPhoto(), not viewingId(): a refresh can
+          replace the photo array and drop the id, and `viewingPhoto()!` then
+          handed undefined to a component that dereferences it — an uncaught
+          throw with no ErrorBoundary, i.e. a permanent white screen. */}
+      <Show when={viewingPhoto()}>
+        {(photo: () => PhotoSummary) => (
+          <PhotoDetailView
+            photo={photo()}
+            photos={sortedPhotos()}
+            onBack={() => setViewingId(null)}
+            onNavigate={(id) => setViewingId(id)}
+          />
+        )}
       </Show>
     </div>
   );
-}
-
-function highlightText(text: string, query?: string): string {
-  if (!query || !query.trim()) return text;
-  // Simple case-insensitive highlight using mark tags
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return text.replace(new RegExp(`(${escaped})`, "gi"), "**$1**");
 }
 
 function PhotoCard(props: {
@@ -270,6 +294,7 @@ function PhotoCard(props: {
   selected: boolean;
   onClick: (e: MouseEvent) => void;
   onDoubleClick: () => void;
+  onToggleSelect: () => void;
   searchQuery?: string;
 }) {
   const [thumbSrc, setThumbSrc] = createSignal<string | null>(null);
@@ -282,7 +307,7 @@ function PhotoCard(props: {
     if (!cardRef) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loaded) {
+        if (entries[0]?.isIntersecting && !loaded) {
           loaded = true;
           observer.disconnect();
           // Load thumbnail
@@ -324,8 +349,21 @@ function PhotoCard(props: {
       ref={cardRef}
       onClick={props.onClick}
       onDblClick={props.onDoubleClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          props.onDoubleClick();
+        } else if (e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          props.onToggleSelect();
+        }
+      }}
+      role="option"
+      tabindex={0}
+      aria-selected={props.selected}
+      aria-label={props.photo.relative_path.split("/").pop()}
       title={tooltip()}
-      class={`relative group cursor-pointer rounded-lg overflow-hidden border-2 border-kodak-charcoal/10 transition-all duration-150 ${
+      class={`relative group cursor-pointer rounded-lg overflow-hidden border-2 border-kodak-charcoal/10 transition-all duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-kodak-charcoal ${
         props.selected
           ? "ring-3 ring-kodak-yellow scale-[0.97] shadow-lg"
           : "hover:ring-2 hover:ring-kodak-yellow/30 hover:shadow-md"
@@ -440,6 +478,19 @@ function PhotoDetailView(props: {
   };
 
   const currentIndex = () => props.photos.findIndex((p) => p.id === props.photo.id);
+
+  // Each FilmStripThumb fetches its thumbnail over Tauri IPC on mount. Rendering
+  // one per photo meant opening a single photo in a 500-photo library fired 500
+  // concurrent IPC calls and froze the app. Only the reachable neighbourhood is
+  // rendered; <For> is keyed by reference, so panning mounts a couple of thumbs
+  // rather than re-mounting the whole strip.
+  const STRIP_RADIUS = 15;
+  const stripWindow = createMemo(() => {
+    const idx = currentIndex();
+    if (idx < 0) return props.photos.slice(0, STRIP_RADIUS * 2 + 1);
+    return props.photos.slice(Math.max(0, idx - STRIP_RADIUS), idx + STRIP_RADIUS + 1);
+  });
+
   const hasPrev = () => currentIndex() > 0;
   const hasNext = () => currentIndex() < props.photos.length - 1;
   const navigate = (delta: number) => {
@@ -632,7 +683,7 @@ function PhotoDetailView(props: {
       <div class="shrink-0 bg-kodak-film-border">
         <div class="film-sprockets" />
         <div class="h-20 flex items-center gap-2 px-4 overflow-x-auto">
-          <For each={props.photos}>
+          <For each={stripWindow()}>
             {(photo) => (
               <FilmStripThumb
                 photo={photo}

@@ -86,7 +86,7 @@ export default function WelcomeScreen(props: WelcomeProps) {
           <button
             onClick={handleImportCamera}
             disabled={props.library.isImporting()}
-            class="inline-flex items-center gap-2 px-6 py-2.5 bg-kodak-yellow hover:bg-kodak-yellow-dark disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed"
+            class="inline-flex items-center gap-2 px-6 py-2.5 bg-kodak-yellow hover:bg-kodak-yellow-dark disabled:opacity-50 text-kodak-charcoal text-sm font-semibold rounded-lg transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />

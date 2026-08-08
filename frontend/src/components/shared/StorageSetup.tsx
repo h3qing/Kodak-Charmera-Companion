@@ -123,10 +123,11 @@ export default function StorageSetup(props: StorageSetupProps) {
     try {
       const { detectNasVolumes } = await import("../../lib/tauri");
       const volumes = await detectNasVolumes();
-      if (volumes.length > 0) {
-        setPath(volumes[0]);
+      const first = volumes[0];
+      if (first) {
+        setPath(first);
         setTestResult(null);
-        showToast(`Found: ${volumes[0].split("/").pop()}`, "success");
+        showToast(`Found: ${first.split("/").pop()}`, "success");
       } else {
         showToast("No network drives found. Make sure your NAS is mounted in Finder first.", "info");
       }
@@ -261,7 +262,7 @@ export default function StorageSetup(props: StorageSetupProps) {
                       }`}>
                         <div class={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${
                           i() < setupStep() ? "bg-green-500 text-white"
-                          : i() === setupStep() ? "bg-kodak-yellow text-white"
+                          : i() === setupStep() ? "bg-kodak-yellow text-kodak-charcoal"
                           : "bg-kodak-cream-dark text-kodak-warm-gray"
                         }`}>
                           {i() < setupStep() ? "✓" : i() + 1}
@@ -294,7 +295,7 @@ export default function StorageSetup(props: StorageSetupProps) {
                   placeholder={selectedDest()!.id === "nas" ? "/Volumes/NAS_NAME/Photos" : "/Users/you/Pictures"}
                   class="flex-1 text-sm px-3 py-2 rounded-lg border border-kodak-cream-dark bg-kodak-cream/50 focus:outline-none focus:ring-2 focus:ring-kodak-yellow/40 font-mono"
                 />
-                <button onClick={handleBrowse} class="px-3 py-2 text-xs bg-kodak-yellow hover:bg-kodak-yellow-dark text-white rounded-lg font-medium transition-colors">
+                <button onClick={handleBrowse} class="px-3 py-2 text-xs bg-kodak-yellow hover:bg-kodak-yellow-dark text-kodak-charcoal rounded-lg font-medium transition-colors">
                   Browse
                 </button>
                 <Show when={selectedDest()!.id === "nas"}>
@@ -360,7 +361,7 @@ export default function StorageSetup(props: StorageSetupProps) {
 
               <button
                 onClick={handleSave}
-                class="w-full py-2.5 bg-kodak-yellow hover:bg-kodak-yellow-dark text-white text-sm font-bold rounded-lg transition-colors"
+                class="w-full py-2.5 bg-kodak-yellow hover:bg-kodak-yellow-dark text-kodak-charcoal text-sm font-bold rounded-lg transition-colors"
               >
                 Save & Enable
               </button>

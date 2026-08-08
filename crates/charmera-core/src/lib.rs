@@ -7,6 +7,7 @@
 //!
 //! - [`ai`] — Ollama vision model integration for photo labeling
 //! - [`catalog`] — SQLite catalog with WAL mode, search, and settings
+//! - [`imageio`] — Decoding images with decompression-bomb limits
 //! - [`import`] — Camera detection, EXIF extraction, file naming patterns
 //! - [`export`] — JPEG export pipeline
 //! - [`splash`] — Boot splash screen creator (960×720)
@@ -16,6 +17,7 @@ pub mod ai;
 pub mod catalog;
 pub mod constants;
 pub mod export;
+pub mod imageio;
 pub mod import;
 pub mod splash;
 pub mod thumbnails;
