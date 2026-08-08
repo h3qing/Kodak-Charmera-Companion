@@ -23,6 +23,18 @@ export type View =
   | "splash"
   | "settings";
 
+function LibrarySkeleton() {
+  return (
+    <div class="p-3" aria-busy="true" aria-label="Loading your library">
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2">
+        {Array.from({ length: 12 }).map(() => (
+          <div class="aspect-[4/3] rounded-lg bg-kodak-cream-dark animate-pulse" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [currentView, setCurrentView] = createSignal<View>("all-photos");
   const [searchQuery, setSearchQuery] = createSignal("");
@@ -50,10 +62,9 @@ export default function App() {
         } else if (event.payload.type === "drop") {
           dragCounter = 0;
           setIsDragging(false);
-          const paths = event.payload.paths;
-          if (paths.length > 0) {
-            // Import from the first dropped folder/file's parent
-            const droppedPath = paths[0];
+          // Import from the first dropped folder/file's parent
+          const droppedPath = event.payload.paths[0];
+          if (droppedPath) {
             library.importFromPath(droppedPath);
           }
         }
@@ -207,6 +218,10 @@ export default function App() {
             if (view === "duplicates") return <DuplicatesView />;
             if (view === "smart-albums") return <SmartAlbumsView />;
             if (view === "splash") return <SplashEditor />;
+            // refreshPhotos() is async, so photoCount() is 0 on the first frame
+            // for everyone — returning users used to get a flash of the welcome
+            // screen on every launch. Wait for the first load to settle.
+            if (!library.libraryLoaded()) return <LibrarySkeleton />;
             if (library.photoCount() === 0) return <WelcomeScreen library={library} />;
             if (view === "tags") return <TagBrowser />;
             if (view === "recent") return (

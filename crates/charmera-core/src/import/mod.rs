@@ -84,6 +84,8 @@ pub fn find_camera() -> Option<PathBuf> {
 }
 
 /// Platform-specific directories to scan for mounted volumes.
+// Not `vec![]`: the entries below are cfg-gated per platform.
+#[allow(clippy::vec_init_then_push)]
 fn scan_directories() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
 
@@ -135,19 +137,19 @@ pub fn list_media_files(source: &Path) -> Result<Vec<PathBuf>> {
         .filter_map(|e| e.ok())
     {
         let path = entry.path();
-        if path.is_file() {
-            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                // Skip dotfiles
-                if name.starts_with('.') {
-                    continue;
-                }
-                if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-                    let ext_lower = format!(".{}", ext.to_lowercase());
-                    if PHOTO_EXTENSIONS.contains(&ext_lower.as_str())
-                        || VIDEO_EXTENSIONS.contains(&ext_lower.as_str())
-                    {
-                        files.push(path.to_owned());
-                    }
+        if path.is_file()
+            && let Some(name) = path.file_name().and_then(|n| n.to_str())
+        {
+            // Skip dotfiles
+            if name.starts_with('.') {
+                continue;
+            }
+            if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+                let ext_lower = format!(".{}", ext.to_lowercase());
+                if PHOTO_EXTENSIONS.contains(&ext_lower.as_str())
+                    || VIDEO_EXTENSIONS.contains(&ext_lower.as_str())
+                {
+                    files.push(path.to_owned());
                 }
             }
         }
@@ -200,14 +202,17 @@ pub fn apply_naming_pattern(
         .or_else(|| first_clause.strip_prefix("An "))
         .or_else(|| first_clause.strip_prefix("The "))
         .unwrap_or(first_clause);
-    // Truncate at word boundary within 30 chars
-    let truncated = if trimmed.len() <= 30 {
+    // Truncate at word boundary within 30 chars.
+    // Count in `char`s, not bytes: AI descriptions routinely contain non-ASCII
+    // ("café", "naïve", CJK), and byte slicing would panic mid-codepoint.
+    let truncated = if trimmed.chars().count() <= 30 {
         trimmed.to_string()
     } else {
-        let cut = &trimmed[..30];
-        cut.rfind(' ')
-            .map(|i| cut[..i].to_string())
-            .unwrap_or_else(|| cut.to_string())
+        let cut: String = trimmed.chars().take(30).collect();
+        match cut.rfind(' ') {
+            Some(i) => cut[..i].to_string(),
+            None => cut,
+        }
     };
     let content = sanitize_label(&truncated);
 
@@ -235,8 +240,11 @@ fn parse_date_tokens(date_str: &str) -> (String, String, String) {
         );
     }
     // Try ISO format: "YYYY-MM-DD..."
-    if date_str.len() >= 10 {
-        let parts: Vec<&str> = date_str[..10].split('-').collect();
+    // Char-based: EXIF date fields are attacker/camera controlled and may be
+    // malformed non-ASCII, which would panic a byte slice.
+    if date_str.chars().count() >= 10 {
+        let head: String = date_str.chars().take(10).collect();
+        let parts: Vec<&str> = head.split('-').collect();
         if parts.len() == 3 {
             return (
                 parts[1].to_string(),
@@ -295,13 +303,51 @@ mod tests {
     #[test]
     fn naming_pattern_default() {
         let result = apply_naming_pattern(
-            "b {MM}-{DD}-{YYYY} {content}",
+            crate::constants::DEFAULT_NAMING_PATTERN,
             Some("2026:03:30 14:30:00"),
             "A brown dog on the couch.",
             1,
             "PICT0042",
         );
-        assert_eq!(result, "b 03-30-2026 brown dog on the couch");
+        assert_eq!(result, "2026-03-30 brown dog on the couch");
+    }
+
+    #[test]
+    fn default_naming_pattern_sorts_chronologically() {
+        // The whole point of renaming is that a file manager sorts the result
+        // in date order, which a leading MM-DD-YYYY does not do.
+        let mut names = vec![
+            apply_naming_pattern(
+                crate::constants::DEFAULT_NAMING_PATTERN,
+                Some("2026-12-01"),
+                "december",
+                1,
+                "a",
+            ),
+            apply_naming_pattern(
+                crate::constants::DEFAULT_NAMING_PATTERN,
+                Some("2026-01-15"),
+                "january",
+                2,
+                "b",
+            ),
+            apply_naming_pattern(
+                crate::constants::DEFAULT_NAMING_PATTERN,
+                Some("2025-06-20"),
+                "last year",
+                3,
+                "c",
+            ),
+        ];
+        names.sort();
+        assert_eq!(
+            names,
+            vec![
+                "2025-06-20 last year",
+                "2026-01-15 january",
+                "2026-12-01 december",
+            ]
+        );
     }
 
     #[test]
@@ -336,6 +382,41 @@ mod tests {
         // Path separators should be stripped
         assert!(!result.contains('/'));
         assert!(!result.contains(".."));
+    }
+
+    #[test]
+    fn naming_pattern_handles_multibyte_at_truncation_boundary() {
+        // Regression: the truncation used to slice bytes, so any description
+        // whose 30th byte landed mid-codepoint panicked. That panic happened
+        // while the catalog mutex was held, poisoning it and taking down every
+        // command until restart.
+        let result = apply_naming_pattern(
+            "{content}",
+            None,
+            "A cozy living room with a café table and a sleeping dog",
+            1,
+            "x",
+        );
+        assert!(!result.is_empty());
+
+        // Multibyte scripts with no spaces to fall back on.
+        let cjk = apply_naming_pattern("{content}", None, &"日本語".repeat(20), 1, "x");
+        assert!(!cjk.is_empty());
+
+        // Accent exactly at the boundary, plus emoji (4-byte codepoints).
+        for filler in 0..40usize {
+            let desc = format!("{}é rest of sentence", "a".repeat(filler));
+            let _ = apply_naming_pattern("{content}", None, &desc, 1, "x");
+            let emoji = format!("{}🎞️ film strip", "b".repeat(filler));
+            let _ = apply_naming_pattern("{content}", None, &emoji, 1, "x");
+        }
+    }
+
+    #[test]
+    fn parse_date_tokens_handles_multibyte() {
+        // EXIF date fields are camera-controlled and can be malformed.
+        let (mm, dd, yyyy) = parse_date_tokens("日本語日本語日本語日本語");
+        assert!(!mm.is_empty() && !dd.is_empty() && !yyyy.is_empty());
     }
 
     #[test]

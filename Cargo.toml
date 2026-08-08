@@ -9,6 +9,11 @@ members = [
 [workspace.package]
 version = "0.6.0"
 edition = "2024"
+# edition 2024 needs Rust >= 1.85. Declaring it here makes cargo say exactly
+# that on an older compiler, instead of a confusing "feature `edition2024` is
+# required" error. Preferred over a rust-toolchain.toml pin, which would force
+# every contributor to download a second toolchain they don't need.
+rust-version = "1.85"
 license = "MIT"
 repository = "https://github.com/h3qing/Kodak-Charmera-Companion"
 
@@ -16,7 +21,6 @@ repository = "https://github.com/h3qing/Kodak-Charmera-Companion"
 charmera-core = { path = "crates/charmera-core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

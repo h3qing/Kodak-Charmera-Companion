@@ -40,6 +40,17 @@ pub struct AiStatus {
     pub available: bool,
     pub model: String,
     pub models: Vec<String>,
+    /// Why AI is unavailable, when it is. The three failure modes (Ollama not
+    /// installed / not running / running but no vision model pulled) need
+    /// different fixes, so collapsing them into `available: false` leaves the
+    /// user with a dead end.
+    pub reason: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct RenameOutcome {
+    pub renamed: u32,
+    pub skipped: u32,
 }
 
 #[derive(Serialize)]
@@ -100,6 +111,28 @@ impl AppState {
         let dir = self.data_dir.join("photos");
         let _ = std::fs::create_dir_all(&dir);
         dir
+    }
+
+    /// Resolve a frontend-supplied thumbnail path, refusing anything outside
+    /// the thumbnail cache.
+    ///
+    /// The webview can invoke commands with arbitrary arguments, so an
+    /// unchecked path here is a "read any file on disk and hand it back
+    /// base64-encoded" primitive. Canonicalize both sides so `..` and symlinks
+    /// can't be used to escape.
+    pub fn resolve_thumbnail_path(&self, path: &str) -> Result<PathBuf> {
+        let root = self
+            .thumbnail_dir
+            .canonicalize()
+            .unwrap_or_else(|_| self.thumbnail_dir.clone());
+        let candidate = Path::new(path)
+            .canonicalize()
+            .with_context(|| format!("thumbnail not found: {path}"))?;
+
+        if !candidate.starts_with(&root) {
+            anyhow::bail!("refusing to read outside the thumbnail cache: {path}");
+        }
+        Ok(candidate)
     }
 
     /// Get a setting value.
@@ -187,8 +220,8 @@ impl AppState {
                     .and_then(|d| {
                         // Parse "YYYY:MM:DD" or "YYYY-MM-DD" -> "YYYY-MM"
                         let normalized = d.replace(':', "-");
-                        if normalized.len() >= 7 {
-                            Some(normalized[..7].to_string())
+                        if normalized.chars().count() >= 7 {
+                            Some(normalized.chars().take(7).collect::<String>())
                         } else {
                             None
                         }
@@ -236,13 +269,7 @@ impl AppState {
             moved += 1;
         }
 
-        std::thread::sleep(std::time::Duration::from_millis(100));
         Ok((moved, failed))
-    }
-
-    #[allow(dead_code)]
-    pub fn import_from_path(&self, source: &str) -> Result<ImportResult> {
-        self.import_from_path_with_progress(source, &|_, _, _| {})
     }
 
     pub fn import_from_path_with_progress(
@@ -292,8 +319,6 @@ impl AppState {
             }
         }
 
-        // Give writer task time to process
-        std::thread::sleep(std::time::Duration::from_millis(100));
         tracing::info!("import complete: {imported} imported, {skipped} skipped");
 
         Ok(ImportResult {
@@ -303,6 +328,7 @@ impl AppState {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn import_single_file(
         &self,
         file_path: &Path,
@@ -419,8 +445,8 @@ impl AppState {
                     rating: row.get::<_, Option<u8>>(6)?.unwrap_or(0),
                 })
             })?
-            .filter_map(|r| r.ok())
-            .collect();
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .context("reading rows from the catalog")?;
         let total = photos.len() as u32;
         Ok(PhotoPage { photos, total })
     }
@@ -463,13 +489,22 @@ impl AppState {
 
     pub fn export_photo(&self, id: i64, dest: &str) -> Result<String> {
         let file_path = self.get_photo_file_path(id)?;
-        let img = image::open(&file_path).with_context(|| format!("opening {file_path}"))?;
+        let img = charmera_core::imageio::open_limited(Path::new(&file_path))?;
         let dest_path = std::path::PathBuf::from(dest);
         charmera_core::export::export_photo(&img, &dest_path, None)?;
         Ok(dest_path.display().to_string())
     }
 
     /// Get unlabeled photos for auto-labeling.
+    /// Photos still needing an AI description.
+    ///
+    /// Bounded: labeling runs at roughly a second per photo, so a run is
+    /// measured in hours long before memory matters — but an unbounded
+    /// `SELECT` on a very large library would still materialize every row up
+    /// front. Callers re-run to pick up the remainder, and `auto_label_all`
+    /// reports when more are waiting.
+    pub const UNLABELED_BATCH_LIMIT: u32 = 5_000;
+
     pub fn get_unlabeled_photos(&self) -> Result<Vec<(i64, String, Option<String>)>> {
         let catalog = self
             .catalog
@@ -477,13 +512,32 @@ impl AppState {
             .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         let mut stmt = catalog.read_conn().prepare(
             "SELECT id, file_path, thumbnail_path FROM photos
-             WHERE (description IS NULL OR description = '') AND is_hidden = 0",
+             WHERE (description IS NULL OR description = '') AND is_hidden = 0
+             ORDER BY id
+             LIMIT ?1",
         )?;
         let photos = stmt
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
-            .filter_map(|r| r.ok())
-            .collect();
+            .query_map([Self::UNLABELED_BATCH_LIMIT], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .context("reading unlabeled photos from the catalog")?;
         Ok(photos)
+    }
+
+    /// How many photos still have no AI description.
+    pub fn count_unlabeled_photos(&self) -> Result<u32> {
+        let catalog = self
+            .catalog
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
+        let count: i64 = catalog.read_conn().query_row(
+            "SELECT COUNT(*) FROM photos
+             WHERE (description IS NULL OR description = '') AND is_hidden = 0",
+            [],
+            |row| row.get(0),
+        )?;
+        Ok(count.max(0) as u32)
     }
 
     /// Store a single photo's AI label results.
@@ -521,7 +575,7 @@ impl AppState {
         // Read naming pattern before locking catalog to avoid deadlock
         let pattern = self
             .get_setting("naming_pattern")?
-            .unwrap_or_else(|| "b {MM}-{DD}-{YYYY} {content}".to_string());
+            .unwrap_or_else(|| charmera_core::constants::DEFAULT_NAMING_PATTERN.to_string());
 
         let catalog = self
             .catalog
@@ -574,7 +628,9 @@ impl AppState {
                     orig_stem,
                 ))
             })?
-            .filter_map(|r| r.ok())
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .context("reading photos to build rename proposals")?
+            .into_iter()
             .map(
                 |(
                     id,
@@ -617,12 +673,18 @@ impl AppState {
     }
 
     /// Apply approved renames.
-    pub fn apply_renames(&self, renames: &[(i64, String)]) -> Result<u32> {
+    ///
+    /// Returns `(renamed, skipped)`. Skips are not failures — a file may have
+    /// moved, the target name may already be taken, or the name may be unsafe —
+    /// but the caller must report them so the user isn't told "renamed 10" when
+    /// only 7 files actually changed.
+    pub fn apply_renames(&self, renames: &[(i64, String)]) -> Result<RenameOutcome> {
         let catalog = self
             .catalog
             .lock()
             .map_err(|e| anyhow::anyhow!("lock: {e}"))?;
         let mut count = 0u32;
+        let mut skipped = 0u32;
 
         for (id, new_name) in renames {
             let file_path: String = catalog.read_conn().query_row(
@@ -634,15 +696,32 @@ impl AppState {
             let path = std::path::Path::new(&file_path);
             if !path.exists() {
                 tracing::warn!("skipping rename for {id}: file not found");
+                skipped += 1;
+                continue;
+            }
+
+            // The rename dialog lets the user edit filenames freely, so `new_name`
+            // is untrusted input. Without this guard an absolute path or `..`
+            // segment would make `with_file_name` place the file anywhere on
+            // disk (e.g. ~/Library/LaunchAgents) instead of beside the original.
+            if let Err(reason) = validate_rename_target(new_name) {
+                tracing::warn!("skipping rename for {id}: {reason}");
+                skipped += 1;
                 continue;
             }
 
             let new_path = path.with_file_name(new_name);
+            if new_path.parent() != path.parent() {
+                tracing::warn!("skipping rename for {id}: target escapes source directory");
+                skipped += 1;
+                continue;
+            }
             if new_path.exists() {
                 tracing::warn!(
                     "skipping rename for {id}: target exists: {}",
                     new_path.display()
                 );
+                skipped += 1;
                 continue;
             }
 
@@ -668,8 +747,10 @@ impl AppState {
             tracing::info!("renamed: {} -> {}", file_path, new_path.display());
         }
 
-        std::thread::sleep(std::time::Duration::from_millis(100));
-        Ok(count)
+        Ok(RenameOutcome {
+            renamed: count,
+            skipped,
+        })
     }
 
     pub fn get_all_tags(&self) -> Result<Vec<charmera_core::catalog::TagInfo>> {
@@ -707,8 +788,8 @@ impl AppState {
                     rating: row.get::<_, Option<u8>>(6)?.unwrap_or(0),
                 })
             })?
-            .filter_map(|r| r.ok())
-            .collect();
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .context("reading rows from the catalog")?;
         let total = photos.len() as u32;
         Ok(PhotoPage { photos, total })
     }
@@ -742,33 +823,59 @@ impl AppState {
 
         let hashes: Vec<Vec<u8>> = hash_stmt
             .query_map([], |row| row.get::<_, Vec<u8>>(0))?
-            .filter_map(|r| r.ok())
-            .collect();
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .context("reading duplicate hash groups")?;
 
-        let mut groups = Vec::new();
-        for hash in &hashes {
-            let mut photo_stmt = catalog.read_conn().prepare(
-                "SELECT id, relative_path, thumbnail_path, width, height, taken_at, rating
-                 FROM photos WHERE file_hash = ?1 AND is_hidden = 0",
-            )?;
-            let photos: Vec<PhotoSummary> = photo_stmt
-                .query_map([hash], |row| {
-                    Ok(PhotoSummary {
-                        id: row.get(0)?,
-                        relative_path: row.get(1)?,
-                        thumbnail_path: row.get(2)?,
-                        width: row.get(3)?,
-                        height: row.get(4)?,
-                        taken_at: row.get(5)?,
-                        rating: row.get::<_, Option<u8>>(6)?.unwrap_or(0),
-                    })
-                })?
-                .filter_map(|r| r.ok())
-                .collect();
-
-            let hash_hex = hash.iter().map(|b| format!("{b:02x}")).collect::<String>();
-            groups.push(DuplicateGroup { hash_hex, photos });
+        if hashes.is_empty() {
+            return Ok(Vec::new());
         }
+
+        // One query for every duplicate group instead of preparing and running
+        // a statement per group (up to 100 round-trips on the UI path).
+        let placeholders = std::iter::repeat_n("?", hashes.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!(
+            "SELECT file_hash, id, relative_path, thumbnail_path, width, height, taken_at, rating
+             FROM photos
+             WHERE is_hidden = 0 AND file_hash IN ({placeholders})"
+        );
+        let mut photo_stmt = catalog.read_conn().prepare(&sql)?;
+
+        let params = rusqlite::params_from_iter(hashes.iter());
+        let rows = photo_stmt
+            .query_map(params, |row| {
+                Ok((
+                    row.get::<_, Vec<u8>>(0)?,
+                    PhotoSummary {
+                        id: row.get(1)?,
+                        relative_path: row.get(2)?,
+                        thumbnail_path: row.get(3)?,
+                        width: row.get(4)?,
+                        height: row.get(5)?,
+                        taken_at: row.get(6)?,
+                        rating: row.get::<_, Option<u8>>(7)?.unwrap_or(0),
+                    },
+                ))
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .context("reading photos in duplicate groups")?;
+
+        let mut by_hash: std::collections::HashMap<Vec<u8>, Vec<PhotoSummary>> =
+            std::collections::HashMap::new();
+        for (hash, photo) in rows {
+            by_hash.entry(hash).or_default().push(photo);
+        }
+
+        // Preserve the "most duplicated first" order from the grouping query.
+        let groups = hashes
+            .into_iter()
+            .filter_map(|hash| {
+                let photos = by_hash.remove(&hash)?;
+                let hash_hex = hash.iter().map(|b| format!("{b:02x}")).collect::<String>();
+                Some(DuplicateGroup { hash_hex, photos })
+            })
+            .collect();
 
         Ok(groups)
     }
@@ -793,9 +900,73 @@ impl AppState {
         )?;
         let tags: Vec<String> = stmt
             .query_map([id], |row| row.get(0))?
-            .filter_map(|r| r.ok())
-            .collect();
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .context("reading rows from the catalog")?;
 
         Ok(PhotoLabels { description, tags })
+    }
+}
+
+/// Reject rename targets that are anything other than a plain filename.
+///
+/// `Path::with_file_name` replaces the final component, so an absolute path or
+/// one containing separators silently relocates the file instead of renaming
+/// it in place. Names come from a freely-editable text field in the rename
+/// dialog, so they are untrusted.
+fn validate_rename_target(name: &str) -> std::result::Result<(), String> {
+    if name.trim().is_empty() {
+        return Err("empty filename".into());
+    }
+    if name.contains('/') || name.contains('\\') {
+        return Err(format!("filename contains a path separator: {name:?}"));
+    }
+    if name.contains('\0') {
+        return Err("filename contains a null byte".into());
+    }
+    if name == "." || name == ".." {
+        return Err(format!("filename is a directory reference: {name:?}"));
+    }
+    if Path::new(name).is_absolute() {
+        return Err(format!("filename is an absolute path: {name:?}"));
+    }
+    // Guards against Windows drive-relative forms like `C:evil.jpg`, which are
+    // not caught by `is_absolute` on unix.
+    if Path::new(name).components().count() != 1 {
+        return Err(format!("filename is not a single path component: {name:?}"));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rename_target_accepts_plain_names() {
+        assert!(validate_rename_target("b 03-30-2026 brown dog.jpg").is_ok());
+        assert!(validate_rename_target("PICT0001.jpg").is_ok());
+        assert!(validate_rename_target("café au lait.jpg").is_ok());
+    }
+
+    #[test]
+    fn rename_target_rejects_absolute_paths() {
+        assert!(validate_rename_target("/etc/passwd").is_err());
+        assert!(validate_rename_target("/tmp/evil.jpg").is_err());
+    }
+
+    #[test]
+    fn rename_target_rejects_traversal() {
+        assert!(validate_rename_target("../../../.ssh/authorized_keys").is_err());
+        assert!(validate_rename_target("..").is_err());
+        assert!(validate_rename_target(".").is_err());
+        assert!(validate_rename_target("sub/dir.jpg").is_err());
+        assert!(validate_rename_target("sub\\dir.jpg").is_err());
+    }
+
+    #[test]
+    fn rename_target_rejects_empty_and_null() {
+        assert!(validate_rename_target("").is_err());
+        assert!(validate_rename_target("   ").is_err());
+        assert!(validate_rename_target("evil\0.jpg").is_err());
     }
 }

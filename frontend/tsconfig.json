@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
-    // Environment setup & latest features
-    "lib": ["ESNext"],
+    // Environment setup & latest features.
+    // "DOM" is required: this is a webview UI that touches window, document,
+    // IntersectionObserver and DOM event types. Without it those all resolve to
+    // `any`/error and the app has no type safety where it matters most.
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",

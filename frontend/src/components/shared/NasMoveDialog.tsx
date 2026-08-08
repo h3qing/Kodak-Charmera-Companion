@@ -93,7 +93,7 @@ export default function NasMoveDialog(props: NasMoveDialogProps) {
           <button
             onClick={handleMove}
             disabled={moving()}
-            class="px-5 py-2 bg-kodak-yellow hover:bg-kodak-yellow-dark text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+            class="px-5 py-2 bg-kodak-yellow hover:bg-kodak-yellow-dark text-kodak-charcoal text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
           >
             {moving() ? "Moving..." : `Move ${props.photoCount} Photo${props.photoCount !== 1 ? "s" : ""}`}
           </button>

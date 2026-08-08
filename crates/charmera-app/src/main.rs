@@ -6,12 +6,12 @@ use state::AppState;
 use std::path::PathBuf;
 use tauri::{Emitter, Manager};
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn generate_demo_photos(app: tauri::AppHandle) -> Result<String, String> {
     let app_state = app.state::<AppState>();
     let demo_dir = app_state.data_dir().join("demo");
@@ -49,12 +49,12 @@ fn generate_demo_photos(app: tauri::AppHandle) -> Result<String, String> {
     Ok(demo_dir.display().to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn detect_camera() -> Option<String> {
     charmera_core::import::find_camera().map(|p| p.display().to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn list_camera_files(source: String) -> Result<Vec<state::FileInfo>, String> {
     let path = PathBuf::from(&source);
     let files = charmera_core::import::list_media_files(&path).map_err(|e| e.to_string())?;
@@ -84,7 +84,7 @@ fn list_camera_files(source: String) -> Result<Vec<state::FileInfo>, String> {
     Ok(infos)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn import_folder(app: tauri::AppHandle, source: String) -> Result<(), String> {
     // Return immediately, do import in background thread (prevents UI freeze)
     let app_handle = app.clone();
@@ -136,7 +136,7 @@ fn import_folder(app: tauri::AppHandle, source: String) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_photos(app: tauri::AppHandle, offset: u32, limit: u32) -> Result<state::PhotoPage, String> {
     let app_state = app.state::<AppState>();
     app_state
@@ -144,7 +144,7 @@ fn get_photos(app: tauri::AppHandle, offset: u32, limit: u32) -> Result<state::P
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_recent_photos(
     app: tauri::AppHandle,
     hours: Option<u32>,
@@ -155,12 +155,16 @@ fn get_recent_photos(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-fn get_thumbnail_base64(path: String) -> Result<String, String> {
-    read_image_as_base64(&path)
+#[tauri::command(async)]
+fn get_thumbnail_base64(app: tauri::AppHandle, path: String) -> Result<String, String> {
+    let app_state = app.state::<AppState>();
+    let resolved = app_state
+        .resolve_thumbnail_path(&path)
+        .map_err(|e| e.to_string())?;
+    read_image_as_base64(&resolved.display().to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_photo_base64(app: tauri::AppHandle, id: i64) -> Result<String, String> {
     let app_state = app.state::<AppState>();
     let file_path = app_state
@@ -169,24 +173,51 @@ fn get_photo_base64(app: tauri::AppHandle, id: i64) -> Result<String, String> {
     read_image_as_base64(&file_path)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn export_photo(app: tauri::AppHandle, id: i64, dest: String) -> Result<String, String> {
     let app_state = app.state::<AppState>();
     app_state.export_photo(id, &dest).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn check_ai_status() -> Result<state::AiStatus, String> {
-    let models = charmera_core::ai::list_vision_models().unwrap_or_default();
-    let best = charmera_core::ai::best_available_model().unwrap_or_default();
-    Ok(state::AiStatus {
-        available: !models.is_empty(),
-        model: best,
-        models,
-    })
+    // Keep the reason: "Ollama isn't installed", "Ollama isn't running" and
+    // "no vision model pulled" each need a different fix, and the UI can only
+    // tell the user which one applies if we don't discard the error here.
+    match charmera_core::ai::list_vision_models() {
+        Ok(models) if !models.is_empty() => {
+            let best = charmera_core::ai::best_available_model().unwrap_or_default();
+            Ok(state::AiStatus {
+                available: true,
+                model: best,
+                models,
+                reason: None,
+            })
+        }
+        Ok(_) => Ok(state::AiStatus {
+            available: false,
+            model: String::new(),
+            models: Vec::new(),
+            reason: Some(
+                "Ollama is running but no vision model is installed. \
+                 Run `ollama pull moondream` in a terminal, then retry."
+                    .into(),
+            ),
+        }),
+        Err(e) => Ok(state::AiStatus {
+            available: false,
+            model: String::new(),
+            models: Vec::new(),
+            reason: Some(format!(
+                "Can't reach Ollama at {}. Start it with `ollama serve`, \
+                 or install it from https://ollama.com/download. ({e})",
+                charmera_core::ai::ollama_url()
+            )),
+        }),
+    }
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn auto_label_all(app: tauri::AppHandle) -> Result<u32, String> {
     let app_state = app.state::<AppState>();
     let photos = app_state
@@ -198,11 +229,27 @@ fn auto_label_all(app: tauri::AppHandle) -> Result<u32, String> {
         let _ = app.emit(
             "label:done",
             serde_json::json!({
-                "labeled": 0, "failed": 0, "total": 0
+                "labeled": 0, "failed": 0, "total": 0, "remaining": 0
             }),
         );
         return Ok(0);
     }
+
+    // Preflight once, before starting a run that may take hours. Without this a
+    // stopped Ollama produces N identical failures and a "labeled 0" summary
+    // with no explanation.
+    if let Err(e) = charmera_core::ai::best_available_model() {
+        return Err(format!(
+            "{e:#}\nStart Ollama with `ollama serve`, then install a vision \
+             model with `ollama pull moondream`."
+        ));
+    }
+
+    // Photos beyond this run's batch, so the UI can offer to continue.
+    let remaining_after = app_state
+        .count_unlabeled_photos()
+        .unwrap_or(total)
+        .saturating_sub(total);
 
     // Return immediately, do work in background thread
     let app_handle = app.clone();
@@ -258,11 +305,15 @@ fn auto_label_all(app: tauri::AppHandle) -> Result<u32, String> {
             }
         }
 
-        std::thread::sleep(std::time::Duration::from_millis(200));
+        // No sleep before this event: catalog writes are acknowledged now, so
+        // by the time the loop ends every label is durably committed.
         let _ = app_handle.emit(
             "label:done",
             serde_json::json!({
-                "labeled": labeled, "failed": failed, "total": total
+                "labeled": labeled,
+                "failed": failed,
+                "total": total,
+                "remaining": remaining_after,
             }),
         );
     });
@@ -271,99 +322,117 @@ fn auto_label_all(app: tauri::AppHandle) -> Result<u32, String> {
     Ok(total)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_rename_proposals(app: tauri::AppHandle) -> Result<Vec<state::RenameProposal>, String> {
     let app_state = app.state::<AppState>();
     app_state.get_rename_proposals().map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-fn apply_renames(app: tauri::AppHandle, renames: Vec<(i64, String)>) -> Result<u32, String> {
+#[tauri::command(async)]
+fn apply_renames(
+    app: tauri::AppHandle,
+    renames: Vec<(i64, String)>,
+) -> Result<state::RenameOutcome, String> {
     let app_state = app.state::<AppState>();
     app_state.apply_renames(&renames).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_photo_labels(app: tauri::AppHandle, id: i64) -> Result<state::PhotoLabels, String> {
     let app_state = app.state::<AppState>();
     app_state.get_photo_labels(id).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_all_tags(app: tauri::AppHandle) -> Result<Vec<charmera_core::catalog::TagInfo>, String> {
     let app_state = app.state::<AppState>();
     app_state.get_all_tags().map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-fn export_labels_json(app: tauri::AppHandle) -> Result<String, String> {
+/// Write every photo's labels to `dest` as JSON. Returns the number exported.
+///
+/// Streams row-by-row straight to the file. The previous version materialized
+/// the entire catalog as `Vec<serde_json::Value>`, serialized that to one
+/// pretty-printed `String`, and handed it across the IPC boundary for the
+/// frontend to write — three full copies of the library in memory, and a
+/// multi-megabyte string over IPC. Writing here also means the webview no
+/// longer needs filesystem write permission at all.
+#[tauri::command(async)]
+fn export_labels_json(app: tauri::AppHandle, dest: String) -> Result<u32, String> {
+    use std::io::Write;
+
     let app_state = app.state::<AppState>();
     let catalog = app_state.catalog_lock().map_err(|e| e.to_string())?;
     let mut stmt = catalog
         .read_conn()
         .prepare(
-            "SELECT p.id, p.file_path, p.relative_path, p.description, p.taken_at,
+            "SELECT p.id, p.relative_path, p.description, p.taken_at,
                     p.width, p.height, p.original_name
              FROM photos p WHERE p.is_hidden = 0
              ORDER BY p.id",
         )
         .map_err(|e| e.to_string())?;
 
-    let photos: Vec<serde_json::Value> = stmt
-        .query_map([], |row| {
-            let id: i64 = row.get(0)?;
-            let _file_path: String = row.get(1)?;
-            let relative_path: String = row.get(2)?;
-            let description: Option<String> = row.get(3)?;
-            let taken_at: Option<String> = row.get(4)?;
-            let width: u32 = row.get(5)?;
-            let height: u32 = row.get(6)?;
-            let original_name: Option<String> = row.get(7)?;
-            Ok(serde_json::json!({
-                "id": id,
-                "file": relative_path,
-                "original_name": original_name,
-                "description": description,
-                "taken_at": taken_at,
-                "width": width,
-                "height": height,
-            }))
-        })
-        .map_err(|e| e.to_string())?
-        .filter_map(|r| r.ok())
-        .collect();
+    let mut rows = stmt.query([]).map_err(|e| e.to_string())?;
 
-    serde_json::to_string_pretty(&serde_json::json!({
-        "export_date": chrono::Local::now().to_rfc3339(),
-        "total": photos.len(),
-        "photos": photos,
-    }))
-    .map_err(|e| e.to_string())
+    let file = std::fs::File::create(&dest).map_err(|e| format!("creating {dest}: {e}"))?;
+    let mut out = std::io::BufWriter::new(file);
+
+    write!(
+        out,
+        "{{\n  \"export_date\": {},\n  \"photos\": [",
+        serde_json::Value::String(chrono::Local::now().to_rfc3339())
+    )
+    .map_err(|e| e.to_string())?;
+
+    let mut count: u32 = 0;
+    while let Some(row) = rows.next().map_err(|e| format!("reading photos: {e}"))? {
+        let entry = serde_json::json!({
+            "id": row.get::<_, i64>(0).map_err(|e| e.to_string())?,
+            "file": row.get::<_, String>(1).map_err(|e| e.to_string())?,
+            "description": row.get::<_, Option<String>>(2).map_err(|e| e.to_string())?,
+            "taken_at": row.get::<_, Option<String>>(3).map_err(|e| e.to_string())?,
+            "width": row.get::<_, u32>(4).map_err(|e| e.to_string())?,
+            "height": row.get::<_, u32>(5).map_err(|e| e.to_string())?,
+            "original_name": row.get::<_, Option<String>>(6).map_err(|e| e.to_string())?,
+        });
+
+        if count > 0 {
+            write!(out, ",").map_err(|e| e.to_string())?;
+        }
+        write!(out, "\n    {entry}").map_err(|e| e.to_string())?;
+        count += 1;
+    }
+
+    write!(out, "\n  ],\n  \"total\": {count}\n}}\n").map_err(|e| e.to_string())?;
+    out.flush().map_err(|e| format!("writing {dest}: {e}"))?;
+
+    Ok(count)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn search_by_tag(app: tauri::AppHandle, tag: String) -> Result<state::PhotoPage, String> {
     let app_state = app.state::<AppState>();
     app_state.search_by_tag(&tag).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn search_photos(app: tauri::AppHandle, query: String) -> Result<state::PhotoPage, String> {
     let app_state = app.state::<AppState>();
     app_state.search_photos(&query).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_naming_pattern(app: tauri::AppHandle) -> Result<String, String> {
     let app_state = app.state::<AppState>();
     let pattern = app_state
         .get_setting("naming_pattern")
         .map_err(|e| e.to_string())?
-        .unwrap_or_else(|| "b {MM}-{DD}-{YYYY} {content}".to_string());
+        .unwrap_or_else(|| charmera_core::constants::DEFAULT_NAMING_PATTERN.to_string());
     Ok(pattern)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn set_naming_pattern(app: tauri::AppHandle, pattern: String) -> Result<(), String> {
     let app_state = app.state::<AppState>();
     app_state
@@ -371,13 +440,13 @@ fn set_naming_pattern(app: tauri::AppHandle, pattern: String) -> Result<(), Stri
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_setting(app: tauri::AppHandle, key: String) -> Result<Option<String>, String> {
     let app_state = app.state::<AppState>();
     app_state.get_setting(&key).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn set_setting(app: tauri::AppHandle, key: String, value: String) -> Result<(), String> {
     let app_state = app.state::<AppState>();
     app_state
@@ -385,15 +454,16 @@ fn set_setting(app: tauri::AppHandle, key: String, value: String) -> Result<(), 
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_duplicates(app: tauri::AppHandle) -> Result<Vec<state::DuplicateGroup>, String> {
     let app_state = app.state::<AppState>();
     app_state.get_duplicates().map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn preview_splash(source_path: String) -> Result<String, String> {
-    let img = image::open(&source_path).map_err(|e| format!("open {source_path}: {e}"))?;
+    let img = charmera_core::imageio::open_limited(std::path::Path::new(&source_path))
+        .map_err(|e| format!("{e:#}"))?;
     let splash = charmera_core::splash::create_splash(&img);
     // Encode to base64
     let mut buf = Vec::new();
@@ -403,15 +473,15 @@ fn preview_splash(source_path: String) -> Result<String, String> {
         .to_rgb8()
         .write_with_encoder(encoder)
         .map_err(|e| format!("encode: {e}"))?;
-    drop(cursor);
     use base64::Engine;
     let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
     Ok(format!("data:image/jpeg;base64,{b64}"))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn install_splash(source_path: String) -> Result<String, String> {
-    let img = image::open(&source_path).map_err(|e| format!("open {source_path}: {e}"))?;
+    let img = charmera_core::imageio::open_limited(std::path::Path::new(&source_path))
+        .map_err(|e| format!("{e:#}"))?;
     let splash = charmera_core::splash::create_splash(&img);
 
     let camera = charmera_core::import::find_camera()
@@ -426,7 +496,7 @@ fn install_splash(source_path: String) -> Result<String, String> {
     Ok(dest.display().to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn hide_photo(app: tauri::AppHandle, id: i64) -> Result<(), String> {
     let app_state = app.state::<AppState>();
     let catalog = app_state.catalog_lock().map_err(|e| e.to_string())?;
@@ -442,7 +512,7 @@ struct CloudDrive {
     account: String,
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn detect_cloud_drives() -> Vec<CloudDrive> {
     let mut drives = Vec::new();
     let home = dirs_next::home_dir().unwrap_or_default();
@@ -491,7 +561,7 @@ fn detect_cloud_drives() -> Vec<CloudDrive> {
     drives
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn detect_nas_volumes() -> Result<Vec<String>, String> {
     let mut volumes = Vec::new();
     let skip = ["Macintosh HD", "Recovery", "Preboot", "VM", "Update"];
@@ -516,36 +586,54 @@ fn detect_nas_volumes() -> Result<Vec<String>, String> {
     Ok(volumes)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn test_nas_path(path: String) -> Result<bool, String> {
     let p = std::path::Path::new(&path);
-    if !p.exists() {
+    // Must be a directory. Without this the probe below would happily target a
+    // path under an arbitrary file.
+    if !p.is_dir() {
         return Ok(false);
     }
-    // Try writing a test file to verify write access
-    let test_file = p.join(".charmera_test");
-    match std::fs::write(&test_file, "test") {
+
+    // Unique probe name, and create_new so we can never truncate a file that
+    // already exists. The old version wrote a fixed `.charmera_test` and then
+    // deleted it — which would destroy a pre-existing file of that name.
+    let probe = p.join(format!(
+        ".charmera-write-probe-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
+
+    match std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&probe)
+    {
         Ok(_) => {
-            let _ = std::fs::remove_file(&test_file);
+            // Only ever remove the file we just created.
+            let _ = std::fs::remove_file(&probe);
             Ok(true)
         }
         Err(_) => Ok(false),
     }
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_nas_config(app: tauri::AppHandle) -> Result<state::NasConfig, String> {
     let app_state = app.state::<AppState>();
     app_state.get_nas_config().map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn set_nas_config(app: tauri::AppHandle, config: state::NasConfig) -> Result<(), String> {
     let app_state = app.state::<AppState>();
     app_state.set_nas_config(&config).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn move_to_nas(
     app: tauri::AppHandle,
     photo_ids: Vec<i64>,
@@ -576,7 +664,6 @@ fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_fs::init())
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             get_app_version,

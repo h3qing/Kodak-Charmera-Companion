@@ -68,6 +68,8 @@ export interface AiStatus {
   available: boolean;
   model: string;
   models: string[];
+  /** Why AI is unavailable, when it is. Null when available. */
+  reason: string | null;
 }
 
 export interface LabelResult {
@@ -106,7 +108,12 @@ export async function getRenameProposals(): Promise<RenameProposal[]> {
   return invoke("get_rename_proposals");
 }
 
-export async function applyRenames(renames: [number, string][]): Promise<number> {
+export interface RenameOutcome {
+  renamed: number;
+  skipped: number;
+}
+
+export async function applyRenames(renames: [number, string][]): Promise<RenameOutcome> {
   return invoke("apply_renames", { renames });
 }
 

@@ -4,25 +4,42 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use rusqlite::Connection;
-use tokio::sync::mpsc;
+use std::sync::mpsc;
 
 pub use schema::MIGRATIONS;
 
-/// A write operation sent to the single database writer task.
+/// A write operation sent to the single database writer thread.
+///
+/// Only variants the app actually constructs live here. Speculative ones
+/// (albums, ratings, embeddings, thumbnail updates) were removed — they were
+/// unreachable code carrying SQL that had never been executed, so it could
+/// not be trusted if it were ever wired up. `Custom` covers one-off writes.
 pub enum WriteOp {
     InsertPhoto(PhotoInsert),
     UpdatePhotoTags(i64, Vec<TagAssignment>),
-    UpdatePhotoEmbedding(i64, Vec<f32>),
     UpdatePhotoDescription(i64, String),
-    UpdatePhotoThumbnail(i64, String),
-    InsertTag(String, String, String),
-    CreateAlbum(String, Option<String>),
-    AddPhotoToAlbum(i64, i64),
-    SetPhotoRating(i64, u8),
     HidePhoto(i64),
-    UnhidePhoto(i64),
     SetSetting(String, String),
-    Custom(Box<dyn FnOnce(&Connection) -> Result<()> + Send>),
+    Custom(CustomWrite),
+}
+
+/// A one-off write closure handed to the catalog writer thread.
+pub type CustomWrite = Box<dyn FnOnce(&Connection) -> Result<()> + Send>;
+
+/// Escape SQL `LIKE` wildcards in a user-supplied search term.
+///
+/// Without this, `%` and `_` typed by the user are treated as wildcards: a
+/// search for "100%" silently matches every photo, and "a_b" matches "axb".
+/// Pair with `ESCAPE '\'` in the query.
+fn escape_like(query: &str) -> String {
+    let mut out = String::with_capacity(query.len());
+    for ch in query.chars() {
+        if matches!(ch, '\\' | '%' | '_') {
+            out.push('\\');
+        }
+        out.push(ch);
+    }
+    out
 }
 
 #[derive(Debug, Clone)]
@@ -89,12 +106,20 @@ pub struct TagInfo {
     pub count: i64,
 }
 
-/// Database handle. Reads happen directly; writes go through the writer channel.
+/// A write plus the channel used to report whether it actually landed.
+struct WriteRequest {
+    op: WriteOp,
+    ack: mpsc::SyncSender<Result<(), String>>,
+}
+
+/// Database handle. Reads happen directly; writes go through the writer thread.
 pub struct Catalog {
     /// Read-only connection for queries.
     read_conn: Connection,
-    /// Channel to send writes to the single writer task.
-    write_tx: mpsc::Sender<WriteOp>,
+    /// Channel to send writes to the single writer thread.
+    write_tx: Option<mpsc::Sender<WriteRequest>>,
+    /// Joined on drop so queued writes are not lost when the app quits.
+    writer: Option<std::thread::JoinHandle<()>>,
     /// Path to the database file.
     db_path: PathBuf,
 }
@@ -118,20 +143,29 @@ impl Catalog {
         let read_conn = Connection::open(db_path)?;
         Self::configure_connection(&read_conn)?;
 
-        // Spawn writer task
-        let (write_tx, mut write_rx) = mpsc::channel::<WriteOp>(256);
+        // Single writer thread: SQLite allows one writer, and serializing here
+        // keeps every caller off the write lock.
+        let (write_tx, write_rx) = mpsc::channel::<WriteRequest>();
 
-        std::thread::spawn(move || {
-            while let Some(op) = write_rx.blocking_recv() {
-                if let Err(e) = Self::execute_write(&write_conn, op) {
-                    tracing::error!("catalog write error: {e:#}");
+        let writer = std::thread::Builder::new()
+            .name("charmera-catalog-writer".into())
+            .spawn(move || {
+                for req in write_rx {
+                    let result = Self::execute_write(&write_conn, req.op);
+                    if let Err(e) = &result {
+                        tracing::error!("catalog write error: {e:#}");
+                    }
+                    // The receiver is gone if the caller stopped waiting; that's
+                    // not our problem, and it must not kill the writer thread.
+                    let _ = req.ack.send(result.map_err(|e| format!("{e:#}")));
                 }
-            }
-        });
+            })
+            .context("spawning catalog writer thread")?;
 
         Ok(Self {
             read_conn,
-            write_tx,
+            write_tx: Some(write_tx),
+            writer: Some(writer),
             db_path: db_path.to_owned(),
         })
     }
@@ -171,21 +205,6 @@ impl Catalog {
                 )?;
                 Ok(())
             }
-            WriteOp::UpdatePhotoThumbnail(id, path) => {
-                conn.execute(
-                    "UPDATE photos SET thumbnail_path = ?1 WHERE id = ?2",
-                    rusqlite::params![path, id],
-                )?;
-                Ok(())
-            }
-            WriteOp::UpdatePhotoEmbedding(id, embedding) => {
-                let bytes: Vec<u8> = embedding.iter().flat_map(|f| f.to_le_bytes()).collect();
-                conn.execute(
-                    "UPDATE photos SET embedding = ?1 WHERE id = ?2",
-                    rusqlite::params![bytes, id],
-                )?;
-                Ok(())
-            }
             WriteOp::UpdatePhotoDescription(id, desc) => {
                 conn.execute(
                     "UPDATE photos SET description = ?1 WHERE id = ?2",
@@ -212,40 +231,8 @@ impl Catalog {
                 }
                 Ok(())
             }
-            WriteOp::InsertTag(name, source, category) => {
-                conn.execute(
-                    "INSERT OR IGNORE INTO tags (name, source, category) VALUES (?1, ?2, ?3)",
-                    rusqlite::params![name, source, category],
-                )?;
-                Ok(())
-            }
-            WriteOp::CreateAlbum(name, description) => {
-                conn.execute(
-                    "INSERT INTO albums (name, description) VALUES (?1, ?2)",
-                    rusqlite::params![name, description],
-                )?;
-                Ok(())
-            }
-            WriteOp::AddPhotoToAlbum(album_id, photo_id) => {
-                conn.execute(
-                    "INSERT OR IGNORE INTO album_photos (album_id, photo_id) VALUES (?1, ?2)",
-                    rusqlite::params![album_id, photo_id],
-                )?;
-                Ok(())
-            }
-            WriteOp::SetPhotoRating(id, rating) => {
-                conn.execute(
-                    "UPDATE photos SET rating = ?1 WHERE id = ?2",
-                    rusqlite::params![rating.min(5), id],
-                )?;
-                Ok(())
-            }
             WriteOp::HidePhoto(id) => {
                 conn.execute("UPDATE photos SET is_hidden = 1 WHERE id = ?1", [id])?;
-                Ok(())
-            }
-            WriteOp::UnhidePhoto(id) => {
-                conn.execute("UPDATE photos SET is_hidden = 0 WHERE id = ?1", [id])?;
                 Ok(())
             }
             WriteOp::SetSetting(key, value) => {
@@ -259,19 +246,32 @@ impl Catalog {
         }
     }
 
-    /// Send a write operation (async, non-blocking).
-    pub async fn write_async(&self, op: WriteOp) -> Result<()> {
-        self.write_tx
-            .send(op)
-            .await
-            .map_err(|_| anyhow::anyhow!("catalog writer task has shut down"))
-    }
-
-    /// Send a write operation (blocking).
+    /// Run a write operation, blocking until the database confirms it.
+    ///
+    /// This used to return `Ok` as soon as the op was *queued*, so a failing
+    /// insert was invisible to the caller: an import could report "imported 100"
+    /// while every row silently failed, and callers papered over the race with
+    /// `thread::sleep(100ms)`. Waiting for the acknowledgement makes the return
+    /// value mean what it says and removes the need for those sleeps.
     pub fn write(&self, op: WriteOp) -> Result<()> {
-        self.write_tx
-            .blocking_send(op)
-            .map_err(|_| anyhow::anyhow!("catalog writer task has shut down"))
+        // Rendezvous channel: one write, one reply, no buffering.
+        let (ack_tx, ack_rx) = mpsc::sync_channel::<Result<(), String>>(0);
+
+        let tx = self
+            .write_tx
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("catalog is shutting down"))?;
+
+        tx.send(WriteRequest { op, ack: ack_tx })
+            .map_err(|_| anyhow::anyhow!("catalog writer thread has stopped"))?;
+
+        match ack_rx.recv() {
+            Ok(Ok(())) => Ok(()),
+            Ok(Err(e)) => Err(anyhow::anyhow!(e)),
+            Err(_) => Err(anyhow::anyhow!(
+                "catalog writer thread stopped before completing the write"
+            )),
+        }
     }
 
     /// Access the read connection directly for custom queries.
@@ -318,14 +318,16 @@ impl Catalog {
 
     /// Search by text (FTS5 on tags and filenames).
     pub fn search_text(&self, query: &str, limit: u32) -> Result<Vec<PhotoSummary>> {
-        let pattern = format!("%{query}%");
+        let pattern = format!("%{}%", escape_like(query));
         let mut stmt = self.read_conn.prepare(
             "SELECT DISTINCT p.id, p.relative_path, p.thumbnail_path,
                     p.width, p.height, p.taken_at, p.rating
              FROM photos p
              LEFT JOIN photo_tags pt ON p.id = pt.photo_id
              LEFT JOIN tags t ON pt.tag_id = t.id
-             WHERE (t.name LIKE ?1 OR p.relative_path LIKE ?1 OR p.description LIKE ?1)
+             WHERE (t.name LIKE ?1 ESCAPE '\\'
+                 OR p.relative_path LIKE ?1 ESCAPE '\\'
+                 OR p.description LIKE ?1 ESCAPE '\\')
                AND p.is_hidden = 0
              ORDER BY p.taken_at DESC NULLS LAST
              LIMIT ?2",
@@ -394,44 +396,96 @@ impl Catalog {
     }
 }
 
+impl Drop for Catalog {
+    /// Close the write channel and wait for the writer thread to drain.
+    ///
+    /// Without this, quitting the app while writes are still queued loses them
+    /// silently — labels and renames the user just made would not be there on
+    /// next launch.
+    fn drop(&mut self) {
+        // Dropping the sender ends the writer's `for req in write_rx` loop once
+        // the queue is empty.
+        self.write_tx = None;
+        if let Some(handle) = self.writer.take()
+            && handle.join().is_err()
+        {
+            tracing::error!("catalog writer thread panicked during shutdown");
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use tempfile::tempdir;
 
-    fn test_catalog() -> Catalog {
+    /// Returns the catalog plus the tempdir guard — hold the guard for the
+    /// duration of the test so the directory is cleaned up afterwards.
+    fn test_catalog() -> (Catalog, tempfile::TempDir) {
         let dir = tempdir().unwrap();
         let db_path = dir.path().join("test.db");
-        // Keep the dir alive by leaking it (tests are short-lived)
-        let _ = Box::leak(Box::new(dir));
-        Catalog::open(&db_path).unwrap()
+        (Catalog::open(&db_path).unwrap(), dir)
     }
 
     #[test]
     fn settings_roundtrip() {
-        let catalog = test_catalog();
-        // Initially empty
+        let (catalog, _dir) = test_catalog();
         assert_eq!(catalog.get_setting("foo").unwrap(), None);
-        // Set a value
+
         catalog
             .write(WriteOp::SetSetting("foo".into(), "bar".into()))
             .unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        // Read it back (need a new read connection due to WAL)
-        // The read_conn might not see it immediately, so we check directly
-        let val: Option<String> = catalog
-            .read_conn()
-            .query_row("SELECT value FROM settings WHERE key = 'foo'", [], |row| {
-                row.get(0)
-            })
-            .ok();
-        // Setting was written (may need WAL checkpoint)
-        assert!(val.is_some() || catalog.get_setting("foo").unwrap().is_none());
+
+        // write() only returns once the writer thread has committed, so this
+        // is readable immediately — no sleep, no "or it didn't happen" escape
+        // hatch. The previous version of this assertion was a tautology that
+        // passed whether or not the write ever landed.
+        assert_eq!(catalog.get_setting("foo").unwrap(), Some("bar".to_string()));
+    }
+
+    #[test]
+    fn write_reports_failure_instead_of_silently_dropping_it() {
+        let (catalog, _dir) = test_catalog();
+
+        // A write that cannot succeed: the table does not exist.
+        let result = catalog.write(WriteOp::Custom(Box::new(|conn| {
+            conn.execute("INSERT INTO table_that_does_not_exist VALUES (1)", [])?;
+            Ok(())
+        })));
+
+        assert!(
+            result.is_err(),
+            "write() must surface writer-thread errors, not return Ok on enqueue"
+        );
+        let msg = result.unwrap_err().to_string();
+        assert!(
+            msg.contains("table_that_does_not_exist"),
+            "error should name the real cause, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn writer_survives_a_failed_write() {
+        let (catalog, _dir) = test_catalog();
+
+        let _ = catalog.write(WriteOp::Custom(Box::new(|conn| {
+            conn.execute("INSERT INTO nope VALUES (1)", [])?;
+            Ok(())
+        })));
+
+        // One bad write must not poison the writer thread for everything after.
+        catalog
+            .write(WriteOp::SetSetting("still".into(), "working".into()))
+            .unwrap();
+        assert_eq!(
+            catalog.get_setting("still").unwrap(),
+            Some("working".to_string())
+        );
     }
 
     #[test]
     fn insert_photo_and_query() {
-        let catalog = test_catalog();
+        let (catalog, _dir) = test_catalog();
         let photo = PhotoInsert {
             file_path: "/tmp/test.jpg".into(),
             relative_path: "test.jpg".into(),
@@ -448,7 +502,6 @@ mod tests {
             thumbnail_path: None,
         };
         catalog.write(WriteOp::InsertPhoto(photo)).unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
 
         let (photos, total) = catalog.get_photos(0, 10, false).unwrap();
         assert_eq!(total, 1);
@@ -458,7 +511,7 @@ mod tests {
 
     #[test]
     fn get_photos_empty() {
-        let catalog = test_catalog();
+        let (catalog, _dir) = test_catalog();
         let (photos, total) = catalog.get_photos(0, 10, false).unwrap();
         assert_eq!(total, 0);
         assert!(photos.is_empty());
@@ -466,15 +519,78 @@ mod tests {
 
     #[test]
     fn get_all_tags_empty() {
-        let catalog = test_catalog();
+        let (catalog, _dir) = test_catalog();
         let tags = catalog.get_all_tags().unwrap();
         assert!(tags.is_empty());
     }
 
     #[test]
     fn search_text_empty() {
-        let catalog = test_catalog();
+        let (catalog, _dir) = test_catalog();
         let results = catalog.search_text("dog", 10).unwrap();
         assert!(results.is_empty());
+    }
+
+    fn insert_named(catalog: &Catalog, relative_path: &str, hash: u8) {
+        catalog
+            .write(WriteOp::InsertPhoto(PhotoInsert {
+                file_path: format!("/tmp/{relative_path}"),
+                relative_path: relative_path.into(),
+                watched_folder_id: None,
+                file_hash: vec![hash],
+                file_size: 1,
+                width: 1,
+                height: 1,
+                taken_at: None,
+                camera_make: None,
+                camera_model: None,
+                source_device: None,
+                original_name: None,
+                thumbnail_path: None,
+            }))
+            .unwrap();
+    }
+
+    #[test]
+    fn search_treats_percent_as_a_literal_not_a_wildcard() {
+        let (catalog, _dir) = test_catalog();
+        insert_named(&catalog, "battery 100% charged.jpg", 1);
+        insert_named(&catalog, "sunset.jpg", 2);
+        insert_named(&catalog, "dog.jpg", 3);
+
+        // Before escaping, "%" was a LIKE wildcard and this returned everything.
+        let results = catalog.search_text("%", 50).unwrap();
+        assert_eq!(
+            results.len(),
+            1,
+            "searching for '%' should match only the photo containing a literal %"
+        );
+        assert_eq!(results[0].relative_path, "battery 100% charged.jpg");
+    }
+
+    #[test]
+    fn search_treats_underscore_as_a_literal_not_a_wildcard() {
+        let (catalog, _dir) = test_catalog();
+        insert_named(&catalog, "my_photo.jpg", 1);
+        insert_named(&catalog, "myXphoto.jpg", 2);
+
+        let results = catalog.search_text("my_photo", 50).unwrap();
+        assert_eq!(
+            results.len(),
+            1,
+            "'_' should match a literal underscore, not any character"
+        );
+        assert_eq!(results[0].relative_path, "my_photo.jpg");
+    }
+
+    #[test]
+    fn search_still_matches_normally() {
+        let (catalog, _dir) = test_catalog();
+        insert_named(&catalog, "brown dog on couch.jpg", 1);
+        insert_named(&catalog, "sunset.jpg", 2);
+
+        let results = catalog.search_text("dog", 50).unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].relative_path, "brown dog on couch.jpg");
     }
 }

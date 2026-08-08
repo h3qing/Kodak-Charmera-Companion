@@ -2,6 +2,7 @@
 name = "charmera-cli"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 description = "CLI for Kodak Charmera Companion photo organizer"
 
@@ -15,7 +16,6 @@ clap = { version = "4", features = ["derive"] }
 clap_complete = "4"
 image = "0.25"
 serde_json = { workspace = true }
-tokio = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

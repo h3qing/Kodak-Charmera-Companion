@@ -19,8 +19,7 @@ pub fn generate_thumbnail(source: &Path, cache_dir: &Path, file_hash: &[u8]) -> 
     }
 
     // Decode, resize immediately, then drop the full image to free memory
-    let img =
-        image::open(source).with_context(|| format!("opening image: {}", source.display()))?;
+    let img = crate::imageio::open_limited(source)?;
     // Use Triangle filter (fast, low memory) instead of Lanczos3
     let thumb = img.resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, FilterType::Triangle);
     drop(img); // Free the full-resolution pixel buffer immediately
@@ -36,12 +35,7 @@ pub fn generate_thumbnail(source: &Path, cache_dir: &Path, file_hash: &[u8]) -> 
 
 /// Get image dimensions without decoding the full image.
 pub fn get_image_dimensions(path: &Path) -> Result<(u32, u32)> {
-    let reader =
-        image::ImageReader::open(path).with_context(|| format!("opening: {}", path.display()))?;
-    let (w, h) = reader
-        .into_dimensions()
-        .with_context(|| format!("reading dimensions: {}", path.display()))?;
-    Ok((w, h))
+    crate::imageio::dimensions(path)
 }
 
 fn hex_prefix(hash: &[u8]) -> String {

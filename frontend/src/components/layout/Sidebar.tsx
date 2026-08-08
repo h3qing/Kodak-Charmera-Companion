@@ -1,4 +1,4 @@
-import { Show } from "solid-js";
+import { For, Show } from "solid-js";
 import type { View } from "../../App";
 import type { AiStatus } from "../../lib/tauri";
 
@@ -91,6 +91,8 @@ function SectionLabel(props: { label: string }) {
 }
 
 export default function Sidebar(props: SidebarProps) {
+  const aiReady = () => props.aiStatus?.available === true;
+
   return (
     <nav class="w-56 h-full flex flex-col bg-kodak-cream border-r border-kodak-cream-dark shrink-0" aria-label="Main navigation">
       {/* Logo */}
@@ -111,69 +113,76 @@ export default function Sidebar(props: SidebarProps) {
       {/* Navigation */}
       <nav class="flex-1 overflow-auto px-2 py-1">
         <SectionLabel label="Library" />
-        {libraryItems.map((item) => {
-          const badge = item.id === "all-photos" && props.photoCount > 0
-            ? String(props.photoCount)
-            : item.id === "recent" && props.recentCount > 0
-            ? String(props.recentCount)
-            : item.badge;
-          return (
+        {/* .map() in the component body reads props once, outside any tracking
+            scope, so the counts were baked in as undefined forever. <For> plus
+            a badge computed inside JSX keeps them reactive. */}
+        <For each={libraryItems}>
+          {(item) => (
             <NavButton
-              item={{ ...item, badge }}
+              item={{
+                ...item,
+                get badge() {
+                  if (item.id === "all-photos" && props.photoCount > 0) return String(props.photoCount);
+                  if (item.id === "recent" && props.recentCount > 0) return String(props.recentCount);
+                  return item.badge;
+                },
+              }}
               active={props.currentView === item.id}
               onClick={() => props.onNavigate(item.id)}
             />
-          );
-        })}
+          )}
+        </For>
 
         <SectionLabel label="Organize" />
-        {organizeItems.map((item) => (
-          <NavButton
-            item={item}
-            active={props.currentView === item.id}
-            onClick={() => props.onNavigate(item.id)}
-          />
-        ))}
+        <For each={organizeItems}>
+          {(item) => (
+            <NavButton
+              item={item}
+              active={props.currentView === item.id}
+              onClick={() => props.onNavigate(item.id)}
+            />
+          )}
+        </For>
 
-        {/* AI Auto-Label */}
-        <Show when={props.aiStatus?.available}>
-          <div class="px-1 py-2">
-            <button
-              onClick={props.onAutoLabel}
-              disabled={props.isLabeling}
-              class={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all ${
-                props.isLabeling
-                  ? "bg-kodak-yellow/30 text-kodak-yellow-dark cursor-wait"
-                  : "bg-kodak-yellow text-white hover:bg-kodak-yellow-dark cursor-pointer"
-              }`}
+        {/* AI Auto-Label — always rendered. Hiding the app's core feature when
+            AI is unavailable left the user with nothing to click and no reason
+            why; disabled + the backend's reason string is actionable. */}
+        <div class="px-1 py-2">
+          <button
+            onClick={props.onAutoLabel}
+            disabled={props.isLabeling || !aiReady()}
+            aria-describedby={aiReady() ? undefined : "ai-unavailable-reason"}
+            class={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all ${
+              !aiReady()
+                ? "bg-kodak-cream-dark/60 text-kodak-warm-gray cursor-not-allowed"
+                : props.isLabeling
+                ? "bg-kodak-yellow/30 text-kodak-yellow-dark cursor-wait"
+                : "bg-kodak-yellow text-kodak-charcoal hover:bg-kodak-yellow-dark cursor-pointer"
+            }`}
+          >
+            <Show
+              when={!props.isLabeling}
+              fallback={
+                <span class="w-4 h-4 border-2 border-kodak-yellow-dark border-t-transparent rounded-full animate-spin" />
+              }
             >
-              <Show
-                when={!props.isLabeling}
-                fallback={
-                  <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                }
-              >
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
-                </svg>
-              </Show>
-              <span class="font-medium">
-                {props.isLabeling ? "Labeling..." : "Auto Label Photos"}
-              </span>
-            </button>
-            <Show when={props.labelStatus && !props.isLabeling}>
-              <p class="text-[10px] text-kodak-warm-gray mt-1 px-3">{props.labelStatus}</p>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+              </svg>
             </Show>
-          </div>
-        </Show>
-
-        <SectionLabel label="Albums" />
-        <button class="w-full flex items-center gap-2 px-3 py-2 text-sm text-kodak-warm-gray hover:text-kodak-yellow-dark transition-colors rounded-lg">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4" />
-          </svg>
-          <span>New Album</span>
-        </button>
+            <span class="font-medium">
+              {props.isLabeling ? "Labeling..." : "Auto Label Photos"}
+            </span>
+          </button>
+          <Show when={!aiReady()}>
+            <p id="ai-unavailable-reason" class="text-[10px] text-kodak-warm-gray mt-1 px-3 leading-snug">
+              {props.aiStatus?.reason ?? "Checking for a local AI model…"}
+            </p>
+          </Show>
+          <Show when={props.labelStatus && !props.isLabeling}>
+            <p class="text-[10px] text-kodak-warm-gray mt-1 px-3">{props.labelStatus}</p>
+          </Show>
+        </div>
 
         <SectionLabel label="Camera" />
         {/* Import buttons */}
@@ -206,13 +215,15 @@ export default function Sidebar(props: SidebarProps) {
             <span>Add Folder</span>
           </button>
         </div>
-        {cameraItems.map((item) => (
-          <NavButton
-            item={item}
-            active={props.currentView === item.id}
-            onClick={() => props.onNavigate(item.id)}
-          />
-        ))}
+        <For each={cameraItems}>
+          {(item) => (
+            <NavButton
+              item={item}
+              active={props.currentView === item.id}
+              onClick={() => props.onNavigate(item.id)}
+            />
+          )}
+        </For>
       </nav>
 
       {/* Settings button at bottom */}

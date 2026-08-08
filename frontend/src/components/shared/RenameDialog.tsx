@@ -1,4 +1,4 @@
-import { createSignal, For, Show, onMount } from "solid-js";
+import { createEffect, createSignal, For, Show, on, onMount } from "solid-js";
 import { getThumbnailBase64, type RenameProposal } from "../../lib/tauri";
 
 interface RenameDialogProps {
@@ -11,15 +11,24 @@ export default function RenameDialog(props: RenameDialogProps) {
   const [selections, setSelections] = createSignal<Map<number, { checked: boolean; name: string }>>(
     new Map()
   );
-  const [namingPattern, setNamingPatternLocal] = createSignal("b {MM}-{DD}-{YYYY} {content}");
+  const [namingPattern, setNamingPatternLocal] = createSignal("{YYYY}-{MM}-{DD} {content}");
 
-  onMount(() => {
-    const initial = new Map<number, { checked: boolean; name: string }>();
-    for (const p of props.proposals) {
-      initial.set(p.id, { checked: true, name: p.proposed_name });
-    }
-    setSelections(initial);
-  });
+  // Seeding once in onMount meant that when triggerRenameDialog() pushed a new
+  // batch of proposals into a dialog that was still mounted, handleConfirm kept
+  // iterating the previous batch's map — the user saw one list and renamed
+  // another. Reseed whenever the proposals change.
+  createEffect(
+    on(
+      () => props.proposals,
+      (proposals) => {
+        const next = new Map<number, { checked: boolean; name: string }>();
+        for (const p of proposals) {
+          next.set(p.id, { checked: true, name: p.proposed_name });
+        }
+        setSelections(next);
+      }
+    )
+  );
 
   onMount(async () => {
     try {
@@ -130,10 +139,10 @@ export default function RenameDialog(props: RenameDialogProps) {
               value={namingPattern()}
               onInput={(e) => handlePatternChange(e.currentTarget.value)}
               class="flex-1 text-sm px-3 py-1.5 rounded-lg border border-kodak-cream-dark bg-white focus:outline-none focus:ring-2 focus:ring-kodak-yellow/40 font-mono"
-              placeholder="b {MM}-{DD}-{YYYY} {content}"
+              placeholder="{YYYY}-{MM}-{DD} {content}"
             />
             <button
-              onClick={() => handlePatternChange("b {MM}-{DD}-{YYYY} {content}")}
+              onClick={() => handlePatternChange("{YYYY}-{MM}-{DD} {content}")}
               class="text-xs px-2 py-1.5 text-kodak-warm-gray hover:text-kodak-yellow-dark transition-colors"
               title="Reset to default"
             >
@@ -196,7 +205,7 @@ export default function RenameDialog(props: RenameDialogProps) {
           <button
             onClick={handleConfirm}
             disabled={selectedCount() === 0}
-            class="px-5 py-2 bg-kodak-yellow hover:bg-kodak-yellow-dark disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-colors"
+            class="px-5 py-2 bg-kodak-yellow hover:bg-kodak-yellow-dark disabled:opacity-40 text-kodak-charcoal text-sm font-semibold rounded-lg transition-colors"
           >
             Rename {selectedCount()} Files
           </button>

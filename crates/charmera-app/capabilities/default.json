@@ -1,14 +1,11 @@
 {
   "identifier": "default",
-  "description": "Default capabilities for the main window",
-  "windows": ["*"],
+  "description": "Capabilities for the main window. Kept minimal on purpose: the webview only needs to open native file/folder pickers. All filesystem reads and writes happen in Rust, behind commands that validate their paths.",
+  "windows": ["main"],
   "permissions": [
     "core:default",
     "dialog:default",
     "dialog:allow-save",
-    "dialog:allow-open",
-    "fs:default",
-    "fs:allow-write-text-file",
-    "fs:allow-read-text-file"
+    "dialog:allow-open"
   ]
 }
