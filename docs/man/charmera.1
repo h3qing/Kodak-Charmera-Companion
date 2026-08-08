@@ -1,4 +1,4 @@
-.TH CHARMERA 1 "March 2026" "v0.3.2" "Charmera Companion"
+.TH CHARMERA 1 "August 2026" "v0.6.0" "Charmera Companion"
 .SH NAME
 charmera \- AI photo organizer for keychain cameras
 .SH SYNOPSIS
@@ -11,10 +11,17 @@ Charmera Companion is a photo organizer with local AI for KODAK CHARMERA and oth
 It imports, labels, and renames photos using a local vision model (Ollama).
 .PP
 All processing happens locally. No cloud, no API keys, no subscriptions.
+.PP
+Commands that call the AI (\fBlabel\fR, \fBrename\fR, \fBbatch\-label\fR) require a
+running Ollama instance with a vision model pulled, for example
+.BR "ollama pull moondream" .
+Every other command works without it.
 .SH COMMANDS
 .TP
-\fBimport\fR [\fIsource\fR]
-Import photos from camera or folder. Auto-detects camera if source omitted.
+\fBimport\fR [\fIsource\fR] [\fB\-d\fR \fIdest\fR] [\fB\-\-move\fR] [\fB\-n\fR]
+Copy photos off a camera or folder into a destination directory.
+Auto\-detects the camera if \fIsource\fR is omitted.
+Files already present at the destination are skipped, never overwritten.
 .TP
 \fBlist\fR [\fIsource\fR]
 List photos on connected camera.
@@ -23,9 +30,9 @@ List photos on connected camera.
 Label a single photo using local AI. Returns description and tags.
 .TP
 \fBrename\fR \fIphoto\fR [\fB\-p\fR \fIpattern\fR] [\fB\-\-dry\-run\fR]
-AI-label and rename a photo in one step. Default pattern: b {MM}-{DD}-{YYYY} {content}.
+AI\-label and rename a photo in one step. Default pattern: {YYYY}\-{MM}\-{DD} {content}.
 .TP
-\fBbatch-label\fR \fIfolder\fR [\fB\-\-rename\fR] [\fB\-\-dry\-run\fR]
+\fBbatch\-label\fR \fIfolder\fR [\fB\-m\fR \fImodel\fR] [\fB\-\-rename\fR] [\fB\-p\fR \fIpattern\fR] [\fB\-\-dry\-run\fR]
 Label all photos in a folder. With \fB\-\-rename\fR, renames files using AI descriptions.
 .TP
 \fBinfo\fR \fIphoto\fR
@@ -42,30 +49,61 @@ Generate shell completions (bash, zsh, fish, powershell).
 .TP
 \fBsplash\fR \fIphoto\fR [\fB\-\-install\fR]
 Create a 960x720 boot splash screen for the camera.
+With \fB\-\-install\fR, writes it straight to the camera's SPIDCIM directory.
 .SH OPTIONS
 .TP
 \fB\-\-json\fR
-Output results as JSON (for AI agents and automation).
+Output results as JSON (for AI agents and automation). Accepted by every command.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help. Use \fBcharmera\fR \fIcommand\fR \fB\-\-help\fR for per\-command options.
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version.
+.SH IMPORT OPTIONS
+.TP
+\fB\-d\fR, \fB\-\-dest\fR \fIdir\fR
+Destination directory, created if missing. Default: ./imported
+.TP
+\fB\-\-move\fR
+Move files instead of copying them, freeing space on the SD card.
+.TP
+\fB\-n\fR, \fB\-\-dry\-run\fR
+Show what would be copied without writing anything.
 .SH NAMING PATTERN TOKENS
 .TP
 {MM}
-Month (zero-padded)
+Month (zero\-padded)
 .TP
 {DD}
-Day (zero-padded)
+Day (zero\-padded)
 .TP
 {YYYY}
 Year
 .TP
 {content}
-AI-generated description (first sentence, sanitized)
+AI\-generated description (first clause, sanitized, max 30 characters)
 .TP
 {counter}
-Zero-padded sequence number
+Zero\-padded sequence number (three digits)
 .TP
 {original}
 Original filename without extension
+.PP
+The default pattern is
+.BR "{YYYY}-{MM}-{DD} {content}" ,
+which sorts chronologically in a file manager.
 .SH EXAMPLES
+.PP
+Copy everything off the camera into ./imported:
+.RS
+charmera import
+.RE
+.PP
+Move photos into a specific folder, previewing first:
+.RS
+charmera import \-\-dest ~/Pictures/charmera \-\-move \-\-dry\-run
+.RE
 .PP
 Label a photo:
 .RS
@@ -74,7 +112,12 @@ charmera label photo.jpg \-\-json
 .PP
 Rename all photos in a folder:
 .RS
-charmera batch-label ./vacation/ \-\-rename
+charmera batch\-label ./vacation/ \-\-rename
+.RE
+.PP
+Check that the camera and AI model are both visible:
+.RS
+charmera status
 .RE
 .SH FILES
 .TP
@@ -86,6 +129,17 @@ Local copies of imported photos
 .TP
 ~/.charmera/thumbnails/
 256px thumbnail cache
+.SH ENVIRONMENT
+.TP
+.B RUST_LOG
+Log filter, e.g. \fBRUST_LOG=charmera=debug\fR. Defaults to \fBcharmera=info\fR.
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+Failure: file not found, no camera detected, Ollama unreachable, or a rename target already exists.
 .SH SEE ALSO
 .BR ollama (1)
 .SH BUGS
