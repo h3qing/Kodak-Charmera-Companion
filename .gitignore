@@ -1,4 +1,9 @@
+# macOS. An unanchored pattern matches at every depth, so this already covers
+# docs/.DS_Store, .github/.DS_Store, etc. Files committed *before* the ignore
+# rule existed stay tracked — untrack them once with:
+#   git rm --cached -r --ignore-unmatch '*.DS_Store'
 .DS_Store
+
 .claude/
 __pycache__/
 *.pyc
@@ -20,6 +25,9 @@ processed/
 frontend/node_modules/
 frontend/dist/
 frontend/.cursor/
+
+# Release packaging staging dir (see .github/workflows/release.yml)
+/dist/
 
 # Tauri generated
 crates/charmera-app/gen/
