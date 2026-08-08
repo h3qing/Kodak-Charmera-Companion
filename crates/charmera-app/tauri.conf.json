@@ -31,7 +31,8 @@
     "targets": ["dmg", "app"],
     "icon": [
       "icons/icon.png",
-      "icons/icon.icns"
+      "icons/icon.icns",
+      "icons/icon.ico"
     ],
     "category": "public.app-category.photography",
     "macOS": {

@@ -184,12 +184,6 @@ jobs:
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version "^2" --locked
 
-      # tauri.conf.json ships no .ico; WiX needs one for the MSI.
-      - name: Generate Windows icons
-        if: runner.os == 'Windows'
-        shell: bash
-        run: cargo tauri icon crates/charmera-app/icons/icon-512.png -o crates/charmera-app/icons
-
       # `--bundles` overrides tauri.conf.json's macOS-only ["dmg", "app"].
       # `--config` blanks beforeBuildCommand since the frontend is already built.
       #
